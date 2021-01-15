@@ -10,8 +10,8 @@
 	// O Marksman Bonus 		- Kill an enemy by shooting their head with a Sniper Rifle over a long distance (25)
 	// O Kill Assist 			- Damage an enemy and allow a teammate to kill them. Score earned depends on the damage inflicted (1-75)
 	// O Assist Counts as Kill 	- Greatly damage an enemy and allow a teammate to kill them. Your assist will count as a kill (76-99)
-	// O Comeback Bonus 		- Kill an enemy after a four death streak. Each death after four will add another 10 to the score (40+)
-	// O Killstreak Stopped 	- Kill an enemy after they reach a four killstreak. Each kill after four will add another 10 to the score (40+)
+	// X Comeback Bonus 		- Kill an enemy after a four death streak. Each death after four will add another 10 to the score (40+)
+	// X Killstreak Stopped 	- Kill an enemy after they reach a four killstreak. Each kill after four will add another 10 to the score (40+)
 	// O Avenger Bonus 			- Kill an enemy who recently killed your teammate (25)
 	// O Savior Bonus 			- Kill an enemy who is currently injuring or suppressing your teammate (25)
 	// X Squad Wiped 			- Kill the last surviving member of an enemy squad (50)
@@ -126,8 +126,6 @@ enum _:E_AMMO_IDS
 };
 #pragma semicolon	1
 
-// #define set_mp_pdata(%1,%2)  ( OrpheuMemorySetAtAddress( g_pGameRules, GameRulesMI[ %1 ], 1, %2 ) )
-// #define get_mp_pdata(%1)     ( OrpheuMemoryGetAtAddress( g_pGameRules, GameRulesMI[ %1 ] ) )
 #define ITEM_OWNER pev_iuser1
 #define ITEM_TEAM  pev_iuser2
 
@@ -198,6 +196,25 @@ new const g_szAmmoNames[E_AMMO_IDS][] = {
 	"50ae",
 	"357sig",
 	"9mm"
+};
+
+new const g_points[E_BF4_RANK] =
+{
+	25,	// MARKSMAN
+	25,	// HEADSHOT
+	0,	// ASSAULT RIFLE
+	0,	// SNIPER RIFLE
+	0,	// LMG
+	0,	// DMR
+	0,	// SMG
+	0,	// SHOTGUN
+	0,	// MELEE
+	0,	// KILL ASSIST (0 - 100)
+	25,	// AVENGER
+	25,	// SAVIOR
+	0,	// MVP
+	15,	// MEDIKIT
+	15,	// AMMO SUPLY
 };
 
 new const g_Ribbons[E_BF4_RANK][E_RANK_PARAM] = 
@@ -370,10 +387,10 @@ public plugin_core()
 		);
 		g_dbConnect = SQL_Connect(g_dbTaple, ercode, error, charsmax(error));
 		if (g_dbConnect == Empty_Handle)
-			server_print("%s Error No.%d: %s", g_ChatPrefix, ercode, error);
+			server_print("[BF4Ranks Addon]  Error No.%d: %s", ercode, error);
 		else 
 		{
-			server_print("%s[BF4Ranks Addon] Connecting successful.", g_ChatPrefix);
+			server_print("[BF4Ranks Addon] Connecting successful.");
 			init_database();
 		}
 	}
@@ -787,8 +804,8 @@ stock RibbonCheckAvenger(const iAttacker, const iVictim)
 	if (g_avenger[iAttacker] == iVictim)
 	{
 		set_hudmessage(255, 255, 255, -1.00, -0.25, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
-		show_hudmessage(iAttacker, "+25 Avenger kill");
-		crxranks_give_user_xp(iAttacker, 25);
+		show_hudmessage(iAttacker, "+%d Avenger kill", g_points[BF4_RNK_AVENGER]);
+		crxranks_give_user_xp(iAttacker, g_points[BF4_RNK_AVENGER]);
 
 		g_ribbon_score_count[iAttacker][BF4_RNK_AVENGER]++;
 		if ((g_ribbon_score_count[iAttacker][BF4_RNK_AVENGER] % g_Ribbons[BF4_RNK_AVENGER][RBN_KILL]) == 0)
@@ -808,8 +825,8 @@ stock RibbonCheckSavior(const iAttacker, const iVictim, const Float:time)
 			if (time - g_savior[iVictim][SV_TIME] < 1.2)
 			{
 				set_hudmessage(255, 255, 255, -1.00, -0.25, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
-				show_hudmessage(iAttacker, "+25 Savior kill");
-				crxranks_give_user_xp(iAttacker, 25);
+				show_hudmessage(iAttacker, "+%d Savior kill", g_points[BF4_RNK_SAVIOR]);
+				crxranks_give_user_xp(iAttacker, g_points[BF4_RNK_SAVIOR]);
 
 				g_ribbon_score_count[iAttacker][BF4_RNK_SAVIOR]++;
 				if ((g_ribbon_score_count[iAttacker][BF4_RNK_SAVIOR] % g_Ribbons[BF4_RNK_SAVIOR][RBN_KILL]) == 0)
@@ -907,7 +924,6 @@ stock RibbonCheckAssist(const iAttacker, const iVictim)
 					show_hudmessage(i, "+%d Assist Kill.", crxranks_get_xp_reward(i, "kill"));
 					crxranks_give_user_xp(i, crxranks_get_xp_reward(i, "kill"));
 				}
-				g_assist[i][iVictim] = 0.0;
 				g_ribbon_score_count[i][BF4_RNK_ASSIST]++;
 				if ((g_ribbon_score_count[i][BF4_RNK_ASSIST] % g_Ribbons[BF4_RNK_ASSIST][RBN_KILL]) == 0)
 					TriggerGetRibbon(i, BF4_RNK_ASSIST);
@@ -1319,8 +1335,8 @@ public BF4ObjectThink(iEnt)
 									if (owner != entity)
 									{
 										set_hudmessage(255, 255, 255, -1.00, -0.25, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
-										show_hudmessage(owner, "+%d Mate Healing.", 15);
-										crxranks_give_user_xp(owner, 15);
+										show_hudmessage(owner, "+%d Mate Healing.", g_points[BF4_RNK_MEDIKIT]);
+										crxranks_give_user_xp(owner, g_points[BF4_RNK_MEDIKIT]);
 										g_ribbon_score_count[owner][BF4_RNK_MEDIKIT]++;
 										if ((g_ribbon_score_count[owner][BF4_RNK_MEDIKIT] % g_Ribbons[BF4_RNK_MEDIKIT][RBN_KILL]) == 0)
 											TriggerGetRibbon(owner, BF4_RNK_MEDIKIT);										
@@ -1349,8 +1365,8 @@ public BF4ObjectThink(iEnt)
 									if (owner != entity)
 									{
 										set_hudmessage(255, 255, 255, -1.00, -0.25, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
-										show_hudmessage(owner, "+%d Mate Resupplying.", 15);
-										crxranks_give_user_xp(owner, 15);
+										show_hudmessage(owner, "+%d Mate Resupplying.", g_points[BF4_RNK_AMMOBOX]);
+										crxranks_give_user_xp(owner, g_points[BF4_RNK_AMMOBOX]);
 										g_ribbon_score_count[owner][BF4_RNK_AMMOBOX]++;
 										if ((g_ribbon_score_count[owner][BF4_RNK_AMMOBOX] % g_Ribbons[BF4_RNK_AMMOBOX][RBN_KILL]) == 0)
 											TriggerGetRibbon(owner, BF4_RNK_AMMOBOX);
