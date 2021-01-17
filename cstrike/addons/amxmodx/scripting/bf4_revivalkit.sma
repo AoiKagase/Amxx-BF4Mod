@@ -6,6 +6,7 @@
 #include <fakemeta>
 #include <hamsandwich>
 #include <xs>
+#include <bf4natives>
 
 //=====================================
 //  VERSION CHECK
@@ -213,11 +214,15 @@ public client_putinserver(id)
 
 public client_disconnected(id)
 {
+	player_reset(id);
 	new ent;
 	while ((ent = engfunc(EngFunc_FindEntityByString, ent, "classname", ENTITY_CLASS_NAME[CORPSE])))
 	{
-		if (pev(ent, pev_owner) == id)
-			engfunc(EngFunc_RemoveEntity, ent);
+		if (pev_valid(ent))
+		{
+			if (pev(ent, pev_owner) == id)
+				engfunc(EngFunc_RemoveEntity, ent);
+		}
 	}
 }
 
@@ -279,26 +284,37 @@ public PlayerDie(taskid)
 	new Float:time = (get_gametime() - g_player_data[id][DEAD_LINE]);
 	new Float:remaining = 0.0;
 	new bar[31] = "";
-	if (!is_user_alive(id))
-	if (time < g_cvars[REVIVAL_DEATH_TIME])
+
+	if (!is_user_connected(id))
 	{
-		remaining = g_cvars[REVIVAL_DEATH_TIME] - time;
-		show_time_bar(100 / GUAGE_MAX, floatround(remaining * 100.0 / float(g_cvars[REVIVAL_DEATH_TIME]), floatround_ceil), bar);
-		new timestr[6];
-		get_time_format(remaining, timestr, charsmax(timestr));
-		set_hudmessage(255, 50, 100, -1.00, -1.00, .effects= 0 , .holdtime= 0.1);
-		ShowSyncHudMsg(id, g_sync_obj, "Possible resurrection time remaining: ^n%s^n[%s]", timestr, bar);
-	}
-	else
-	{
-		remove_target_entity(id, ENTITY_CLASS_NAME[CORPSE]);
 		player_reset(id);
-//		remove_weaponbox(id);
-		ExecuteHamB(Ham_CS_RoundRespawn, id);
-		remove_task(taskid);
+		return PLUGIN_CONTINUE;
+	}
+
+	if (!is_user_alive(id))
+	{
+		if (time < g_cvars[REVIVAL_DEATH_TIME])
+		{
+			remaining = g_cvars[REVIVAL_DEATH_TIME] - time;
+			show_time_bar(100 / GUAGE_MAX, floatround(remaining * 100.0 / float(g_cvars[REVIVAL_DEATH_TIME]), floatround_ceil), bar);
+			new timestr[6];
+			get_time_format(remaining, timestr, charsmax(timestr));
+			set_hudmessage(255, 50, 100, -1.00, -1.00, .effects= 0 , .holdtime= 0.1);
+			ShowSyncHudMsg(id, g_sync_obj, "Possible resurrection time remaining: ^n%s^n[%s]", timestr, bar);
+		}
+		else
+		{
+			remove_target_entity(id, ENTITY_CLASS_NAME[CORPSE]);
+			ExecuteHamB(Ham_CS_RoundRespawn, id);
+			player_reset(id);
+	//		remove_weaponbox(id);
+		}
 	}
 	else
+	{
 		remove_task(taskid);
+	}
+	return PLUGIN_CONTINUE;
 }
 
 stock show_time_bar(oneper, percent, bar[])
@@ -480,6 +496,7 @@ public TaskRevive(taskid)
 	{
 		if(findemptyloc(body, 10.0))
 		{
+			BF4ReviveBonus(id);
 			set_pev(body, pev_flags, pev(body, pev_flags) | FL_KILLME);			
 			emit_sound(id, CHAN_AUTO, ENT_SOUNDS[SOUND_FINISHED], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 			set_task(0.1, "TaskReSpawn", TASKID_RESPAWN + target);

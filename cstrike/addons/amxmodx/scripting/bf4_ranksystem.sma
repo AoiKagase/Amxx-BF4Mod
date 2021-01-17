@@ -35,6 +35,7 @@
 #include <sqlx>
 #include <nvault>
 #include <reapi>
+#include <bf4natives>
 
 #define UnitsToMeters(%1)	(%1*0.0254)
 #define BF4_VAULT			"BF4Ranks"
@@ -46,19 +47,19 @@
 #define AUTHER				"Aoi.Kagase"
 enum _:E_BF4_RANK_CVARS
 {
-	CV_TEST
+	E_CV_REWARD
 };
 
 enum _:E_BF4_TYPE
 {
-	TYPE_RIBBON,
+	TYPE_RIBBON			= 0,
 	TYPE_MEDAL,
 	TYPE_MAX
 };
 
 enum _:E_BF4_RANK
 {
-	BF4_RNK_MARKSMAN,
+	BF4_RNK_MARKSMAN 	= 0,
 	BF4_RNK_HEADSHOT,
 	BF4_RNK_PISTOL	,
 	BF4_RNK_ASSAULT ,
@@ -76,6 +77,9 @@ enum _:E_BF4_RANK
 	BF4_RNK_MVP		,
 	BF4_RNK_MEDIKIT	,
 	BF4_RNK_AMMOBOX	,
+	BF4_RNK_REVIVE	, 
+	BF4_RNK_CTF_CAP	,
+	BF4_RNK_CTF_WIN	,
 	BF4_RNK_MAX
 };
 
@@ -99,7 +103,7 @@ enum _:BF4_MSGID
 
 enum _:E_BF4_OBJECT_MENU
 {
-	E_HEALTH_KIT,
+	E_HEALTH_KIT	= 0,
 	E_AMMO_BOX,
 	E_REVIVAL_KIT,
 };
@@ -202,6 +206,7 @@ new const g_points[E_BF4_RANK] =
 {
 	25,	// MARKSMAN
 	25,	// HEADSHOT
+	0,	// HANDGUN,
 	0,	// ASSAULT RIFLE
 	0,	// SNIPER RIFLE
 	0,	// LMG
@@ -215,6 +220,10 @@ new const g_points[E_BF4_RANK] =
 	0,	// MVP
 	15,	// MEDIKIT
 	15,	// AMMO SUPLY
+	70,	// Revive
+	400,// CTF Capture
+	0,	// CTF Win
+	0,
 };
 
 new const g_Ribbons[E_BF4_RANK][E_RANK_PARAM] = 
@@ -237,6 +246,9 @@ new const g_Ribbons[E_BF4_RANK][E_RANK_PARAM] =
 	{TYPE_RIBBON, BF4_RNK_MVP,		"MVP RIBBON", 			"rbn_mvp",		1,	200},
 	{TYPE_RIBBON, BF4_RNK_MEDIKIT,	"MEDIKIT RIBBON",		"rbn_medikit",	8,	200},
 	{TYPE_RIBBON, BF4_RNK_AMMOBOX,	"AMMO RIBBON",			"rbn_ammo",		8,	200},
+	{TYPE_RIBBON, BF4_RNK_REVIVE,	"DEFIBRILLATOR RIBBON",	"rbn_rivive",	5,	200},
+	{TYPE_RIBBON, BF4_RNK_CTF_CAP,	"FLAG CAPTURE RIBBON",	"rbn_ctf1",		2,	200},
+	{TYPE_RIBBON, BF4_RNK_CTF_WIN,	"CTF RIBBON",			"rbn_ctf2",		1,	1500},
 	{}//MAX
 };
 
@@ -260,6 +272,9 @@ new const g_Medals[E_BF4_RANK][E_RANK_PARAM] =
 	{TYPE_MEDAL, BF4_RNK_MVP,		"MVP MEDAL", 			"mdl_mvp",		50,	5000},
 	{TYPE_MEDAL, BF4_RNK_MEDIKIT,	"MEDIKIT MEDAL",		"mdl_medikit",	50,	5000},
 	{TYPE_MEDAL, BF4_RNK_AMMOBOX,	"AMMO MEDAL",			"mdl_ammo",		50,	5000},
+	{TYPE_MEDAL, BF4_RNK_REVIVE,	"DEFIBRILLATOR MEDAL",	"mdl_rivive",	50,	5000},
+	{TYPE_MEDAL, BF4_RNK_CTF_CAP,	"FLAG CAPTURE MEDAL",	"mdl_ctf1",		50,	5000},
+	{TYPE_MEDAL, BF4_RNK_CTF_WIN,	"CTF MEDAL",			"mdl_ctf2",		50,	5000},
 	{} //MAX
 };
 
@@ -302,7 +317,7 @@ const CSW_BF4_GUNS			=( CSW_BF4_PISTOLS
 							|  CSW_BF4_LMGS);
 
 new g_get_ribbon_id			[MAX_PLAYERS + 1][E_RANK_PARAM];
-// new g_cvar					[E_BF4_RANK_CVARS];
+new g_cvars					[E_BF4_RANK_CVARS];
 new Float:g_assist			[MAX_PLAYERS + 1][MAX_PLAYERS + 1];	//damage[Attacker][Victim]
 new g_savior				[MAX_PLAYERS + 1][E_SAVIOR];
 new g_avenger				[MAX_PLAYERS + 1];
@@ -321,6 +336,7 @@ new g_sound					[][] =
 new g_sync_obj;
 
 new Array:g_QueScoreEffect	[MAX_PLAYERS + 1];
+new g_authids				[MAX_PLAYERS + 1][MAX_AUTHID_LENGTH];
 
 enum BF4_WEAPONCLASS
 {
@@ -476,7 +492,7 @@ public plugin_init()
 {
 	register_plugin		("BF4 Rank System (CRX Addon)", "0.01", "Aoi.Kagase", "github.com/AoiKagase", "BF4 Ribbon");
 	create_cvar			("BF4 Rank System", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
-
+	bind_pcvar_num		(create_cvar("bf4_spawn_reward", "1600"), g_cvars[E_CV_REWARD]);
 	register_clcmd		("say /bf4", "BF4ObjectMenu");
 	register_clcmd		("bf4menu", "BF4ObjectMenu");
 
@@ -489,6 +505,7 @@ public plugin_init()
     register_event_ex	("TeamInfo", 		"BF4JoinTeam", 			RegisterEvent_Global);   
 
 	RegisterHam(Ham_Think, ENT_CLASS_BREAKABLE, "BF4ObjectThink");
+
 	g_MsgIds[MSGID_WEAPON_LIST] = get_user_msgid("WeaponList");
 	g_MsgIds[MSGID_SET_FOV] 	= get_user_msgid("SetFOV");
 	g_MsgIds[MSGID_CUR_WEAPON] 	= get_user_msgid("CurWeapon");
@@ -511,6 +528,94 @@ public plugin_init()
 
 	gSubMenuCallback = menu_makecallback("bf4_object_menu_callback");
 	RegisterHookChain( RG_RoundEnd, "RoundEnd", 0 );
+}
+
+public plugin_natives()
+{
+	register_library("bf4_ranksystem_natives");
+	register_native("BF4CtfCapture", "_native_bf4_ctf_capture");
+	register_native("BF4CtfWin", "_native_bf4_ctf_win");
+	register_native("BF4ReviveBonus", "_native_bf4_revive");
+}
+
+public _native_bf4_ctf_capture(iPlugin, iParams)
+{
+	new id = get_param(1);
+	StockBF4CtfCapture(id);	
+}
+
+public _native_bf4_revive(iPlugin, iParams)
+{
+	new id = get_param(1);
+	set_hudmessage(255, 255, 255, -1.00, -0.25, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
+	show_hudmessage(id, "+%d Defibrillator Point.", g_points[BF4_RNK_REVIVE]);
+	crxranks_give_user_xp(id, g_points[BF4_RNK_REVIVE]);
+
+	g_ribbon_score_count[id][BF4_RNK_REVIVE]++;
+	if ((g_ribbon_score_count[id][BF4_RNK_REVIVE] % g_Ribbons[BF4_RNK_REVIVE][RBN_KILL]) == 0)
+		TriggerGetRibbon(id, BF4_RNK_REVIVE);
+}
+
+StockBF4CtfCapture(id)
+{
+	set_hudmessage(255, 255, 255, -1.00, -0.25, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
+	show_hudmessage(id, "+%d Flag Capture points.", g_points[BF4_RNK_CTF_CAP]);
+	crxranks_give_user_xp(id, g_points[BF4_RNK_CTF_CAP]);
+
+	g_ribbon_score_count[id][BF4_RNK_CTF_CAP]++;
+	if ((g_ribbon_score_count[id][BF4_RNK_CTF_CAP] % g_Ribbons[BF4_RNK_CTF_CAP][RBN_KILL]) == 0)
+		TriggerGetRibbon(id, BF4_RNK_CTF_CAP);
+}
+
+public _native_bf4_ctf_win(iPlugin, iParams)
+{
+	new team = get_param(1);
+	StockBF4CtfWin(team);
+}
+
+StockBF4CtfWin(team)
+{
+	new iPlayers[MAX_PLAYERS];
+	new pnum;
+	switch(team)
+	{
+		case CS_TEAM_T:	get_players_ex(iPlayers, pnum, GetPlayers_ExcludeHLTV | GetPlayers_MatchTeam, "Terrorist");
+		case CS_TEAM_CT:get_players_ex(iPlayers, pnum, GetPlayers_ExcludeHLTV | GetPlayers_MatchTeam, "CT");
+	}
+
+	for(new i = 0; i < pnum; i++)
+	{
+		g_ribbon_score_count[iPlayers[i]][BF4_RNK_CTF_WIN]++;
+		if ((g_ribbon_score_count[iPlayers[i]][BF4_RNK_CTF_WIN] % g_Ribbons[BF4_RNK_CTF_WIN][RBN_KILL]) == 0)
+			TriggerGetRibbon(iPlayers[i], BF4_RNK_CTF_WIN);
+	}
+}
+
+public csf_flag_taken(id)
+{
+	if (get_playersnum() < g_ready_players)
+		return PLUGIN_CONTINUE;
+
+	BF4CtfCapture(id);
+	return PLUGIN_CONTINUE;
+}
+
+public csf_round_won(team)
+{
+	if (get_playersnum() < g_ready_players)
+		return PLUGIN_CONTINUE;
+
+	BF4CtfWin(team);
+	return PLUGIN_CONTINUE;
+}
+
+public csf_match_won(team)
+{
+	if (get_playersnum() < g_ready_players)
+		return PLUGIN_CONTINUE;
+
+	BF4CtfWin(team);
+	return PLUGIN_CONTINUE;
 }
 
 public RoundEnd( WinStatus:status, ScenarioEventEndRound:event, Float:tmDelay )
@@ -590,10 +695,10 @@ public client_authorized(id)
 	g_avenger[id]    		 = 0;
 
 	g_get_ribbon[id] = false;
+	get_user_authid(id, g_authids[id], charsmax(g_authids[]));
+
 	set_task_ex(1.0, "AwardCheck", id + TASK_AWARD, _, _, SetTask_Repeat);
 
-	// TODO:
-	//	LOAD g_ribbon_score_count / g_medal_score_count
 	if (g_isUseDb)
 		initialize_user_data_sql(id);
 	else
@@ -605,11 +710,16 @@ public client_authorized(id)
 
 public client_disconnected(id)
 {
+	if (task_exists(id + TASK_AWARD))
+		remove_task(id + TASK_AWARD);
+	
+	if (task_exists(id + TASK_HUD_SPR))
+		remove_task(id + TASK_HUD_SPR);
+
 	if (is_user_bot(id))
 		return PLUGIN_CONTINUE;
-	new sAuthId[MAX_AUTHID_LENGTH];
+
 	new sql[512];
-	get_user_authid(id, sAuthId, charsmax(sAuthId));
 
 	for (new i = 0; i < TYPE_MAX; i++)
 	{
@@ -617,12 +727,12 @@ public client_disconnected(id)
 		{
 			if (g_isUseDb)
 			{
-				formatex(sql, charsmax(sql), "REPLACE INTO `%s`.`%s` (`authid`, `type`, `rank_id`, `value`) VALUES ('%s', '%d', '%d', '%d');", g_dbConfig[DB_NAME], g_TblName, sAuthId, i, n, (i ? g_medals_score_count[id][n] : g_ribbon_score_count[id][n]));
+				formatex(sql, charsmax(sql), "REPLACE INTO `%s`.`%s` (`authid`, `type`, `rank_id`, `value`) VALUES ('%s', '%d', '%d', '%d');", g_dbConfig[DB_NAME], g_TblName, g_authids[id], i, n, (i ? g_medals_score_count[id][n] : g_ribbon_score_count[id][n]));
 				execute_insert_sql(sql);
 			}
 			else
 			{
-				nvault_set(g_nv_handle, fmt("%s_%d_%d", sAuthId, i, n), fmt("%d", (i ? g_medals_score_count[id][n] : g_ribbon_score_count[id][n])));
+				nvault_set(g_nv_handle, fmt("%s_%d_%d", g_authids[id], i, n), fmt("%d", (i ? g_medals_score_count[id][n] : g_ribbon_score_count[id][n])));
 			}
 		}
 	}
@@ -634,11 +744,8 @@ stock initialize_user_data_sql(id)
 	if (!g_dbConnect)
 		return;
 
-	new sAuthId[MAX_AUTHID_LENGTH];
-	get_user_authid(id, sAuthId, charsmax(sAuthId));
-
 	new sql[512];
-	formatex(sql, charsmax(sql), "SELECT `authid`, `type`, `rank_id`, `value` FROM `%s`.`%s` WHERE `authid` = '%s'", g_dbConfig[DB_NAME], g_TblName, sAuthId);
+	formatex(sql, charsmax(sql), "SELECT `authid`, `type`, `rank_id`, `value` FROM `%s`.`%s` WHERE `authid` = '%s'", g_dbConfig[DB_NAME], g_TblName, g_authids[id]);
 	new Handle:query = SQL_PrepareQuery(g_dbConnect, sql);
 	
 	// run the query
@@ -665,14 +772,13 @@ stock initialize_user_data_sql(id)
 
 stock initialize_user_data_nvault(id)
 {
-	new authid[MAX_AUTHID_LENGTH], temp[7], timestamp;
-	get_user_authid(id, authid, charsmax(authid));
+	new temp[7], timestamp;
 
 	for(new i = 0; i < TYPE_MAX; i++)
 	{
 		for(new n = 0; n < BF4_RNK_MAX; n++)
 		{
-			if (nvault_lookup(g_nv_handle, fmt("%s_%d_%d",authid, i, n), temp, charsmax(temp), timestamp))
+			if (nvault_lookup(g_nv_handle, fmt("%s_%d_%d",g_authids[id], i, n), temp, charsmax(temp), timestamp))
 			{
 				if (i)
 					g_medals_score_count[id][n] = str_to_num(temp);
@@ -696,6 +802,15 @@ stock execute_insert_sql(sql[])
 public AwardCheck(task)
 {
 	new id = task - TASK_AWARD;
+	if (!is_user_connected(id))
+	{
+		remove_task(task);
+		return PLUGIN_CONTINUE;
+	}
+
+	if (get_playersnum() < g_ready_players)
+		return PLUGIN_CONTINUE;
+
 	if (ArraySize(g_QueScoreEffect[id]) > 0 && !g_get_ribbon[id])
 	{
 		new ribbon[E_RANK_PARAM];
@@ -727,11 +842,18 @@ public AwardCheck(task)
 
 		ArrayDeleteItem(g_QueScoreEffect[id], 0);
 	}
+	return PLUGIN_CONTINUE;
 }
 
 TriggerGetRibbon(id, ribbon)
 {
+	if (!is_user_connected(id))
+		return PLUGIN_CONTINUE;
+
 	if (is_user_bot(id))
+		return PLUGIN_CONTINUE;
+
+	if (get_playersnum() < g_ready_players)
 		return PLUGIN_CONTINUE;
 
 	ArrayPushArray(g_QueScoreEffect[id], g_Ribbons[ribbon], sizeof(g_Ribbons[]));
@@ -747,10 +869,16 @@ TriggerGetRibbon(id, ribbon)
 public BF4PlayerSpawnPost(id)
 {
 	for(new i = 1; i <= g_iMaxPlayers; i++)
+	{
 		g_assist[id][i] = 0.0;
+		g_assist[i][id] = 0.0;
+	}
 	
 	if (pev_valid(gObjectItem[id]))
 		set_pev(gObjectItem[id], pev_flags, pev(gObjectItem[id], pev_flags) | FL_KILLME);
+
+	if (is_user_alive(id))
+		cs_set_user_money(id, cs_get_user_money(id) + g_cvars[E_CV_REWARD]);
 
 	return HAM_IGNORED;
 }
@@ -759,19 +887,22 @@ public BF4TakeDamage(victim, inflictor, attacker, Float:damage, bits)
 {
 	// Assist Damage.
 	if (is_user_connected(attacker))
+	{
 		if (cs_get_user_team(attacker) != cs_get_user_team(victim))
 			g_assist[attacker][victim] += damage;
-
-	// Savior Damage.
-	g_savior[attacker][SV_TARGET] 	 = victim;
-	g_savior[attacker][SV_TIME]  	 = Float:get_gametime();
-
+		// Savior Damage.
+		g_savior[attacker][SV_TARGET] 	 = victim;
+		g_savior[attacker][SV_TIME]  	 = Float:get_gametime();
+	}
 
 	return HAM_IGNORED;
 }
 
 public BF4DeathMsg()
 {
+	if (get_playersnum() < g_ready_players)
+		return PLUGIN_CONTINUE;
+
 	new iAttacker = read_data(1);
 	new iVictim	  = read_data(2);
 	new isHeadshot= read_data(3);
@@ -804,7 +935,7 @@ stock RibbonCheckAvenger(const iAttacker, const iVictim)
 	if (g_avenger[iAttacker] == iVictim)
 	{
 		set_hudmessage(255, 255, 255, -1.00, -0.25, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
-		show_hudmessage(iAttacker, "+%d Avenger kill", g_points[BF4_RNK_AVENGER]);
+		show_hudmessage(iAttacker, "+%d Avenger points.", g_points[BF4_RNK_AVENGER]);
 		crxranks_give_user_xp(iAttacker, g_points[BF4_RNK_AVENGER]);
 
 		g_ribbon_score_count[iAttacker][BF4_RNK_AVENGER]++;
@@ -825,7 +956,7 @@ stock RibbonCheckSavior(const iAttacker, const iVictim, const Float:time)
 			if (time - g_savior[iVictim][SV_TIME] < 1.2)
 			{
 				set_hudmessage(255, 255, 255, -1.00, -0.25, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
-				show_hudmessage(iAttacker, "+%d Savior kill", g_points[BF4_RNK_SAVIOR]);
+				show_hudmessage(iAttacker, "+%d Savior points.", g_points[BF4_RNK_SAVIOR]);
 				crxranks_give_user_xp(iAttacker, g_points[BF4_RNK_SAVIOR]);
 
 				g_ribbon_score_count[iAttacker][BF4_RNK_SAVIOR]++;
@@ -881,6 +1012,12 @@ stock RibbonCheckHeadshot(const iAttacker, const iVictim, const isHeadshot, cons
 	// HEADSHOT RIBBON
 	if (isHeadshot)
 	{
+		show_hudmessage(iAttacker, "+%d Headshot points.", g_points[BF4_RNK_HEADSHOT]);
+		crxranks_give_user_xp(iAttacker, g_points[BF4_RNK_HEADSHOT]);
+		g_ribbon_score_count[iAttacker][BF4_RNK_HEADSHOT]++;
+		if ((g_ribbon_score_count[iAttacker][BF4_RNK_HEADSHOT] % g_Ribbons[BF4_RNK_HEADSHOT][RBN_KILL]) == 0)
+			TriggerGetRibbon(iAttacker, BF4_RNK_HEADSHOT);
+
 		if (bf4_get_weapon_class(iWeaponId) == BF4_WEAPONCLASS_SNIPERS)
 		{
 			new Float:vAttacker	[3];
@@ -889,14 +1026,14 @@ stock RibbonCheckHeadshot(const iAttacker, const iVictim, const isHeadshot, cons
 			pev(iVictim,	pev_origin, vVictim);
 			if (UnitsToMeters(xs_vec_distance(vAttacker, vVictim)) >= 50.0)
 			{
+				show_hudmessage(iAttacker, "+%d Marksman points.", g_points[BF4_RNK_MARKSMAN]);
+				crxranks_give_user_xp(iAttacker, g_points[BF4_RNK_MARKSMAN]);
+
 				g_ribbon_score_count[iAttacker][BF4_RNK_MARKSMAN]++;
 				if ((g_ribbon_score_count[iAttacker][BF4_RNK_MARKSMAN] % g_Ribbons[BF4_RNK_MARKSMAN][RBN_KILL]) == 0)
 					TriggerGetRibbon(iAttacker, BF4_RNK_MARKSMAN);
 			}
 		}
-		g_ribbon_score_count[iAttacker][BF4_RNK_HEADSHOT]++;
-		if ((g_ribbon_score_count[iAttacker][BF4_RNK_HEADSHOT] % g_Ribbons[BF4_RNK_HEADSHOT][RBN_KILL]) == 0)
-			TriggerGetRibbon(iAttacker, BF4_RNK_HEADSHOT);
 	}
 }
 
@@ -916,12 +1053,12 @@ stock RibbonCheckAssist(const iAttacker, const iVictim)
 				set_hudmessage(255, 255, 255, -1.00, -0.25, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
 				if (g_assist[i][iVictim] <= 75)
 				{
-					show_hudmessage(i, "+%d Assist Damage.", floatround(g_assist[i][iVictim]));
+					show_hudmessage(i, "+%d Assist points.", floatround(g_assist[i][iVictim]));
 					crxranks_give_user_xp(i, floatround(g_assist[i][iVictim]));
 				}
 				else
 				{
-					show_hudmessage(i, "+%d Assist Kill.", crxranks_get_xp_reward(i, "kill"));
+					show_hudmessage(i, "+%d Assist points.", crxranks_get_xp_reward(i, "kill"));
 					crxranks_give_user_xp(i, crxranks_get_xp_reward(i, "kill"));
 				}
 				g_ribbon_score_count[i][BF4_RNK_ASSIST]++;
@@ -1112,16 +1249,6 @@ public BF4ObjectMenu(id)
 	return PLUGIN_HANDLED;	
 }
 
-#if AMXX_VERSION_NUM >= 175
-	#pragma reqlib bf4_rkit_natives
-	#if !defined AMXMODX_NOAUTOLOAD
-		#pragma loadlib bf4_rkit_natives
-	#endif
-#else
-	#pragma library bf4_rkit_natives
-#endif
-
-native BF4BuyRivivekit(id);
 public bf4_object_menu_handler(id, menu, item)
 {
 	//Do a check to see if they exited because menu_item_getinfo ( see below ) will give an error if the item is MENU_EXIT
@@ -1140,12 +1267,12 @@ public bf4_object_menu_handler(id, menu, item)
 		case E_HEALTH_KIT:
 		{
 			cs_set_user_money(id, cs_get_user_money(id) - iCost, 1);
-			SpawnHealthKit(id);
+			BF4SpawnEntity(id, E_HEALTH_KIT);
 		}
 		case E_AMMO_BOX:
 		{
 			cs_set_user_money(id, cs_get_user_money(id) - iCost, 1);
-			SpawnAmmoBox(id);
+			BF4SpawnEntity(id, E_AMMO_BOX);
 		}
 		case E_REVIVAL_KIT:
 		{
@@ -1167,7 +1294,7 @@ public bf4_object_menu_callback(id, menu, item)
 	return ITEM_IGNORE;
 }
 
-SpawnAmmoBox(id)
+BF4SpawnEntity(id, class)
 {
 	if (pev_valid(gObjectItem[id]))
 		set_pev(gObjectItem[id], pev_flags, pev(gObjectItem[id], pev_flags) | FL_KILLME);
@@ -1177,7 +1304,7 @@ SpawnAmmoBox(id)
 	{
 		gObjectItem[id] = iEnt;
 		// set models.
-		engfunc(EngFunc_SetModel, iEnt, ENT_MODELS[E_AMMO_BOX]);
+		engfunc(EngFunc_SetModel, iEnt, ENT_MODELS[class]);
 		// set solid.
 		set_pev(iEnt, pev_solid, 		SOLID_BBOX);
 		// set movetype.
@@ -1194,7 +1321,7 @@ SpawnAmmoBox(id)
 		set_pev(iEnt, pev_owner,		id);
 		// Entity Setting.
 		// set class name.
-		set_pev(iEnt, pev_classname, 	ENT_CLASS[E_AMMO_BOX]);
+		set_pev(iEnt, pev_classname, 	ENT_CLASS[class]);
 		// set take damage.
 		set_pev(iEnt, pev_takedamage, 	DAMAGE_YES);
 		set_pev(iEnt, pev_dmg, 			100.0);
@@ -1218,70 +1345,6 @@ SpawnAmmoBox(id)
 		engfunc(EngFunc_SetOrigin, iEnt, vOrigin );
 		set_pev(iEnt, pev_velocity,		vVelocity);
 
-
-		// Reset powoer on delay time.
-		new Float:fCurrTime = get_gametime();
-
-		// Save results to be used later.
-		set_pev(iEnt, ITEM_TEAM,	cs_get_user_team(id));
-		// think rate. hmmm....
-		set_pev(iEnt, pev_nextthink,fCurrTime + 2.0);
-
-		emit_sound(id, CHAN_ITEM, "items/ammopickup2.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-	}
-}
-
-SpawnHealthKit(id)
-{
-	if (pev_valid(gObjectItem[id]))
-		set_pev(gObjectItem[id], pev_flags, pev(gObjectItem[id], pev_flags) | FL_KILLME);
-
-	new iEnt = engfunc(EngFunc_CreateNamedEntity, gEntItem);
-	if (pev_valid(iEnt))
-	{
-		gObjectItem[id] = iEnt;
-		// set models.
-		engfunc(EngFunc_SetModel, iEnt, ENT_MODELS[E_HEALTH_KIT]);
-		// set solid.
-		set_pev(iEnt, pev_solid, 		SOLID_BBOX);
-		// set movetype.
-		set_pev(iEnt, pev_movetype, 	MOVETYPE_TOSS);
-
-		set_pev(iEnt, pev_renderfx,	 	kRenderFxNone);
-		set_pev(iEnt, pev_body, 		3);
-
-		// set model animation.
-		set_pev(iEnt, pev_frame,		0);
-		set_pev(iEnt, pev_framerate,	0);
-		set_pev(iEnt, pev_renderamt,	255.0);
-		set_pev(iEnt, pev_rendercolor,	{255.0,255.0,255.0});
-		set_pev(iEnt, pev_owner,		id);
-		// Entity Setting.
-		// set class name.
-		set_pev(iEnt, pev_classname, 	ENT_CLASS[E_HEALTH_KIT]);
-		// set take damage.
-		set_pev(iEnt, pev_takedamage, 	DAMAGE_YES);
-		set_pev(iEnt, pev_dmg, 			100.0);
-		// set entity health.
-		set_pev(iEnt, pev_health,		50.0);
-
-		// Vector settings.
-		new Float:vOrigin	[3],
-			Float:vViewOfs	[3],
-			Float:vVelocity	[3];
-
-		// get user position.
-		pev(id, pev_origin, vOrigin);
-		pev(id, pev_view_ofs, vViewOfs);
-
-		velocity_by_aim(id, 100, 		vVelocity);
-		xs_vec_add(vOrigin, vViewOfs, 	vOrigin);  	
-		set_pev(iEnt, pev_velocity,		vVelocity);
-
-		// set size.
-		engfunc(EngFunc_SetSize, iEnt, Float:{ -4.0, -4.0, -4.0 }, Float:{ 4.0, 4.0, 4.0 } );
-		// set entity position.
-		engfunc(EngFunc_SetOrigin, iEnt, vOrigin );
 
 		// Reset powoer on delay time.
 		new Float:fCurrTime = get_gametime();
@@ -1392,19 +1455,22 @@ public BF4JoinTeam()
 	if(!is_user_connected(id))
     	return PLUGIN_CONTINUE;
     
-	switch(user_team[0])
+	if (!is_user_alive(id))
 	{
-		case 'C':  
-            // player join to ct's        
-			ExecuteHamB(Ham_CS_RoundRespawn, id);
-        case 'T': 
-            // player join to terrorist
-			ExecuteHamB(Ham_CS_RoundRespawn, id);
-        case 'S':  
-            // player join to spectators
-		    return PLUGIN_CONTINUE;
-		default:
-    		return PLUGIN_CONTINUE;
-    }
+		switch(user_team[0])
+		{
+			case 'C':  
+				// player join to ct's        
+				ExecuteHamB(Ham_CS_RoundRespawn, id);
+			case 'T': 
+				// player join to terrorist
+				ExecuteHamB(Ham_CS_RoundRespawn, id);
+			case 'S':  
+				// player join to spectators
+				return PLUGIN_CONTINUE;
+			default:
+				return PLUGIN_CONTINUE;
+		}
+	}
     return PLUGIN_CONTINUE;
 }
