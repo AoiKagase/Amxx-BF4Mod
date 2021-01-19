@@ -668,6 +668,12 @@ public plugin_end()
 
 public client_authorized(id)
 {
+	if (task_exists(id + TASK_AWARD))
+		remove_task(id + TASK_AWARD);
+	
+	if (task_exists(id + TASK_HUD_SPR))
+		remove_task(id + TASK_HUD_SPR);
+	
 	for (new n = 0; n < BF4_RNK_MAX; n++)
 	{
 		g_ribbon_score_count[id][n] = 0; // KILL COUNT
@@ -684,7 +690,8 @@ public client_authorized(id)
 	g_get_ribbon[id] = false;
 	get_user_authid(id, g_authids[id], charsmax(g_authids[]));
 
-	set_task_ex(1.0, "AwardCheck", id + TASK_AWARD, _, _, SetTask_Repeat);
+	if (!is_user_bot(id))
+		set_task_ex(1.0, "AwardCheck", id + TASK_AWARD, _, _, SetTask_Repeat);
 
 	if (g_isUseDb)
 		initialize_user_data_sql(id);
@@ -789,7 +796,7 @@ stock execute_insert_sql(sql[])
 public AwardCheck(task)
 {
 	new id = task - TASK_AWARD;
-	if (!is_user_connected(id))
+	if (!is_user_authorized(id))
 	{
 		remove_task(task);
 		return PLUGIN_CONTINUE;
@@ -1068,7 +1075,7 @@ stock get_dec_string(const a[])
 	return r;
 }
 
-Show_Rank_Event(const pPlayer, const ribbon[E_RANK_PARAM]) 
+stock Show_Rank_Event(const pPlayer, const ribbon[E_RANK_PARAM]) 
 {
 	new clip, ammo;
 	new weapon = cs_get_user_weapon(pPlayer, clip, ammo);
