@@ -167,8 +167,8 @@ public plugin_init()
 	RegisterHam			(Ham_Touch,	ENTITY_CLASS_NAME[I_TARGET],	"RKitTouch");
 	RegisterHamPlayer	(Ham_Killed,								"PlayerKilled");
 	RegisterHamPlayer	(Ham_Player_PostThink,						"PlayerPostThink");
+	RegisterHamPlayer	(Ham_Spawn, 								"PlayerSpawn", 1);
 
-	register_event_ex	("HLTV", 									"RoundStart", RegisterEvent_Global, "1=0", "2=0");
 	register_message 	(g_msg_data[MSG_CLCORPSE],					"message_clcorpse");
 	// Register Forward.
 	register_forward	(FM_CmdStart,								"PlayerCmdStart");
@@ -306,7 +306,6 @@ public PlayerDie(taskid)
 		{
 			remove_target_entity(id, ENTITY_CLASS_NAME[CORPSE]);
 			ExecuteHamB(Ham_CS_RoundRespawn, id);
-			player_reset(id);
 	//		remove_weaponbox(id);
 		}
 	}
@@ -315,6 +314,15 @@ public PlayerDie(taskid)
 		remove_task(taskid);
 	}
 	return PLUGIN_CONTINUE;
+}
+
+public PlayerSpawn(id)
+{
+	remove_target_entity(id, ENTITY_CLASS_NAME[CORPSE]);
+	remove_target_entity(id, ENTITY_CLASS_NAME[R_KIT]);
+//	set_task(1.0, "TaskBotBuy");
+	
+	player_reset(id);
 }
 
 stock show_time_bar(oneper, percent, bar[])
@@ -870,18 +878,6 @@ stock get_dec_string(const a[])
 		formatex(r, strlen(r) + 1, "%s%c", r, a[0] + a[i]);
 	}
 	return r;
-}
-
-public RoundStart()
-{
-	remove_target_entity(0, ENTITY_CLASS_NAME[CORPSE]);
-	remove_target_entity(0, ENTITY_CLASS_NAME[R_KIT]);
-//	set_task(1.0, "TaskBotBuy");
-	
-	static players[32], num;
-	get_players(players, num, "a");
-	for(new i = 0; i < num; ++i)
-		player_reset(players[i]);
 }
 
 public TaskBotBuy()
