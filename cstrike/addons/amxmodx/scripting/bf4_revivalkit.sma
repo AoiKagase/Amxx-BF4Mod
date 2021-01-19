@@ -295,12 +295,15 @@ public PlayerDie(taskid)
 	{
 		if (time < g_cvars[REVIVAL_DEATH_TIME])
 		{
-			remaining = g_cvars[REVIVAL_DEATH_TIME] - time;
-			show_time_bar(100 / GUAGE_MAX, floatround(remaining * 100.0 / float(g_cvars[REVIVAL_DEATH_TIME]), floatround_ceil), bar);
-			new timestr[6];
-			get_time_format(remaining, timestr, charsmax(timestr));
-			set_hudmessage(255, 50, 100, -1.00, -1.00, .effects= 0 , .holdtime= 0.1);
-			ShowSyncHudMsg(id, g_sync_obj, "Possible resurrection time remaining: ^n%s^n[%s]", timestr, bar);
+			if (!is_user_bot(id))
+			{
+				remaining = g_cvars[REVIVAL_DEATH_TIME] - time;
+				show_time_bar(100 / GUAGE_MAX, floatround(remaining * 100.0 / float(g_cvars[REVIVAL_DEATH_TIME]), floatround_ceil), bar);
+				new timestr[6];
+				get_time_format(remaining, timestr, charsmax(timestr));
+				set_hudmessage(255, 50, 100, -1.00, -1.00, .effects= 0 , .holdtime= 0.1);
+				ShowSyncHudMsg(id, g_sync_obj, "Possible resurrection time remaining: ^n%s^n[%s]", timestr, bar);
+			}
 		}
 		else
 		{

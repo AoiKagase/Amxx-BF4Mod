@@ -547,24 +547,13 @@ public _native_bf4_ctf_capture(iPlugin, iParams)
 public _native_bf4_revive(iPlugin, iParams)
 {
 	new id = get_param(1);
-	set_hudmessage(255, 255, 255, -1.00, -0.25, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
-	show_hudmessage(id, "+%d Defibrillator Point.", g_points[BF4_RNK_REVIVE]);
-	crxranks_give_user_xp(id, g_points[BF4_RNK_REVIVE]);
-
-	g_ribbon_score_count[id][BF4_RNK_REVIVE]++;
-	if ((g_ribbon_score_count[id][BF4_RNK_REVIVE] % g_Ribbons[BF4_RNK_REVIVE][RBN_KILL]) == 0)
-		TriggerGetRibbon(id, BF4_RNK_REVIVE);
+	
+	BF4TriggerGetRibbon(id, BF4_RNK_CTF_WIN, "Defibrillator Point.");
 }
 
 StockBF4CtfCapture(id)
 {
-	set_hudmessage(255, 255, 255, -1.00, -0.25, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
-	show_hudmessage(id, "+%d Flag Capture points.", g_points[BF4_RNK_CTF_CAP]);
-	crxranks_give_user_xp(id, g_points[BF4_RNK_CTF_CAP]);
-
-	g_ribbon_score_count[id][BF4_RNK_CTF_CAP]++;
-	if ((g_ribbon_score_count[id][BF4_RNK_CTF_CAP] % g_Ribbons[BF4_RNK_CTF_CAP][RBN_KILL]) == 0)
-		TriggerGetRibbon(id, BF4_RNK_CTF_CAP);
+	BF4TriggerGetRibbon(id, BF4_RNK_CTF_WIN, "Flag Capture points.");
 }
 
 public _native_bf4_ctf_win(iPlugin, iParams)
@@ -585,9 +574,7 @@ StockBF4CtfWin(team)
 
 	for(new i = 0; i < pnum; i++)
 	{
-		g_ribbon_score_count[iPlayers[i]][BF4_RNK_CTF_WIN]++;
-		if ((g_ribbon_score_count[iPlayers[i]][BF4_RNK_CTF_WIN] % g_Ribbons[BF4_RNK_CTF_WIN][RBN_KILL]) == 0)
-			TriggerGetRibbon(iPlayers[i], BF4_RNK_CTF_WIN);
+		BF4TriggerGetRibbon(iPlayers[i], BF4_RNK_CTF_WIN);
 	}
 }
 
@@ -835,17 +822,15 @@ public AwardCheck(task)
 		{
 			set_hudmessage(255, 255, 255, -1.00, -0.54, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
 			show_hudmessage(id, score);
+			crxranks_give_user_xp(id, ribbon[RBN_SCORE]);
 		}
-
-
 		set_task_ex(3.2, "Clear_Rank_Event", id + TASK_HUD_SPR);
-
 		ArrayDeleteItem(g_QueScoreEffect[id], 0);
 	}
 	return PLUGIN_CONTINUE;
 }
 
-TriggerGetRibbon(id, ribbon)
+stock BF4TriggerGetRibbon(id, ribbon, info[] = "")
 {
 	if (!is_user_connected(id))
 		return PLUGIN_CONTINUE;
@@ -856,13 +841,22 @@ TriggerGetRibbon(id, ribbon)
 	if (get_playersnum() < g_ready_players)
 		return PLUGIN_CONTINUE;
 
-	ArrayPushArray(g_QueScoreEffect[id], g_Ribbons[ribbon], sizeof(g_Ribbons[]));
-	g_medals_score_count[id][ribbon]++;
-	if ((g_medals_score_count[id][ribbon] % g_Medals[ribbon][RBN_KILL]) == 0)
-		ArrayPushArray(g_QueScoreEffect[id], g_Medals[ribbon], sizeof(g_Medals[]));
+	if (g_points[ribbon] > 0)
+	{
+		set_hudmessage(255, 255, 255, -1.00, -0.25, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
+		show_hudmessage(id, "+%d %s", g_points[ribbon], info);
+		crxranks_give_user_xp(id, g_points[ribbon]);
+	}
 
-	crxranks_give_user_xp(id, g_Ribbons[ribbon][RBN_SCORE]);
-
+	g_ribbon_score_count[id][ribbon]++;
+	if ((g_ribbon_score_count[id][ribbon] % g_Ribbons[ribbon][RBN_KILL]) == 0)
+	{
+		ArrayPushArray(g_QueScoreEffect[id], g_Ribbons[ribbon], sizeof(g_Ribbons[]));
+		g_medals_score_count[id][ribbon]++;
+		if ((g_medals_score_count[id][ribbon] % g_Medals[ribbon][RBN_KILL]) == 0)
+			ArrayPushArray(g_QueScoreEffect[id], g_Medals[ribbon], sizeof(g_Medals[]));
+	}
+	
 	return PLUGIN_CONTINUE;
 }
 
@@ -933,16 +927,8 @@ public BF4DeathMsg()
 stock RibbonCheckAvenger(const iAttacker, const iVictim)
 {
 	if (g_avenger[iAttacker] == iVictim)
-	{
-		set_hudmessage(255, 255, 255, -1.00, -0.25, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
-		show_hudmessage(iAttacker, "+%d Avenger points.", g_points[BF4_RNK_AVENGER]);
-		crxranks_give_user_xp(iAttacker, g_points[BF4_RNK_AVENGER]);
+		BF4TriggerGetRibbon(iAttacker, BF4_RNK_AVENGER, "Avenger points.");
 
-		g_ribbon_score_count[iAttacker][BF4_RNK_AVENGER]++;
-		if ((g_ribbon_score_count[iAttacker][BF4_RNK_AVENGER] % g_Ribbons[BF4_RNK_AVENGER][RBN_KILL]) == 0)
-			TriggerGetRibbon(iAttacker, BF4_RNK_AVENGER);
-
-	}
 	g_avenger[iAttacker] = 0;
 	g_avenger[iVictim] = iAttacker;
 }
@@ -955,13 +941,7 @@ stock RibbonCheckSavior(const iAttacker, const iVictim, const Float:time)
 		{
 			if (time - g_savior[iVictim][SV_TIME] < 1.2)
 			{
-				set_hudmessage(255, 255, 255, -1.00, -0.25, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
-				show_hudmessage(iAttacker, "+%d Savior points.", g_points[BF4_RNK_SAVIOR]);
-				crxranks_give_user_xp(iAttacker, g_points[BF4_RNK_SAVIOR]);
-
-				g_ribbon_score_count[iAttacker][BF4_RNK_SAVIOR]++;
-				if ((g_ribbon_score_count[iAttacker][BF4_RNK_SAVIOR] % g_Ribbons[BF4_RNK_SAVIOR][RBN_KILL]) == 0)
-					TriggerGetRibbon(iAttacker, BF4_RNK_SAVIOR);
+				BF4TriggerGetRibbon(iAttacker, BF4_RNK_SAVIOR, "Savior points.");
 			}
 		}
 	}	
@@ -1000,9 +980,7 @@ stock RibbonCheckWeaponClass(const iAttacker, const iWeaponId)
 			return;
 	}
 
-	g_ribbon_score_count[iAttacker][ranks]++;
-	if ((g_ribbon_score_count[iAttacker][ranks] % g_Ribbons[ranks][RBN_KILL]) == 0)
-		TriggerGetRibbon(iAttacker, ranks);
+	BF4TriggerGetRibbon(iAttacker, ranks);
 
 	return;
 }
@@ -1012,11 +990,7 @@ stock RibbonCheckHeadshot(const iAttacker, const iVictim, const isHeadshot, cons
 	// HEADSHOT RIBBON
 	if (isHeadshot)
 	{
-		show_hudmessage(iAttacker, "+%d Headshot points.", g_points[BF4_RNK_HEADSHOT]);
-		crxranks_give_user_xp(iAttacker, g_points[BF4_RNK_HEADSHOT]);
-		g_ribbon_score_count[iAttacker][BF4_RNK_HEADSHOT]++;
-		if ((g_ribbon_score_count[iAttacker][BF4_RNK_HEADSHOT] % g_Ribbons[BF4_RNK_HEADSHOT][RBN_KILL]) == 0)
-			TriggerGetRibbon(iAttacker, BF4_RNK_HEADSHOT);
+		BF4TriggerGetRibbon(iAttacker, BF4_RNK_HEADSHOT, "Headshot points.");
 
 		if (bf4_get_weapon_class(iWeaponId) == BF4_WEAPONCLASS_SNIPERS)
 		{
@@ -1026,12 +1000,7 @@ stock RibbonCheckHeadshot(const iAttacker, const iVictim, const isHeadshot, cons
 			pev(iVictim,	pev_origin, vVictim);
 			if (UnitsToMeters(xs_vec_distance(vAttacker, vVictim)) >= 50.0)
 			{
-				show_hudmessage(iAttacker, "+%d Marksman points.", g_points[BF4_RNK_MARKSMAN]);
-				crxranks_give_user_xp(iAttacker, g_points[BF4_RNK_MARKSMAN]);
-
-				g_ribbon_score_count[iAttacker][BF4_RNK_MARKSMAN]++;
-				if ((g_ribbon_score_count[iAttacker][BF4_RNK_MARKSMAN] % g_Ribbons[BF4_RNK_MARKSMAN][RBN_KILL]) == 0)
-					TriggerGetRibbon(iAttacker, BF4_RNK_MARKSMAN);
+				BF4TriggerGetRibbon(iAttacker, BF4_RNK_MARKSMAN, "Marksman points.");
 			}
 		}
 	}
@@ -1061,9 +1030,8 @@ stock RibbonCheckAssist(const iAttacker, const iVictim)
 					show_hudmessage(i, "+%d Assist points.", crxranks_get_xp_reward(i, "kill"));
 					crxranks_give_user_xp(i, crxranks_get_xp_reward(i, "kill"));
 				}
-				g_ribbon_score_count[i][BF4_RNK_ASSIST]++;
-				if ((g_ribbon_score_count[i][BF4_RNK_ASSIST] % g_Ribbons[BF4_RNK_ASSIST][RBN_KILL]) == 0)
-					TriggerGetRibbon(i, BF4_RNK_ASSIST);
+
+				BF4TriggerGetRibbon(i, BF4_RNK_ASSIST);
 			}
 			g_assist[i][iVictim] = 0.0;
 		}
@@ -1239,10 +1207,13 @@ public BF4ObjectMenu(id)
 	formatex(szMenu, charsmax(szMenu), "Ammo Box^t\y[$%6d]", cost_ammobox);
 	menu_additem(menu, szMenu, szCost, 0, gSubMenuCallback);
 
-	new rkitCost = get_cvar_num("bf4_rkit_cost");
-	num_to_str(rkitCost, szCost, charsmax(szCost));
-	formatex(szMenu, charsmax(szMenu), "Revival Kit^t\y[$%6d]", rkitCost);
-	menu_additem(menu, szMenu, szCost, 0, gSubMenuCallback);
+	if (cvar_exists("bf4_rkit_cost"))
+	{
+		new rkitCost = get_cvar_num("bf4_rkit_cost");
+		num_to_str(rkitCost, szCost, charsmax(szCost));
+		formatex(szMenu, charsmax(szMenu), "Revival Kit^t\y[$%6d]", rkitCost);
+		menu_additem(menu, szMenu, szCost, 0, gSubMenuCallback);
+	}
 
 	//We now have all players in the menu, lets display the menu
 	menu_display( id, menu, 0 );
@@ -1397,12 +1368,7 @@ public BF4ObjectThink(iEnt)
 									emit_sound(entity, CHAN_ITEM, "items/medshot4.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 									if (owner != entity)
 									{
-										set_hudmessage(255, 255, 255, -1.00, -0.25, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
-										show_hudmessage(owner, "+%d Mate Healing.", g_points[BF4_RNK_MEDIKIT]);
-										crxranks_give_user_xp(owner, g_points[BF4_RNK_MEDIKIT]);
-										g_ribbon_score_count[owner][BF4_RNK_MEDIKIT]++;
-										if ((g_ribbon_score_count[owner][BF4_RNK_MEDIKIT] % g_Ribbons[BF4_RNK_MEDIKIT][RBN_KILL]) == 0)
-											TriggerGetRibbon(owner, BF4_RNK_MEDIKIT);										
+										BF4TriggerGetRibbon(owner, BF4_RNK_MEDIKIT, "Mate Healing.");
 									}
 								}
 							}
@@ -1427,12 +1393,7 @@ public BF4ObjectThink(iEnt)
 									emit_sound(entity, CHAN_ITEM, "items/gunpickup2.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 									if (owner != entity)
 									{
-										set_hudmessage(255, 255, 255, -1.00, -0.25, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
-										show_hudmessage(owner, "+%d Mate Resupplying.", g_points[BF4_RNK_AMMOBOX]);
-										crxranks_give_user_xp(owner, g_points[BF4_RNK_AMMOBOX]);
-										g_ribbon_score_count[owner][BF4_RNK_AMMOBOX]++;
-										if ((g_ribbon_score_count[owner][BF4_RNK_AMMOBOX] % g_Ribbons[BF4_RNK_AMMOBOX][RBN_KILL]) == 0)
-											TriggerGetRibbon(owner, BF4_RNK_AMMOBOX);
+										BF4TriggerGetRibbon(owner, BF4_RNK_AMMOBOX, "Mate Resupplying.");
 									}
 								}
 							}
