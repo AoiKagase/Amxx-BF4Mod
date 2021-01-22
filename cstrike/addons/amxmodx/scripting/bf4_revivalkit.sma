@@ -83,6 +83,7 @@ enum _:E_PLAYER_DATA
 	bool:HAS_KIT		,
 	bool:WAS_DUCKING	,
 	bool:IS_DEAD		,
+	bool:IS_RESPAWNING	,
 	Float:DEAD_LINE		,
 	Float:REVIVE_DELAY	,
 	Float:BODY_ORIGIN	[3],
@@ -129,6 +130,7 @@ new g_cvars			[E_CVARS];
 new g_msg_data		[E_MESSAGES];
 new g_player_data	[MAX_PLAYERS + 1][E_PLAYER_DATA];
 new g_sync_obj;
+
 //====================================================
 //  PLUGIN PRECACHE
 //====================================================
@@ -208,22 +210,13 @@ public plugin_natives()
 
 public client_putinserver(id)
 {
-	g_player_data[id][HAS_KIT] = false;
 	player_reset(id);
 }
 
 public client_disconnected(id)
 {
 	player_reset(id);
-	new ent;
-	while ((ent = engfunc(EngFunc_FindEntityByString, ent, "classname", ENTITY_CLASS_NAME[CORPSE])))
-	{
-		if (pev_valid(ent))
-		{
-			if (pev(ent, pev_owner) == id)
-				engfunc(EngFunc_RemoveEntity, ent);
-		}
-	}
+	remove_target_entity(id, ENTITY_CLASS_NAME[CORPSE]);
 }
 
 public _native_cmdbuyrkit(iPlugin, iParams)
@@ -271,7 +264,7 @@ public PlayerKilled(iVictim, iAttacker)
 	g_player_data[iVictim][DEAD_LINE] = get_gametime();
 
 //	if (!is_user_bot(iVictim))
-	set_task_ex(0.1, "PlayerDie", 		  TASKID_DIE_COUNT 		 + iVictim, _, _, SetTaskFlags:SetTask_Repeat);
+	set_task_ex(1.0, "PlayerDie", 		  TASKID_DIE_COUNT 		 + iVictim, _, _, SetTaskFlags:SetTask_Repeat);
 	set_task_ex(0.5, "TaskCheckDeadFlag", TASKID_CHECK_DEAD_FLAG + iVictim, _, _, SetTaskFlags:SetTask_Repeat);
 
 	return HAM_IGNORED;
@@ -301,15 +294,13 @@ public PlayerDie(taskid)
 				show_time_bar(100 / GUAGE_MAX, floatround(remaining * 100.0 / float(g_cvars[REVIVAL_DEATH_TIME]), floatround_ceil), bar);
 				new timestr[6];
 				get_time_format(remaining, timestr, charsmax(timestr));
-				set_hudmessage(255, 50, 100, -1.00, -1.00, .effects= 0 , .holdtime= 0.1);
+				set_hudmessage(255, 50, 100, -1.00, -1.00, .effects= 0 , .holdtime= 1.0);
 				ShowSyncHudMsg(id, g_sync_obj, "Possible resurrection time remaining: ^n%s^n[%s]", timestr, bar);
 			}
 		}
 		else
 		{
-			remove_target_entity(id, ENTITY_CLASS_NAME[CORPSE]);
 			ExecuteHamB(Ham_CS_RoundRespawn, id);
-	//		remove_weaponbox(id);
 		}
 	}
 	else
@@ -325,7 +316,12 @@ public PlayerSpawn(id)
 	remove_target_entity(id, ENTITY_CLASS_NAME[R_KIT]);
 //	set_task(1.0, "TaskBotBuy");
 	
-	player_reset(id);
+	if (g_player_data[id][IS_RESPAWNING])
+		set_task(0.1, "TaskOrigin",  TASKID_ORIGIN + id);
+	else 
+		player_respawn_reset(id);		
+
+	g_player_data[id][IS_RESPAWNING] = false;
 }
 
 stock show_time_bar(oneper, percent, bar[])
@@ -390,7 +386,11 @@ public RKitTouch(kit, id)
 	
 	if(equal(classname, ENTITY_CLASS_NAME[R_KIT]))
 	{
-		engfunc(EngFunc_RemoveEntity, kit);
+		// engfunc(EngFunc_RemoveEntity, kit);
+		new flags;
+		pev(kit, pev_flags, flags);
+		set_pev(kit, pev_flags, flags | FL_KILLME);
+		dllfunc(DLLFunc_Think, kit);
 		g_player_data[id][HAS_KIT] = true;
 		client_cmd(id, "spk %s", ENT_SOUNDS[SOUND_EQUIP]);
 	}
@@ -523,11 +523,13 @@ public TaskRevive(taskid)
 	// log_amx("TaskReSpawn START");
 	new id = taskid - TASKID_RESPAWN;
 	
-	set_pev(id, pev_deadflag, DEAD_RESPAWNABLE);
-	dllfunc(DLLFunc_Spawn, id);
-	set_pev(id, pev_iuser1, 0);
-	
-	set_task(0.1, "TaskCheckReSpawn", TASKID_CHECKRE + id);
+	// set_pev(id, pev_deadflag, DEAD_RESPAWNABLE);
+	// dllfunc(DLLFunc_Spawn, id);
+	// set_pev(id, pev_iuser1, 0);
+	g_player_data[id][IS_RESPAWNING] = true;
+	ExecuteHamB(Ham_CS_RoundRespawn, id);
+	// set_task(0.1, "TaskCheckReSpawn", TASKID_CHECKRE + id);
+
 	// log_amx("TaskReSpawn END");
 }
 
@@ -566,7 +568,7 @@ public TaskStuckCheck(taskid)
 	pev(id, pev_origin, origin);
 	
 	if(origin[2] == pev(id, pev_zorigin))
-		set_task(0.1, "TaskReSpawn",   TASKID_RESPAWN + id);
+		set_task(0.1, "TaskCheckReSpawn",   TASKID_RESPAWN + id);
 	else
 		set_task(0.1, "TaskSetplayer", TASKID_SETUSER + id);
 	// log_amx("TaskStuckCheck END");
@@ -597,7 +599,9 @@ public TaskSetplayer(taskid)
 		write_byte(0);
 		write_byte(255);
 		message_end();
-	}	
+	}
+	g_player_data[id][IS_RESPAWNING] = false;
+	player_respawn_reset(id);
 	// log_amx("TaskSetplayer END");
 }
 
@@ -694,9 +698,11 @@ stock create_fake_corpse(id)
 				
 	new sequence = pev(id, pev_sequence);
 	
-	new ent = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, ENTITY_CLASS_NAME[I_TARGET]));
+//	new ent = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, ENTITY_CLASS_NAME[I_TARGET]));
+	new ent = cs_create_entity(ENTITY_CLASS_NAME[I_TARGET]);
 	if(pev_valid(ent))
 	{
+		cs_set_ent_class(ent, ENTITY_CLASS_NAME[CORPSE]);
 		set_pev(ent, pev_classname, ENTITY_CLASS_NAME[CORPSE]);
 		engfunc(EngFunc_SetModel, 	ent, player_model);
 		engfunc(EngFunc_SetOrigin, 	ent, player_origin);
@@ -772,7 +778,28 @@ stock player_reset(id)
 	// if (is_user_alive(id))
 	// show_bartime(id, 0);
 
+	// g_player_data[id][IS_DEAD]		= false;
+	// g_player_data[id][IS_RESPAWNING]	= false;
+	// g_player_data[id][HAS_KIT] 	 	= false;
+	g_player_data[id][DEAD_LINE]	= 0.0;
+	g_player_data[id][REVIVE_DELAY] = 0.0;
+	// g_player_data[id][WAS_DUCKING]	= false;
+	// g_player_data[id][BODY_ORIGIN]	= Float:{0, 0, 0};
+}
+
+stock player_respawn_reset(id)
+{
+	remove_task(TASKID_DIE_COUNT + id);
+	remove_task(TASKID_REVIVING  + id);
+	remove_task(TASKID_RESPAWN   + id);
+	remove_task(TASKID_CHECKRE   + id);
+	remove_task(TASKID_CHECKST   + id);
+	remove_task(TASKID_ORIGIN    + id);
+	remove_task(TASKID_SETUSER   + id);
+
 	g_player_data[id][IS_DEAD]		= false;
+	g_player_data[id][IS_RESPAWNING]= false;
+	g_player_data[id][HAS_KIT] 	 	= false;
 	g_player_data[id][DEAD_LINE]	= 0.0;
 	g_player_data[id][REVIVE_DELAY] = 0.0;
 	g_player_data[id][WAS_DUCKING]	= false;
@@ -825,15 +852,18 @@ stock drop_rkit(id)
 	velocity[2] = 0.0;
 	xs_vec_add(origin, velocity, origin);
 
-	new kit = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, ENTITY_CLASS_NAME[I_TARGET]));
+	// new kit = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, ENTITY_CLASS_NAME[I_TARGET]));
+	new kit = cs_create_entity(ENTITY_CLASS_NAME[I_TARGET]);
 	if(pev_valid(kit))
 	{
+		cs_set_ent_class(kit, 		ENTITY_CLASS_NAME[R_KIT]);
 		set_pev(kit, pev_classname, ENTITY_CLASS_NAME[R_KIT]);
-		engfunc(EngFunc_SetModel,  kit, ENT_MODELS[R_KIT]);
-		engfunc(EngFunc_SetOrigin, kit, origin);
-		engfunc(EngFunc_SetSize, kit, Float:{-2.5, -2.5, -1.5}, Float:{2.5, 2.5, 1.5});
-		set_pev(kit, pev_solid, SOLID_TRIGGER);
-		set_pev(kit, pev_movetype, MOVETYPE_TOSS);
+		set_pev(kit, pev_owner, 	id);
+		engfunc(EngFunc_SetModel,  	kit, ENT_MODELS[R_KIT]);
+		engfunc(EngFunc_SetOrigin, 	kit, origin);
+		engfunc(EngFunc_SetSize, 	kit, Float:{-2.5, -2.5, -1.5}, Float:{2.5, 2.5, 1.5});
+		set_pev(kit, pev_solid, 	SOLID_TRIGGER);
+		set_pev(kit, pev_movetype, 	MOVETYPE_TOSS);
 	}
 }
 
@@ -841,17 +871,29 @@ stock remove_target_entity(id, className[])
 {
 	new iEnt = -1;
 	new flags;
-	while ((iEnt = engfunc(EngFunc_FindEntityByString, iEnt, "classname", className)))
+	while((iEnt = cs_find_ent_by_owner(iEnt, className, id)))
 	{
-		if (!pev_valid(iEnt))
-			continue;
-
-		if (pev(iEnt, pev_owner) == id || id == 0)
+		if (pev_valid(iEnt))
 		{
-			pev(iEnt, pev_flags, flags);
-			set_pev(iEnt, pev_flags, flags | FL_KILLME);
+			if (pev(iEnt, pev_owner) == id)
+			{
+				// engfunc(EngFunc_RemoveEntity, iEnt);
+				pev(iEnt, pev_flags, flags);
+				set_pev(iEnt, pev_flags, flags | FL_KILLME);
+				dllfunc(DLLFunc_Think, iEnt);
+			}
 		}
 	}
+	// while ((iEnt = engfunc(EngFunc_FindEntityByString, iEnt, "classname", className)))
+	// {
+	// 	if (pev_valid(iEnt))
+	// 	{
+	// 		if (pev(iEnt, pev_owner) == id)
+	// 		{
+	// 			engfunc(EngFunc_RemoveEntity, iEnt);
+	// 		}
+	// 	}
+	// }
 }
 
 stock bool:check_plugin()
