@@ -47,7 +47,13 @@
 #define AUTHER				"Aoi.Kagase"
 enum _:E_BF4_RANK_CVARS
 {
-	E_CV_REWARD
+	E_CV_REWARD,
+	E_CV_HEALTHKIT_COST,
+	E_CV_HEALTHKIT_AMOUNT,
+	E_CV_AMMOBOX_COST,
+	E_CV_AMMOBOX_AMOUNT,
+	Float:E_CV_HEALTHKIT_INTERVAL,
+	Float:E_CV_AMMOBOX_INTERVAL,
 };
 
 enum _:E_BF4_TYPE
@@ -492,7 +498,13 @@ public plugin_init()
 {
 	register_plugin		("BF4 Rank System (CRX Addon)", "0.01", "Aoi.Kagase", "github.com/AoiKagase", "BF4 Ribbon");
 	create_cvar			("BF4 Rank System", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
-	bind_pcvar_num		(create_cvar("bf4_spawn_reward", "1600"), g_cvars[E_CV_REWARD]);
+	bind_pcvar_num		(create_cvar("bf4_spawn_reward", 		"1600"), g_cvars[E_CV_REWARD]);
+	bind_pcvar_num		(create_cvar("bf4_ammobox_cost", 		"2000"), g_cvars[E_CV_AMMOBOX_COST]);
+	bind_pcvar_float	(create_cvar("bf4_ammobox_interval",	"0.5"),  g_cvars[E_CV_AMMOBOX_INTERVAL]);
+	bind_pcvar_num		(create_cvar("bf4_ammobox_amount",		"30"), 	 g_cvars[E_CV_AMMOBOX_AMOUNT]);
+	bind_pcvar_num		(create_cvar("bf4_healthkit_cost", 		"3000"), g_cvars[E_CV_HEALTHKIT_COST]);
+	bind_pcvar_float	(create_cvar("bf4_healthkit_interval",	"1.0"),  g_cvars[E_CV_HEALTHKIT_INTERVAL]);
+	bind_pcvar_num		(create_cvar("bf4_healthkit_amount", 	"30"), 	 g_cvars[E_CV_HEALTHKIT_AMOUNT]);
 	register_clcmd		("say /bf4", "BF4ObjectMenu");
 	register_clcmd		("bf4menu", "BF4ObjectMenu");
 
@@ -548,12 +560,12 @@ public _native_bf4_revive(iPlugin, iParams)
 {
 	new id = get_param(1);
 	
-	BF4TriggerGetRibbon(id, BF4_RNK_CTF_WIN, "Defibrillator Point.");
+	BF4TriggerGetRibbon(id, BF4_RNK_REVIVE, "Defibrillator Point.");
 }
 
 StockBF4CtfCapture(id)
 {
-	BF4TriggerGetRibbon(id, BF4_RNK_CTF_WIN, "Flag Capture points.");
+	BF4TriggerGetRibbon(id, BF4_RNK_CTF_CAP, "Flag Capture points.");
 }
 
 public _native_bf4_ctf_win(iPlugin, iParams)
@@ -583,7 +595,7 @@ public csf_flag_taken(id)
 	if (get_playersnum() < g_ready_players)
 		return PLUGIN_CONTINUE;
 
-	BF4CtfCapture(id);
+	StockBF4CtfCapture(id);
 	return PLUGIN_CONTINUE;
 }
 
@@ -592,7 +604,7 @@ public csf_round_won(team)
 	if (get_playersnum() < g_ready_players)
 		return PLUGIN_CONTINUE;
 
-	BF4CtfWin(team);
+	StockBF4CtfWin(team);
 	return PLUGIN_CONTINUE;
 }
 
@@ -601,7 +613,7 @@ public csf_match_won(team)
 	if (get_playersnum() < g_ready_players)
 		return PLUGIN_CONTINUE;
 
-	BF4CtfWin(team);
+	StockBF4CtfWin(team);
 	return PLUGIN_CONTINUE;
 }
 
@@ -818,7 +830,7 @@ public AwardCheck(task)
 
 		emit_sound(id, CHAN_ITEM, g_sound[ribbon[RBN_TYPE]], 1.0, ATTN_NORM, 0, PITCH_NORM);
 		if (ribbon[RBN_TYPE] == TYPE_RIBBON)
-			set_hudmessage(255, 255, 255, -1.00, -0.68, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=1);
+			set_hudmessage(255, 255, 255, -1.00, -0.65, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=1);
 		else
 			set_hudmessage(255, 255, 255, -1.00, -0.74, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=1);
 
@@ -827,7 +839,11 @@ public AwardCheck(task)
 
 		if (ribbon[RBN_SCORE] > 0)
 		{
-			set_hudmessage(255, 255, 255, -1.00, -0.54, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
+			if (ribbon[RBN_TYPE] == TYPE_RIBBON)
+				set_hudmessage(255, 255, 255, -1.00, -0.54, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
+			else
+				set_hudmessage(255, 255, 255, -1.00, -0.40, .effects=2, .fxtime=0.01, .holdtime=2.5, .fadeintime=0.01, .fadeouttime=0.2, .channel=2);
+
 			show_hudmessage(id, score);
 			crxranks_give_user_xp(id, ribbon[RBN_SCORE]);
 		}
@@ -1202,16 +1218,14 @@ public BF4ObjectMenu(id)
 	// Create a variable to hold the menu
 	new menu = menu_create("BF4 Object Menu:", "bf4_object_menu_handler");
 	new szMenu[32], szCost[6];
-	new const cost_healthkit= 3000;
-	new const cost_ammobox  = 2000;
 
 	//Add the item for this player
-	num_to_str(cost_healthkit, szCost, charsmax(szCost));
-	formatex(szMenu, charsmax(szMenu), "Health Kit^t\y[$%6d]", cost_healthkit);
+	num_to_str(g_cvars[E_CV_HEALTHKIT_COST], szCost, charsmax(szCost));
+	formatex(szMenu, charsmax(szMenu), "Health Kit^t\y[$%6d]", g_cvars[E_CV_HEALTHKIT_COST]);
 	menu_additem(menu, szMenu, szCost, 0, gSubMenuCallback);
 
-	num_to_str(cost_healthkit, szCost, charsmax(szCost));
-	formatex(szMenu, charsmax(szMenu), "Ammo Box^t\y[$%6d]", cost_ammobox);
+	num_to_str(g_cvars[E_CV_AMMOBOX_COST], szCost, charsmax(szCost));
+	formatex(szMenu, charsmax(szMenu), "Ammo Box^t\y[$%6d]", g_cvars[E_CV_AMMOBOX_COST]);
 	menu_additem(menu, szMenu, szCost, 0, gSubMenuCallback);
 
 	if (cvar_exists("bf4_rkit_cost"))
@@ -1274,17 +1288,23 @@ public bf4_object_menu_callback(id, menu, item)
 
 BF4SpawnEntity(id, class)
 {
+	new flags;
 	if (pev_valid(gObjectItem[id]))
-		set_pev(gObjectItem[id], pev_flags, pev(gObjectItem[id], pev_flags) | FL_KILLME);
+	{
+		// engfunc(EngFunc_RemoveEntity, gObjectItem[id]);
+		pev(gObjectItem[id], pev_flags, flags);
+		set_pev(gObjectItem[id], pev_flags, flags | FL_KILLME);
+		dllfunc(DLLFunc_Think, gObjectItem[id]);
+	}
 
-	new iEnt = engfunc(EngFunc_CreateNamedEntity, gEntItem);
+	new iEnt = cs_create_entity(ENT_CLASS_BREAKABLE);
 	if (pev_valid(iEnt))
 	{
 		gObjectItem[id] = iEnt;
 		// set models.
 		engfunc(EngFunc_SetModel, iEnt, ENT_MODELS[class]);
 		// set solid.
-		set_pev(iEnt, pev_solid, 		SOLID_BBOX);
+		set_pev(iEnt, pev_solid, 		SOLID_TRIGGER);
 		// set movetype.
 		set_pev(iEnt, pev_movetype, 	MOVETYPE_TOSS);
 
@@ -1294,8 +1314,8 @@ BF4SpawnEntity(id, class)
 		// set model animation.
 		set_pev(iEnt, pev_frame,		0);
 		set_pev(iEnt, pev_framerate,	0);
-		set_pev(iEnt, pev_renderamt,	255.0);
-		set_pev(iEnt, pev_rendercolor,	{255.0,255.0,255.0});
+		// set_pev(iEnt, pev_renderamt,	255.0);
+		// set_pev(iEnt, pev_rendercolor,	{255.0,255.0,255.0});
 		set_pev(iEnt, pev_owner,		id);
 		// Entity Setting.
 		// set class name.
@@ -1323,6 +1343,14 @@ BF4SpawnEntity(id, class)
 		engfunc(EngFunc_SetOrigin, iEnt, vOrigin );
 		set_pev(iEnt, pev_velocity,		vVelocity);
 
+		set_pev(iEnt, pev_renderfx, 	kRenderFxGlowShell);
+		if (is_user_connected(id))
+			if (cs_get_user_team(id) == CS_TEAM_CT)
+				set_pev(iEnt, pev_rendercolor, 	Float:{0.0, 0.0, 255.0});
+			else if(cs_get_user_team(id) == CS_TEAM_T)
+				set_pev(iEnt, pev_rendercolor, 	Float:{255.0, 0.0, 0.0});
+		set_pev(iEnt, pev_rendermode, 	kRenderNormal);
+		set_pev(iEnt, pev_renderamt, 	5.0);
 
 		// Reset powoer on delay time.
 		new Float:fCurrTime = get_gametime();
@@ -1369,7 +1397,7 @@ public BF4ObjectThink(iEnt)
 								if (health < 100)
 								{
 									if (100 > health + 10)
-										set_user_health(entity, health + 10);
+										set_user_health(entity, health + g_cvars[E_CV_HEALTHKIT_AMOUNT]);
 									else
 										set_user_health(entity, 100);
 									emit_sound(entity, CHAN_ITEM, "items/medshot4.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
@@ -1381,6 +1409,7 @@ public BF4ObjectThink(iEnt)
 							}
 						}
 					}
+					set_pev(iEnt, pev_nextthink, fCurrTime + g_cvars[E_CV_HEALTHKIT_INTERVAL]);
 				}
 				case E_AMMO_BOX:
 				{
@@ -1396,7 +1425,7 @@ public BF4ObjectThink(iEnt)
 								ammo   = cs_get_user_bpammo(entity, weapon);
 								if (CSW_AMMO_ID[weapon][1] > ammo)
 								{
-									ExecuteHamB(Ham_GiveAmmo, entity, 10, g_szAmmoNames[CSW_AMMO_ID[weapon][0]], CSW_AMMO_ID[weapon][1]);
+									ExecuteHamB(Ham_GiveAmmo, entity, g_cvars[E_CV_AMMOBOX_AMOUNT], g_szAmmoNames[CSW_AMMO_ID[weapon][0]], CSW_AMMO_ID[weapon][1]);
 									emit_sound(entity, CHAN_ITEM, "items/gunpickup2.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 									if (owner != entity)
 									{
@@ -1406,11 +1435,11 @@ public BF4ObjectThink(iEnt)
 							}
 						}
 					}
+					set_pev(iEnt, pev_nextthink, fCurrTime + g_cvars[E_CV_AMMOBOX_INTERVAL]);
 				}
 			}
 		}
 	}
-	set_pev(iEnt, pev_nextthink, fCurrTime + 3.0);
 	return HAM_IGNORED;
 }
 
