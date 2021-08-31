@@ -41,12 +41,15 @@ static const PLUGIN_VERSION	[]		= "0.1";
 #define TASKID_CHECKST 	            41520
 #define TASKID_ORIGIN 	            41560
 #define TASKID_SETUSER 	            41600
+#define TASKID_SPAWN				41650
 
 #define pev_zorigin					pev_fuser4
 #define seconds(%1) 				((1<<12) * (%1))
 
 #define HUDINFO_PARAMS
 
+#define ITEM_OWNER 					pev_iuser1
+#define ITEM_TEAM  					pev_iuser2
 enum _:E_ICON_STATE
 {
 	ICON_HIDE = 0,
@@ -65,6 +68,7 @@ enum _:E_SOUNDS
 enum _:E_MODELS
 {
 	R_KIT,
+	V_WPN,
 };
 
 enum _:E_CVARS
@@ -76,6 +80,9 @@ enum _:E_CVARS
 	REVIVAL_SC_FADE_TIME,
 	REVIVAL_DEATH_TIME,
 	Float:REVIVAL_DISTANCE,
+	HEALTHKIT_COST,
+	HEALTHKIT_AMOUNT,
+	Float:HEALTHKIT_INTERVAL,
 };
 
 enum _:E_PLAYER_DATA
@@ -95,6 +102,7 @@ enum _:E_CLASS_NAME
 	PLAYER,
 	CORPSE,
 	R_KIT,
+	WPN_KNIFE,
 };
 
 enum _:E_MESSAGES
@@ -103,11 +111,36 @@ enum _:E_MESSAGES
 	MSG_SCREEN_FADE,
 	MSG_STATUS_ICON,
 	MSG_CLCORPSE,
+	MSG_WEAPONLIST,
+	MSG_SCREEN_SHAKE,
 }
+
+enum _:E_SEQUENCE
+{
+	SEQ_IDLE,
+	SEQ_SLASH1,
+	SEQ_SLASH2,
+	SEQ_DRAW,
+	SEQ_STAB,
+	SEQ_STAB_MISS,
+	SEQ_MID_SLASH1,
+	SEQ_MID_SLASH2,
+}
+
+new const MESSAGES[E_MESSAGES][] = 
+{
+	"BarTime",
+	"ScreenFade",
+	"StatusIcon",
+	"ClCorpse",
+	"WeaponList",
+	"ScreenShake",
+};
 
 new const ENT_MODELS[E_MODELS][MAX_RESOURCE_PATH_LENGTH] = 
 {
-	"models/w_medkit.mdl"
+	"models/bf4_ranks/medkit.mdl",
+	"models/bf4_ranks/v_defibrillator.mdl"
 };
 
 new const ENT_SOUNDS[E_SOUNDS][MAX_RESOURCE_PATH_LENGTH] = 
@@ -124,12 +157,42 @@ new const ENTITY_CLASS_NAME[E_CLASS_NAME][MAX_NAME_LENGTH] =
 	"player",
 	"fake_corpse",
 	"revival_kit",
+	"weapon_knife",
 };
+
+new const ORIGINAL_KNIFE_SOUND[][] = 
+{
+	"weapons/knife_deploy1.wav",
+	"weapons/knife_hit1.wav",
+	"weapons/knife_hit2.wav",
+	"weapons/knife_hit3.wav",
+	"weapons/knife_hit4.wav",
+	"weapons/knife_hitwall1.wav",
+	"weapons/knife_slash1.wav",
+	"weapons/knife_slash2.wav",
+	"weapons/knife_stab.wav"
+};
+
+new const REPLACE_KNIFE_SOUND[][] = 
+{ 
+	"bf4_ranks/weapons/defibrillator_deploy1.wav",
+	"bf4_ranks/weapons/defibrillator_hit1.wav",
+	"bf4_ranks/weapons/defibrillator_hit2.wav",
+	"bf4_ranks/weapons/defibrillator_hit3.wav",
+	"bf4_ranks/weapons/defibrillator_hit4.wav",
+	"bf4_ranks/weapons/defibrillator_hitwall1.wav",
+	"bf4_ranks/weapons/defibrillator_slash1.wav",
+	"bf4_ranks/weapons/defibrillator_slash2.wav",
+	"bf4_ranks/weapons/defibrillator_stab.wav"
+};
+new const ENT_CLASS_BREAKABLE[] = "func_breakable";
+new const ENT_CLASS_KIT[]		= "bf4_healthkit";
 
 new g_cvars			[E_CVARS];
 new g_msg_data		[E_MESSAGES];
 new g_player_data	[MAX_PLAYERS + 1][E_PLAYER_DATA];
 new g_sync_obj;
+new gObjectItem		[MAX_PLAYERS + 1];
 
 //====================================================
 //  PLUGIN PRECACHE
@@ -138,11 +201,17 @@ public plugin_precache()
 {
 	check_plugin();
 
-	for (new i = 0; i < sizeof(ENT_SOUNDS); i+= MAX_RESOURCE_PATH_LENGTH)
+	for (new i = 0; i < E_SOUNDS; i++)
 		precache_sound(ENT_SOUNDS[i]);
 
-	for (new i = 0; i < sizeof(ENT_MODELS); i+= MAX_RESOURCE_PATH_LENGTH) 
+	for (new i = 0; i < sizeof REPLACE_KNIFE_SOUND; i++)
+		precache_sound(REPLACE_KNIFE_SOUND[i]);
+
+	for (new i = 0; i < E_MODELS; i++) 
 		precache_model(ENT_MODELS[i]);
+
+	precache_generic("sprites/weapon_defibrillator.txt");
+	precache_generic("sprites/bf4_ranks/weapons/weapon_defibrillator.spr");
 
 	return PLUGIN_CONTINUE;
 }
@@ -154,38 +223,359 @@ public plugin_init()
 {
 	register_plugin		(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR);
 	register_cvar		(PLUGIN_NAME, PLUGIN_VERSION, FCVAR_SPONLY|FCVAR_SERVER);
-
 	// register_clcmd		("say /buyrkit", 	"CmdBuyRKit");
 	// register_clcmd		("buyrkit", 		"CmdBuyRKit");
 
 	bind_pcvar_num		(create_cvar("bf4_rkit_health", 			"75"), 		g_cvars[REVIVAL_HEALTH]);
 	bind_pcvar_num		(create_cvar("bf4_rkit_cost", 				"1200"), 	g_cvars[REVIVAL_COST]);
 	bind_pcvar_num		(create_cvar("bf4_rkit_screen_fade",		"1"), 		g_cvars[REVIVAL_SC_FADE]);
-	bind_pcvar_num		(create_cvar("bf4_rkit_delay_revive", 		"3"), 		g_cvars[REVIVAL_TIME]);
+	bind_pcvar_num		(create_cvar("bf4_rkit_delay_revive", 		"0.2"),		g_cvars[REVIVAL_TIME]);
 	bind_pcvar_num		(create_cvar("bf4_rkit_delay_die", 			"15"), 		g_cvars[REVIVAL_DEATH_TIME]);
 	bind_pcvar_num		(create_cvar("bf4_rkit_screen_fade_time", 	"2"), 		g_cvars[REVIVAL_SC_FADE_TIME]);
 	bind_pcvar_float	(create_cvar("bf4_rkit_distance", 			"70.0"), 	g_cvars[REVIVAL_DISTANCE]);
 
-	RegisterHam			(Ham_Touch,	ENTITY_CLASS_NAME[I_TARGET],	"RKitTouch");
+	bind_pcvar_num		(create_cvar("bf4_hkit_cost", 				"3000"),	g_cvars[HEALTHKIT_COST]);
+	bind_pcvar_float	(create_cvar("bf4_hkit_interval",			"1.0"), 	g_cvars[HEALTHKIT_INTERVAL]);
+	bind_pcvar_num		(create_cvar("bf4_hkit_amount", 			"30"), 		g_cvars[HEALTHKIT_AMOUNT]);
+
+	RegisterHam			(Ham_Touch,					ENTITY_CLASS_NAME[I_TARGET],	"RKitTouch");
+
 	RegisterHamPlayer	(Ham_Killed,								"PlayerKilled");
 	RegisterHamPlayer	(Ham_Player_PostThink,						"PlayerPostThink");
-	RegisterHamPlayer	(Ham_Spawn, 								"PlayerSpawn", 1);
+	RegisterHamPlayer	(Ham_Spawn, 								"PlayerSpawn", 	.Post = true);
+
+//	register_event		("Damage", "OnDamage", "b", "2>0");
 
 	register_message 	(g_msg_data[MSG_CLCORPSE],					"message_clcorpse");
 	// Register Forward.
 	register_forward	(FM_CmdStart,								"PlayerCmdStart");
 
-	g_msg_data	[MSG_BARTIME]		= get_user_msgid("BarTime");
-	g_msg_data	[MSG_CLCORPSE]		= get_user_msgid("ClCorpse");
-	g_msg_data	[MSG_SCREEN_FADE]	= get_user_msgid("ScreenFade");
-	g_msg_data	[MSG_STATUS_ICON]	= get_user_msgid("StatusIcon");
+/// =======================================================================================
+/// START Custom Weapon Defibrillator
+/// =======================================================================================
+    register_clcmd		("weapon_defibrillator", 	"SelectDefibrillator");
+    RegisterHam			(Ham_Item_AddToPlayer, 		ENTITY_CLASS_NAME[WPN_KNIFE], 	"OnAddToPlayerKnife", 	.Post = true);
+	RegisterHam			(Ham_Item_ItemSlot, 		ENTITY_CLASS_NAME[WPN_KNIFE], 	"OnItemSlotKnife");
+	RegisterHam			(Ham_Item_Deploy, 			ENTITY_CLASS_NAME[WPN_KNIFE], 	"OnSetModels",			.Post = true);
+	RegisterHam			(Ham_Weapon_PrimaryAttack, 	ENTITY_CLASS_NAME[WPN_KNIFE], 	"OnPrimaryAttackPre");
+	RegisterHam			(Ham_Weapon_PrimaryAttack, 	ENTITY_CLASS_NAME[WPN_KNIFE], 	"OnPrimaryAttackPost",	.Post = true);
+	RegisterHam			(Ham_Weapon_SecondaryAttack,ENTITY_CLASS_NAME[WPN_KNIFE], 	"OnSecondaryAttackPre");
+	RegisterHamPlayer	(Ham_TakeDamage,			"OnTakeDamage");
+	register_forward	(FM_EmitSound, 				"KnifeSound");
+/// =======================================================================================
+/// END Custom Weapon Defibrillator
+/// =======================================================================================
+
+/// =======================================================================================
+/// START HealthKit
+/// =======================================================================================
+	RegisterHam			(Ham_Think, 				ENT_CLASS_BREAKABLE, 			"BF4ObjectThink");
+/// =======================================================================================
+/// END HealthKit
+/// =======================================================================================
+
+	for(new i = 0; i < E_MESSAGES; i++)
+		g_msg_data[i] = get_user_msgid(MESSAGES[i]);
+
 	g_sync_obj = CreateHudSyncObj();
 }
+
+/// =======================================================================================
+/// START Custom Weapon Defibrillator
+/// =======================================================================================
+public OnAddToPlayerKnife(const item, const player)
+{
+    if(pev_valid(item) && is_user_alive(player)) 	// just for safety.
+    {
+        message_begin( MSG_ONE, g_msg_data[MSG_WEAPONLIST], .player = player );
+        {
+            write_string("weapon_defibrillator");   // WeaponName
+            write_byte(-1);                   		// PrimaryAmmoID
+            write_byte(-1);                   		// PrimaryAmmoMaxAmount
+            write_byte(-1);                   		// SecondaryAmmoID
+            write_byte(-1);                   		// SecondaryAmmoMaxAmount
+            write_byte(4);                    		// SlotID (0...N)
+            write_byte(1);                    		// NumberInSlot (1...N)
+            write_byte(CSW_KNIFE);            		// WeaponID
+            write_byte(0);                    		// Flags
+        }
+        message_end();
+    }
+}
+
+public SelectDefibrillator(const client) 
+{ 
+    engclient_cmd(client, "weapon_knife"); 
+} 
+
+public OnItemSlotKnife(const item)
+{
+    SetHamReturnInteger(5);
+    return HAM_SUPERCEDE;
+}
+
+public OnSetModels(const item)
+{
+	if(pev_valid(item) != 2)
+		return PLUGIN_CONTINUE;
+
+	static client; client = get_pdata_cbase(item, 41, 4);
+	if(!is_user_alive(client))
+		return PLUGIN_CONTINUE;
+
+	if(get_pdata_cbase(client, 373) != item)
+		return PLUGIN_CONTINUE;
+
+	set_pev(client, pev_viewmodel2, ENT_MODELS[V_WPN]);
+	UTIL_PlayWeaponAnimation(client, SEQ_DRAW);
+
+	return PLUGIN_HANDLED;
+}
+
+public KnifeSound(id, channel, sample[])
+{
+	if(is_user_connected(id) && is_user_alive(id))
+	{
+		for(new i; i < sizeof REPLACE_KNIFE_SOUND; i++)
+		{
+			if(equal(sample, ORIGINAL_KNIFE_SOUND[i]))
+			{
+				emit_sound(id, CHAN_ITEM, REPLACE_KNIFE_SOUND[i], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+				return FMRES_SUPERCEDE;
+			}
+		}
+	}
+	return FMRES_IGNORED;
+}
+
+public OnPrimaryAttackPre(Weapon)
+{
+	new client = get_pdata_cbase(Weapon, 41, 4);
+	
+	if(get_pdata_cbase(client, 373) != Weapon)
+		return HAM_IGNORED;
+
+	if (!CheckDeadBody(client))
+	{
+
+		return HAM_HANDLED;
+	}
+
+	wait_revive(client);
+	UTIL_ScreenShake(client, 0.2, 0.2, 0.3);
+	ExecuteHam(Ham_Player_Duck, client);
+	return HAM_HANDLED;
+}
+
+public OnSecondaryAttackPre(Weapon)
+{
+	new client = get_pdata_cbase(Weapon, 41, 4);
+	
+	if(get_pdata_cbase(client, 373) != Weapon)
+		return HAM_IGNORED;
+
+	BF4SpawnEntity(client);
+	return HAM_SUPERCEDE;
+}
+
+public OnPrimaryAttackPost(Weapon)
+{
+	new client = get_pdata_cbase(Weapon, 41, 4);
+	
+	if(get_pdata_cbase(client, 373) != Weapon)
+		return HAM_IGNORED;
+
+	UTIL_PlayWeaponAnimation(client, SEQ_STAB);
+	return HAM_IGNORED;
+}
+
+public OnTakeDamage(iVictim, inflictor, iAttacker, Float:damage, damage_type)
+{
+	// Assist Damage.
+	if (is_user_connected(iAttacker) && is_user_connected(iVictim))
+	{
+//		if (GetBF4PlayerClass(attacker) == BF4_CLASS_ASSAULT)
+		{
+			if (get_user_weapon(iAttacker) != CSW_KNIFE)
+				return HAM_IGNORED;
+			if (cs_get_user_team(iAttacker) != cs_get_user_team(iVictim))
+			{
+				SetHamParamFloat(4, 200.0);
+				return HAM_HANDLED;
+			}
+		}
+	}
+	return HAM_IGNORED;
+}
+
+stock UTIL_PlayWeaponAnimation(const Player, const Sequence)
+{
+	set_pev(Player, pev_weaponanim, Sequence);
+	
+	message_begin(MSG_ONE_UNRELIABLE, SVC_WEAPONANIM, .player = Player);
+	write_byte(Sequence);
+	write_byte(pev(Player, pev_body));
+	message_end();
+}
+
+stock UTIL_ScreenShake(id, Float:duration, Float:frequency, Float:amplitude)
+{
+    // Screen Shake
+    message_begin(MSG_ONE, g_msg_data[MSG_SCREEN_SHAKE], {0,0,0}, id);
+    write_short(FixedUnsigned16(amplitude,	1<<12 )); 	// shake amount
+    write_short(FixedUnsigned16(duration, 	1<<12 ));	// shake lasts this long
+    write_short(FixedUnsigned16(frequency,	1<<8 ));	// shake noise frequency
+    message_end();
+}
+
+
+stock FixedUnsigned16(Float:value, scale)
+{
+    new output;
+
+    output = floatround(value * scale);
+    if (output < 0)
+        output = 0;
+    if (output > 0xFFFF)
+        output = 0xFFFF;
+
+    return output;
+} 
+/// =======================================================================================
+/// END Custom Weapon Defibrillator
+/// =======================================================================================
+
+/// =======================================================================================
+/// START Medikit for Ground
+/// =======================================================================================
+BF4SpawnEntity(id)
+{
+	if (pev_valid(gObjectItem[id]))
+	{
+		new flags;
+		// engfunc(EngFunc_RemoveEntity, gObjectItem[id]);
+		pev(gObjectItem[id], pev_flags, flags);
+		set_pev(gObjectItem[id], pev_flags, flags | FL_KILLME);
+		dllfunc(DLLFunc_Think, gObjectItem[id]);
+	}
+
+	new iEnt = cs_create_entity(ENT_CLASS_BREAKABLE);
+	if (pev_valid(iEnt))
+	{
+		gObjectItem[id] = iEnt;
+		// set models.
+		engfunc(EngFunc_SetModel, iEnt, ENT_MODELS[R_KIT]);
+		// set solid.
+		set_pev(iEnt, pev_solid, 		SOLID_TRIGGER);
+		// set movetype.
+		set_pev(iEnt, pev_movetype, 	MOVETYPE_TOSS);
+
+		set_pev(iEnt, pev_renderfx,	 	kRenderFxNone);
+		set_pev(iEnt, pev_body, 		3);
+
+		// set model animation.
+		set_pev(iEnt, pev_frame,		0);
+		set_pev(iEnt, pev_framerate,	0);
+		// set_pev(iEnt, pev_renderamt,	255.0);
+		// set_pev(iEnt, pev_rendercolor,	{255.0,255.0,255.0});
+		set_pev(iEnt, pev_owner,		id);
+		// Entity Setting.
+		// set class name.
+		set_pev(iEnt, pev_classname, 	ENT_CLASS_KIT);
+		// set take damage.
+		set_pev(iEnt, pev_takedamage, 	DAMAGE_YES);
+		set_pev(iEnt, pev_dmg, 			100.0);
+		// set entity health.
+		set_pev(iEnt, pev_health,		50.0);
+		// Vector settings.
+		new Float:vOrigin	[3],
+			Float:vViewOfs	[3],
+			Float:vVelocity	[3];
+
+		// get user position.
+		pev(id, pev_origin, vOrigin);
+		pev(id, pev_view_ofs, vViewOfs);
+
+		velocity_by_aim(id, 100, vVelocity);
+		xs_vec_add(vOrigin, vViewOfs, vOrigin);  	
+
+		// set size.
+		engfunc(EngFunc_SetSize, iEnt, Float:{ -4.0, -4.0, -4.0 }, Float:{ 4.0, 4.0, 4.0 } );
+		// set entity position.
+		engfunc(EngFunc_SetOrigin, iEnt, vOrigin );
+		set_pev(iEnt, pev_velocity,		vVelocity);
+
+		set_pev(iEnt, pev_renderfx, 	kRenderFxGlowShell);
+		if (is_user_connected(id))
+			if (cs_get_user_team(id) == CS_TEAM_CT)
+				set_pev(iEnt, pev_rendercolor, 	Float:{0.0, 0.0, 255.0});
+			else if(cs_get_user_team(id) == CS_TEAM_T)
+				set_pev(iEnt, pev_rendercolor, 	Float:{255.0, 0.0, 0.0});
+		set_pev(iEnt, pev_rendermode, 	kRenderNormal);
+		set_pev(iEnt, pev_renderamt, 	5.0);
+
+		// Reset powoer on delay time.
+		new Float:fCurrTime = get_gametime();
+
+		// Save results to be used later.
+		set_pev(iEnt, ITEM_TEAM,	cs_get_user_team(id));
+		// think rate. hmmm....
+		set_pev(iEnt, pev_nextthink,fCurrTime + 2.0);
+
+		emit_sound(id, CHAN_ITEM, "items/ammopickup2.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+	}
+}
+
+public BF4ObjectThink(iEnt)
+{
+	if (!pev_valid(iEnt))
+		return HAM_IGNORED;
+
+	new CsTeams:team = CsTeams:pev(iEnt, ITEM_TEAM);
+	new Float:vOrigin[3];
+	new Float:fCurrTime = get_gametime();
+	new entity, health;
+	new Float:radius = 128.0;
+	new classname[32];
+	new owner = pev(iEnt, pev_owner);
+	pev(iEnt, pev_origin, vOrigin);
+	pev(iEnt, pev_classname, classname, charsmax(classname));
+
+	if (equali(ENT_CLASS_KIT, classname))
+	{
+		entity = -1;
+		while((entity = engfunc(EngFunc_FindEntityInSphere, entity, vOrigin, radius)) != 0)
+		{
+			if (is_user_alive(entity))
+			{
+				if (cs_get_user_team(entity) == team)
+				{
+					health = get_user_health(entity);
+					if (health < 100)
+					{
+						set_user_health(entity, min(health + g_cvars[HEALTHKIT_AMOUNT], 100));
+						emit_sound(entity, CHAN_ITEM, "items/medshot4.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+
+						if (owner != entity)
+						{
+							BF4TriggerGetRibbon(owner, BF4_RNK_MEDIKIT, "Mate Healing.");
+						}
+					}
+				}
+			}
+		}
+		set_pev(iEnt, pev_nextthink, fCurrTime + g_cvars[HEALTHKIT_INTERVAL]);
+	}
+	return HAM_IGNORED;
+}
+/// =======================================================================================
+/// END Medikit for Ground
+/// =======================================================================================
 
 public plugin_natives()
 {
 	register_library("bf4_rkit_natives");
-	register_native("BF4BuyRivivekit", "_native_cmdbuyrkit");
+//	register_native	("BF4BuyRivivekit", "_native_cmdbuyrkit");
 }
 // ====================================================
 //  Bot Register Ham.
@@ -312,8 +702,6 @@ public PlayerDie(taskid)
 
 public PlayerSpawn(id)
 {
-	remove_target_entity(id, ENTITY_CLASS_NAME[CORPSE]);
-	remove_target_entity(id, ENTITY_CLASS_NAME[R_KIT]);
 //	set_task(1.0, "TaskBotBuy");
 	
 	if (g_player_data[id][IS_RESPAWNING])
@@ -322,6 +710,24 @@ public PlayerSpawn(id)
 		player_respawn_reset(id);		
 
 	g_player_data[id][IS_RESPAWNING] = false;
+
+	set_task_ex(0.1, "TaskSpawn", TASKID_SPAWN + id);
+}
+
+public TaskSpawn(taskid)
+{
+	new id = taskid - TASKID_SPAWN;
+	remove_target_entity(id, ENTITY_CLASS_NAME[CORPSE]);
+	remove_target_entity(id, ENTITY_CLASS_NAME[R_KIT]);
+
+	if (pev_valid(gObjectItem[id]))
+	{
+		new flags;
+		pev(gObjectItem[id], pev_flags, flags);
+		set_pev(gObjectItem[id], pev_flags, flags | FL_KILLME);
+		dllfunc(DLLFunc_Think, gObjectItem[id]);
+		gObjectItem[id] = 0;
+	}	
 }
 
 stock show_time_bar(oneper, percent, bar[])
@@ -412,31 +818,44 @@ public PlayerCmdStart(id, handle, random_seed)
 	if ((pev(id, pev_weapons) & (1 << CSW_C4)) && (iInButton & IN_ATTACK))
 		return FMRES_IGNORED;
 
-	// USE KEY
-	iInButton &= IN_USE;
+	// iInButton &= IN_ATTACK;
+	// if (iInButton)
+	// {
+	// 	if (pev(id, pev_weapons) & (1 << CSW_KNIFE))
+	// 	{
+	// 		set_pev(id, pev_bInDuck, 1);
+	// 		set_pev(id, pev_flDuckTime, 2.0);
+	// 		return FMRES_HANDLED;
+	// 	}
+	// }
+	// // USE KEY
+	// iInButton &= IN_USE;
 
-	if (iInButton)
-	{
-		if (!iInOldButton)
-		{
-			if (g_player_data[id][HAS_KIT])
-			{
-				wait_revive(id);
-				return FMRES_HANDLED;
-			}
-		}
-	}
-	else
-	{
-		if (iInOldButton)
-		{
-			if (task_exists(TASKID_REVIVING + id))
-			{
-				remove_task(TASKID_REVIVING + id);
-				failed_revive(id);
-			}
-		}
-	}
+	// if (iInButton)
+	// {
+	// 	if (!iInOldButton)
+	// 	{
+	// 		if (g_player_data[id][HAS_KIT])
+	// 		{
+	// 			if (!CheckDeadBody(id))
+	// 				return FMRES_IGNORED;
+
+	// 			wait_revive(id);
+	// 			return FMRES_HANDLED;
+	// 		}
+	// 	}
+	// }
+	// else
+	// {
+	// 	if (iInOldButton)
+	// 	{
+	// 		if (task_exists(TASKID_REVIVING + id))
+	// 		{
+	// 			remove_task(TASKID_REVIVING + id);
+	// 			failed_revive(id);
+	// 		}
+	// 	}
+	// }
 	return FMRES_IGNORED;
 }
 
@@ -445,29 +864,33 @@ public PlayerCmdStart(id, handle, random_seed)
 //====================================================
 public wait_revive(id)
 {
-	// Removing Check.
-	new body = find_dead_body(id);
-	if(!pev_valid(body))
-		return FMRES_IGNORED;
-
-	new lucky_bastard 		= pev(body, pev_owner);
-	new CsTeams:lb_team 	= cs_get_user_team(lucky_bastard);
-	new CsTeams:rev_team 	= cs_get_user_team(id);
-	if(lb_team != CS_TEAM_T && lb_team != CS_TEAM_CT || lb_team != rev_team)
-		return FMRES_IGNORED;
-
-	client_print(id, print_chat, "Reviving %n", lucky_bastard);
-
 	if (g_cvars[REVIVAL_TIME] > 0.0)
 		show_progress(id, g_cvars[REVIVAL_TIME]);
 	
 	new Float:gametime = get_gametime();
 	g_player_data[id][REVIVE_DELAY] = (gametime + g_cvars[REVIVAL_TIME] - 0.01);
 
-	emit_sound(id, CHAN_AUTO, ENT_SOUNDS[SOUND_START], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+//	emit_sound(id, CHAN_AUTO, ENT_SOUNDS[SOUND_START], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 	set_task_ex(0.1, "TaskRevive", TASKID_REVIVING + id, _,_, SetTaskFlags:SetTask_Repeat);
 
 	return FMRES_HANDLED;
+}
+
+stock CheckDeadBody(id)
+{
+	// Removing Check.
+	new body = find_dead_body(id);
+	if(!pev_valid(body))
+		return false;
+
+	new lucky_bastard 		= pev(body, pev_owner);
+	new CsTeams:lb_team 	= cs_get_user_team(lucky_bastard);
+	new CsTeams:rev_team 	= cs_get_user_team(id);
+	if(lb_team != CS_TEAM_T && lb_team != CS_TEAM_CT || lb_team != rev_team)
+		return false;
+
+	client_print(id, print_chat, "Reviving %n", lucky_bastard);
+	return true;
 }
 
 public TaskCheckDeadFlag(taskid)
@@ -507,9 +930,9 @@ public TaskRevive(taskid)
 	{
 		if(findemptyloc(body, 10.0))
 		{
-			BF4ReviveBonus(id);
+			BF4TriggerGetRibbon(id, BF4_RNK_REVIVE, "Defibrillator Point.");
 			set_pev(body, pev_flags, pev(body, pev_flags) | FL_KILLME);			
-			emit_sound(id, CHAN_AUTO, ENT_SOUNDS[SOUND_FINISHED], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+//			emit_sound(id, CHAN_AUTO, ENT_SOUNDS[SOUND_FINISHED], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 			set_task(0.1, "TaskReSpawn", TASKID_RESPAWN + target);
 			remove_task(taskid);
 		}
@@ -570,7 +993,7 @@ public TaskStuckCheck(taskid)
 	if(origin[2] == pev(id, pev_zorigin))
 		set_task(0.1, "TaskCheckReSpawn",   TASKID_RESPAWN + id);
 	else
-		set_task(0.1, "TaskSetplayer", TASKID_SETUSER + id);
+		set_task(0.1, "TaskSetplayer", 		TASKID_SETUSER + id);
 	// log_amx("TaskStuckCheck END");
 }
 
@@ -582,8 +1005,10 @@ public TaskSetplayer(taskid)
 	if (pev(id, pev_weapons) & (1<<CSW_C4))
 	    engclient_cmd(id, "drop", "weapon_c4");
 
-	strip_user_weapons(id);
-	give_item(id, "weapon_knife");
+	new entity = -1;
+	new Float:vOrigin[3];
+	new Float:radius = 128.0;
+
 	set_user_health(id, g_cvars[REVIVAL_HEALTH]);
 
 	if (!is_user_bot(id))
@@ -601,6 +1026,20 @@ public TaskSetplayer(taskid)
 		message_end();
 	}
 	g_player_data[id][IS_RESPAWNING] = false;
+
+	// strip_user_weapons(id);
+	// give_item(id, "weapon_knife");
+	while((entity = engfunc(EngFunc_FindEntityInSphere, entity, vOrigin, radius)) != 0)
+	{
+		if (pev_valid(entity))
+		{
+			if(pev(entity, pev_owner) == id)
+			{
+				ExecuteHam(Ham_CS_Player_OnTouchingWeapon, id, entity);			
+			}
+		}
+	}
+
 	player_respawn_reset(id);
 	// log_amx("TaskSetplayer END");
 }
@@ -799,7 +1238,7 @@ stock player_respawn_reset(id)
 
 	g_player_data[id][IS_DEAD]		= false;
 	g_player_data[id][IS_RESPAWNING]= false;
-	g_player_data[id][HAS_KIT] 	 	= false;
+	// g_player_data[id][HAS_KIT] 	 	= false;
 	g_player_data[id][DEAD_LINE]	= 0.0;
 	g_player_data[id][REVIVE_DELAY] = 0.0;
 	g_player_data[id][WAS_DUCKING]	= false;
@@ -864,6 +1303,7 @@ stock drop_rkit(id)
 		engfunc(EngFunc_SetSize, 	kit, Float:{-2.5, -2.5, -1.5}, Float:{2.5, 2.5, 1.5});
 		set_pev(kit, pev_solid, 	SOLID_TRIGGER);
 		set_pev(kit, pev_movetype, 	MOVETYPE_TOSS);
+		g_player_data[id][HAS_KIT] 	 	= false;
 	}
 }
 
