@@ -19,7 +19,7 @@
 #pragma semicolon 					1
 #pragma tabsize 					4
 
-static const PLUGIN_NAME	[] 		= "BF4 Revival Kit";
+static const PLUGIN_NAME	[] 		= "BF4 Weapons - Defibrillator";
 static const PLUGIN_AUTHOR	[] 		= "Aoi.Kagase";
 static const PLUGIN_VERSION	[]		= "0.1";
 
@@ -87,7 +87,6 @@ enum _:E_CVARS
 
 enum _:E_PLAYER_DATA
 {
-	bool:HAS_KIT		,
 	bool:WAS_DUCKING	,
 	bool:IS_DEAD		,
 	bool:IS_RESPAWNING	,
@@ -223,8 +222,6 @@ public plugin_init()
 {
 	register_plugin		(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR);
 	register_cvar		(PLUGIN_NAME, PLUGIN_VERSION, FCVAR_SPONLY|FCVAR_SERVER);
-	// register_clcmd		("say /buyrkit", 	"CmdBuyRKit");
-	// register_clcmd		("buyrkit", 		"CmdBuyRKit");
 
 	bind_pcvar_num		(create_cvar("bf4_rkit_health", 			"75"), 		g_cvars[REVIVAL_HEALTH]);
 	bind_pcvar_num		(create_cvar("bf4_rkit_cost", 				"1200"), 	g_cvars[REVIVAL_COST]);
@@ -237,8 +234,6 @@ public plugin_init()
 	bind_pcvar_num		(create_cvar("bf4_hkit_cost", 				"3000"),	g_cvars[HEALTHKIT_COST]);
 	bind_pcvar_float	(create_cvar("bf4_hkit_interval",			"1.0"), 	g_cvars[HEALTHKIT_INTERVAL]);
 	bind_pcvar_num		(create_cvar("bf4_hkit_amount", 			"30"), 		g_cvars[HEALTHKIT_AMOUNT]);
-
-	RegisterHam			(Ham_Touch,					ENTITY_CLASS_NAME[I_TARGET],	"RKitTouch");
 
 	RegisterHamPlayer	(Ham_Killed,								"PlayerKilled");
 	RegisterHamPlayer	(Ham_Player_PostThink,						"PlayerPostThink");
@@ -572,32 +567,6 @@ public BF4ObjectThink(iEnt)
 /// END Medikit for Ground
 /// =======================================================================================
 
-public plugin_natives()
-{
-	register_library("bf4_rkit_natives");
-//	register_native	("BF4BuyRivivekit", "_native_cmdbuyrkit");
-}
-// ====================================================
-//  Bot Register Ham.
-// ====================================================
-// new g_bots_registered[MAX_PLAYERS + 1] = {false};
-// public client_authorized(id)
-// {
-//     if(!g_bots_registered[id] && is_user_bot(id))
-//     {
-//         set_task( 0.1, "register_bots", id );
-//     }
-// }
-
-// public register_bots(id)
-// {
-//     if(!g_bots_registered[id] && is_user_connected(id))
-//     {
-//         RegisterHamFromEntity(Ham_Killed, id, "PlayerKilled");
-//         g_bots_registered[id] = true;
-//     }
-// }
-
 public client_putinserver(id)
 {
 	player_reset(id);
@@ -609,39 +578,9 @@ public client_disconnected(id)
 	remove_target_entity(id, ENTITY_CLASS_NAME[CORPSE]);
 }
 
-public _native_cmdbuyrkit(iPlugin, iParams)
-{
-	CmdBuyRKit(get_param(1));
-}
-
-public CmdBuyRKit(id)
-{
-	if(!is_user_alive(id))
-		client_print(id, print_chat, "You need to be alive.");
-	else if(g_player_data[id][HAS_KIT])
-		client_print(id, print_chat, "You already have a revival kit.");
-	else if(!cs_get_user_buyzone(id))
-		client_print(id, print_chat, "You need to be in the buyzone.");
-	else if(cs_get_user_money(id) < g_cvars[REVIVAL_COST])
-		client_print(id, print_chat, "You dont have enough money (Cost:$%d)", g_cvars[REVIVAL_COST]);
-	else
-	{
-		g_player_data[id][HAS_KIT] = true;
-		cs_set_user_money(id, cs_get_user_money(id) - g_cvars[REVIVAL_COST]);
-		client_print(id, print_chat, "You bought a revival kit. Hold your +use key (E) to revive a teammate.");
-		client_cmd(id, "spk %s", ENT_SOUNDS[SOUND_EQUIP]);
-	}
-	return PLUGIN_HANDLED;
-}
-
 public PlayerKilled(iVictim, iAttacker)
 {
 	player_reset(iVictim);
-	if(g_player_data[iVictim][HAS_KIT])
-	{
-		g_player_data[iVictim][HAS_KIT] = false;
-		drop_rkit(iVictim);
-	}
 
 	static Float:minsize[3];
 	pev(iVictim, pev_mins, minsize);
@@ -653,7 +592,6 @@ public PlayerKilled(iVictim, iAttacker)
 		
 	g_player_data[iVictim][DEAD_LINE] = get_gametime();
 
-//	if (!is_user_bot(iVictim))
 	set_task_ex(1.0, "PlayerDie", 		  TASKID_DIE_COUNT 		 + iVictim, _, _, SetTaskFlags:SetTask_Repeat);
 	set_task_ex(0.5, "TaskCheckDeadFlag", TASKID_CHECK_DEAD_FLAG + iVictim, _, _, SetTaskFlags:SetTask_Repeat);
 
@@ -684,13 +622,16 @@ public PlayerDie(taskid)
 				show_time_bar(100 / GUAGE_MAX, floatround(remaining * 100.0 / float(g_cvars[REVIVAL_DEATH_TIME]), floatround_ceil), bar);
 				new timestr[6];
 				get_time_format(remaining, timestr, charsmax(timestr));
-				set_hudmessage(255, 50, 100, -1.00, -1.00, .effects= 0 , .holdtime= 1.0);
-				ShowSyncHudMsg(id, g_sync_obj, "Possible resurrection time remaining: ^n%s^n[%s]", timestr, bar);
+				set_hudmessage(255, 0, 0, -1.00, -1.00, .effects= 0 , .fxtime = 0.0, .holdtime = 1.0, .fadeintime = 0.0, .fadeouttime = 0.0, .channel = -1);
+				ShowSyncHudMsg(id, g_sync_obj, "Remaining revivable time: ^n%s^n[%s]", timestr, bar);
 			}
 		}
 		else
 		{
-			ExecuteHamB(Ham_CS_RoundRespawn, id);
+//			if (is_bf4_deathmatch())
+				ExecuteHamB(Ham_CS_RoundRespawn, id);
+//			else
+//				remove_target_entity(id, ENTITY_CLASS_NAME[CORPSE]);
 		}
 	}
 	else
@@ -702,8 +643,6 @@ public PlayerDie(taskid)
 
 public PlayerSpawn(id)
 {
-//	set_task(1.0, "TaskBotBuy");
-	
 	if (g_player_data[id][IS_RESPAWNING])
 		set_task(0.1, "TaskOrigin",  TASKID_ORIGIN + id);
 	else 
@@ -742,67 +681,7 @@ public message_clcorpse()
 	return PLUGIN_HANDLED;
 }
 
-public PlayerPostThink(id)
-{
-	// is user connected?
-	if (!is_user_connected(id))
-		return FMRES_IGNORED;
-
-	// has user revive kit?
-	if (!g_player_data[id][HAS_KIT])
-		return FMRES_IGNORED;
-
-	// is user dead?
-	if (!is_user_alive(id))
-	{
-		// Hide Rescue icon.
-		msg_statusicon(id, ICON_HIDE);
-		return FMRES_IGNORED;
-	}
-	
-	new body = find_dead_body(id);
-	if(pev_valid(body))
-	{
-		new lucky_bastard = pev(body, pev_owner);
-	
-		if(!is_user_connected(lucky_bastard))
-			return FMRES_IGNORED;
-
-		new CsTeams:lb_team  = cs_get_user_team(lucky_bastard);
-		new CsTeams:rev_team = cs_get_user_team(id);
-		if(lb_team == CS_TEAM_T || lb_team == CS_TEAM_CT && lb_team == rev_team)
-			msg_statusicon(id, ICON_FLASH);
-	}
-	else
-		msg_statusicon(id, ICON_SHOW);
-	
-	return FMRES_IGNORED;
-}
-
-public RKitTouch(kit, id)
-{
-	if(!pev_valid(kit))
-		return FMRES_IGNORED;
-	
-	if(!is_user_alive(id) || g_player_data[id][HAS_KIT])
-		return FMRES_IGNORED;
-	
-	new classname[32];
-	pev(kit, pev_classname, classname, 31);
-	
-	if(equal(classname, ENTITY_CLASS_NAME[R_KIT]))
-	{
-		// engfunc(EngFunc_RemoveEntity, kit);
-		new flags;
-		pev(kit, pev_flags, flags);
-		set_pev(kit, pev_flags, flags | FL_KILLME);
-		dllfunc(DLLFunc_Think, kit);
-		g_player_data[id][HAS_KIT] = true;
-		client_cmd(id, "spk %s", ENT_SOUNDS[SOUND_EQUIP]);
-	}
-	return FMRES_IGNORED;
-}
-
+/*
 public PlayerCmdStart(id, handle, random_seed)
 {
 	// Not alive
@@ -818,46 +697,9 @@ public PlayerCmdStart(id, handle, random_seed)
 	if ((pev(id, pev_weapons) & (1 << CSW_C4)) && (iInButton & IN_ATTACK))
 		return FMRES_IGNORED;
 
-	// iInButton &= IN_ATTACK;
-	// if (iInButton)
-	// {
-	// 	if (pev(id, pev_weapons) & (1 << CSW_KNIFE))
-	// 	{
-	// 		set_pev(id, pev_bInDuck, 1);
-	// 		set_pev(id, pev_flDuckTime, 2.0);
-	// 		return FMRES_HANDLED;
-	// 	}
-	// }
-	// // USE KEY
-	// iInButton &= IN_USE;
-
-	// if (iInButton)
-	// {
-	// 	if (!iInOldButton)
-	// 	{
-	// 		if (g_player_data[id][HAS_KIT])
-	// 		{
-	// 			if (!CheckDeadBody(id))
-	// 				return FMRES_IGNORED;
-
-	// 			wait_revive(id);
-	// 			return FMRES_HANDLED;
-	// 		}
-	// 	}
-	// }
-	// else
-	// {
-	// 	if (iInOldButton)
-	// 	{
-	// 		if (task_exists(TASKID_REVIVING + id))
-	// 		{
-	// 			remove_task(TASKID_REVIVING + id);
-	// 			failed_revive(id);
-	// 		}
-	// 	}
-	// }
 	return FMRES_IGNORED;
 }
+*/
 
 //====================================================
 // Removing target put lasermine.
@@ -895,7 +737,6 @@ stock CheckDeadBody(id)
 
 public TaskCheckDeadFlag(taskid)
 {
-	// log_amx("TaskCheckDeadFlag START");
 	new id = taskid - TASKID_CHECK_DEAD_FLAG;
 	if(!is_user_connected(id))
 		return;
@@ -905,12 +746,10 @@ public TaskCheckDeadFlag(taskid)
 		create_fake_corpse(id);
 		remove_task(taskid);
 	}
-	// log_amx("TaskCheckDeadFlag END");
 }	
 
 public TaskRevive(taskid)
 {
-	// log_amx("TaskRevive START");
 	new id = taskid - TASKID_REVIVING;
 	new target, body;
 
@@ -937,13 +776,11 @@ public TaskRevive(taskid)
 			remove_task(taskid);
 		}
 	}
-	// log_amx("TaskRevive END");	
 	return PLUGIN_CONTINUE;
 }
 
  public TaskReSpawn(taskid) 
  {
-	// log_amx("TaskReSpawn START");
 	new id = taskid - TASKID_RESPAWN;
 	
 	// set_pev(id, pev_deadflag, DEAD_RESPAWNABLE);
@@ -952,25 +789,20 @@ public TaskRevive(taskid)
 	g_player_data[id][IS_RESPAWNING] = true;
 	ExecuteHamB(Ham_CS_RoundRespawn, id);
 	// set_task(0.1, "TaskCheckReSpawn", TASKID_CHECKRE + id);
-
-	// log_amx("TaskReSpawn END");
 }
 
 public TaskCheckReSpawn(taskid)
 {
-	// log_amx("TaskCheckReSpawn START");
 	new id = taskid - TASKID_CHECKRE;
 	
 	if(pev(id, pev_iuser1))
 		set_task(0.1, "TaskReSpawn", TASKID_RESPAWN + id);
 	else
 		set_task(0.1, "TaskOrigin",  TASKID_ORIGIN + id);
-	// log_amx("TaskCheckReSpawn END");
 }
 
 public TaskOrigin(taskid)
 {
-	// log_amx("TaskOrigin START");
 	new id = taskid - TASKID_ORIGIN;
 	engfunc(EngFunc_SetOrigin, id, g_player_data[id][BODY_ORIGIN]);
 	
@@ -979,12 +811,10 @@ public TaskOrigin(taskid)
 	set_pev(id, pev_zorigin, origin[2]);
 		
 	set_task(0.1, "TaskStuckCheck", TASKID_CHECKST + id);
-	// log_amx("TaskOrigin END");
 }
 
 public TaskStuckCheck(taskid)
 {
-	// log_amx("TaskStuckCheck START");
 	new id = taskid - TASKID_CHECKST;
 
 	static Float:origin[3];
@@ -994,16 +824,14 @@ public TaskStuckCheck(taskid)
 		set_task(0.1, "TaskCheckReSpawn",   TASKID_RESPAWN + id);
 	else
 		set_task(0.1, "TaskSetplayer", 		TASKID_SETUSER + id);
-	// log_amx("TaskStuckCheck END");
 }
 
 public TaskSetplayer(taskid)
 {
-	// log_amx("TaskSetplayer START");
 	new id = taskid - TASKID_SETUSER;
 	
-	if (pev(id, pev_weapons) & (1<<CSW_C4))
-	    engclient_cmd(id, "drop", "weapon_c4");
+	// if (pev(id, pev_weapons) & (1<<CSW_C4))
+	//     engclient_cmd(id, "drop", "weapon_c4");
 
 	new entity = -1;
 	new Float:vOrigin[3];
@@ -1041,7 +869,6 @@ public TaskSetplayer(taskid)
 	}
 
 	player_respawn_reset(id);
-	// log_amx("TaskSetplayer END");
 }
 
 stock bool:can_target_revive(id, &target, &body)
@@ -1157,7 +984,6 @@ stock create_fake_corpse(id)
 
 stock bool:findemptyloc(ent, Float:radius)
 {
-	// log_amx("findemptyloc START");
 	if(!pev_valid(ent))
 		return false;
 
@@ -1186,22 +1012,17 @@ stock bool:findemptyloc(ent, Float:radius)
 			num++;
 		}
 	}
-	// log_amx("findemptyloc END");
 	return found;
 }
 
 stock bool:is_hull_vacant(const Float:origin[3])
 {
-	// log_amx("is_hull_vacant START");
 	new tr = 0;
 	engfunc(EngFunc_TraceHull, origin, origin, 0, HULL_HUMAN, 0, tr);
 	if(!get_tr2(tr, TR_StartSolid) && !get_tr2(tr, TR_AllSolid) && get_tr2(tr, TR_InOpen))
 	{
-		log_amx("is_hull_vacant END");	
-
 		return true;
 	}
-	// log_amx("is_hull_vacant END");	
 	return false;
 }
 
@@ -1219,7 +1040,6 @@ stock player_reset(id)
 
 	// g_player_data[id][IS_DEAD]		= false;
 	// g_player_data[id][IS_RESPAWNING]	= false;
-	// g_player_data[id][HAS_KIT] 	 	= false;
 	g_player_data[id][DEAD_LINE]	= 0.0;
 	g_player_data[id][REVIVE_DELAY] = 0.0;
 	// g_player_data[id][WAS_DUCKING]	= false;
@@ -1238,7 +1058,6 @@ stock player_respawn_reset(id)
 
 	g_player_data[id][IS_DEAD]		= false;
 	g_player_data[id][IS_RESPAWNING]= false;
-	// g_player_data[id][HAS_KIT] 	 	= false;
 	g_player_data[id][DEAD_LINE]	= 0.0;
 	g_player_data[id][REVIVE_DELAY] = 0.0;
 	g_player_data[id][WAS_DUCKING]	= false;
@@ -1280,33 +1099,6 @@ stock get_time_format(Float:times, result[], len)
     formatex(result, len, "%02d:%02d", min, sec);
 }
 
-stock drop_rkit(id)
-{
-	new Float:velocity[3];
-	velocity_by_aim(id, 34, velocity);
-		
-	new Float:origin[3];
-	pev(id, pev_origin, origin);
-
-	velocity[2] = 0.0;
-	xs_vec_add(origin, velocity, origin);
-
-	// new kit = engfunc(EngFunc_CreateNamedEntity, engfunc(EngFunc_AllocString, ENTITY_CLASS_NAME[I_TARGET]));
-	new kit = cs_create_entity(ENTITY_CLASS_NAME[I_TARGET]);
-	if(pev_valid(kit))
-	{
-		cs_set_ent_class(kit, 		ENTITY_CLASS_NAME[R_KIT]);
-		set_pev(kit, pev_classname, ENTITY_CLASS_NAME[R_KIT]);
-		set_pev(kit, pev_owner, 	id);
-		engfunc(EngFunc_SetModel,  	kit, ENT_MODELS[R_KIT]);
-		engfunc(EngFunc_SetOrigin, 	kit, origin);
-		engfunc(EngFunc_SetSize, 	kit, Float:{-2.5, -2.5, -1.5}, Float:{2.5, 2.5, 1.5});
-		set_pev(kit, pev_solid, 	SOLID_TRIGGER);
-		set_pev(kit, pev_movetype, 	MOVETYPE_TOSS);
-		g_player_data[id][HAS_KIT] 	 	= false;
-	}
-}
-
 stock remove_target_entity(id, className[])
 {
 	new iEnt = -1;
@@ -1317,23 +1109,12 @@ stock remove_target_entity(id, className[])
 		{
 			if (pev(iEnt, pev_owner) == id)
 			{
-				// engfunc(EngFunc_RemoveEntity, iEnt);
 				pev(iEnt, pev_flags, flags);
 				set_pev(iEnt, pev_flags, flags | FL_KILLME);
 				dllfunc(DLLFunc_Think, iEnt);
 			}
 		}
 	}
-	// while ((iEnt = engfunc(EngFunc_FindEntityByString, iEnt, "classname", className)))
-	// {
-	// 	if (pev_valid(iEnt))
-	// 	{
-	// 		if (pev(iEnt, pev_owner) == id)
-	// 		{
-	// 			engfunc(EngFunc_RemoveEntity, iEnt);
-	// 		}
-	// 	}
-	// }
 }
 
 stock bool:check_plugin()
@@ -1365,12 +1146,3 @@ stock get_dec_string(const a[])
 	return r;
 }
 
-public TaskBotBuy()
-{
-	static players[32], num;
-	get_players_ex(players, num, GetPlayers_ExcludeDead |  GetPlayers_ExcludeHuman);
-	for(new i = 0; i < num; ++i) if(!g_player_data[players[i]][HAS_KIT])
-	{
-		g_player_data[players[i]][HAS_KIT] = true;
-	}
-}
