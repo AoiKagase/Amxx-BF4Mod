@@ -236,7 +236,7 @@ public plugin_init()
 	bind_pcvar_num		(create_cvar("bf4_hkit_amount", 			"30"), 		g_cvars[HEALTHKIT_AMOUNT]);
 
 	RegisterHamPlayer	(Ham_Killed,								"PlayerKilled");
-	RegisterHamPlayer	(Ham_Player_PostThink,						"PlayerPostThink");
+//	RegisterHamPlayer	(Ham_Player_PostThink,						"PlayerPostThink");
 	RegisterHamPlayer	(Ham_Spawn, 								"PlayerSpawn", 	.Post = true);
 
 //	register_event		("Damage", "OnDamage", "b", "2>0");
