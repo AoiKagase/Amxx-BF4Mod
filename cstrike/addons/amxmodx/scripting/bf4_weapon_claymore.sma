@@ -17,14 +17,13 @@
 	#assert "AMX Mod X v1.9.0 or Higher library required!"
 #endif
 
-#pragma compress 					1
-#pragma semicolon 					1
-#pragma tabsize 					4
+#pragma compress 						1
+#pragma semicolon 						1
+#pragma tabsize 						4
 
-static const PLUGIN_NAME	[] 		= "BF4 Weapons - Claymore";
-static const PLUGIN_AUTHOR	[] 		= "Aoi.Kagase";
-static const PLUGIN_VERSION	[]		= "0.1";
-
+// ==============================================================
+// COMMON DEFINES.
+// ==============================================================
 #if !defined MAX_PLAYERS
 	#define  MAX_PLAYERS	          	32
 #endif
@@ -34,40 +33,6 @@ static const PLUGIN_VERSION	[]		= "0.1";
 #if !defined MAX_NAME_LENGTH
 	#define  MAX_NAME_LENGTH			32
 #endif
-
-#define pev_zorigin						pev_fuser4
-#define seconds(%1) 					((1<<12) * (%1))
-
-#define HUDINFO_PARAMS
-
-#define ITEM_OWNER 						pev_iuser1
-#define ITEM_TEAM  						pev_iuser2
-#define TASK_PLANT						315100
-#define TASK_RESET						315500
-#define TASK_RELEASE					315900
-// Lasermine Data Save Area.
-#define MINES_OWNER						"CED_MINES_COMM_I_OWNER"
-#define MINES_STEP						"CED_MINES_COMM_I_STEP"
-#define MINES_DECALS					"CED_MINES_COMM_V_STEP"
-#define MINES_OWNER_ID					"CED_MINES_COMM_S_AUTHID"
-#define CLAYMORE_WIRE_STARTPOINT		"CED_MINES_CM_V_WIRE_START"
-
-#define CLAYMORE_POWERUP				"CED_MINES_CM_F_POWERUP"
-#define ENT_SOUND1					"mines/claymore_deploy.wav"
-#define ENT_SOUND2					"mines/claymore_wallhit.wav"
-#define ENT_SPRITE1 				"sprites/mines/claymore_wire.spr"
-new const CLAYMORE_WIREENDPOINT[][] = 
-{
-	"CED_MINES_CM_V_WIRE_END_1",
-	"CED_MINES_CM_V_WIRE_END_2",
-	"CED_MINES_CM_V_WIRE_END_3",
-};
-
-new CLAYMORE_WIRE[]	= {
-	"CED_MINES_CM_ENTID_1",
-	"CED_MINES_CM_ENTID_2",
-	"CED_MINES_CM_ENTID_3",
-};
 #define XTRA_OFS_WEAPON					4
 #define XTRA_OFS_PLAYER					5
 #define m_fKnown						44
@@ -76,34 +41,92 @@ new CLAYMORE_WIRE[]	= {
 #define m_flTimeWeaponIdle				48
 #define m_iPrimaryAmmoType				49
 #define m_iClip							51
-#define IsPlayer(%1) 					( 1 <= %1 <= 32 ) 
-#define mines_get_health(%1,%2)			pev(%1, pev_health, %2)
-#define mines_set_health(%1,%2)			set_pev(%1, pev_health, %2)
-#define mines_get_user_frags(%1)		pev(%1,pev_frags)
-#define mines_set_user_frags(%1,%2)		set_pev(%1,pev_frags,%2)
-#define mines_get_user_max_speed(%1,%2)	pev(%1,pev_maxspeed,%2)
-#define mines_set_user_max_speed(%1,%2)	engfunc(EngFunc_SetClientMaxspeed,%1,%2);set_pev(%1, pev_maxspeed,%2)
+
+// ==============================================================
+// PLUGIN DEFINES.
+// ==============================================================
+#define TASK_PLANT						315100
+#define TASK_RESET						315500
+#define TASK_RELEASE					315900
 #define MAX_EXPLOSION_DECALS 			3
 #define MAX_BLOOD_DECALS 				10
-#define CVAR_TAG						"bf4_wpn_cm"
-enum _:E_ICON_STATE
-{
-	ICON_HIDE = 0,
-	ICON_SHOW,
-	ICON_FLASH
-};
 
+// ==============================================================
+// CONST STRINGS.
+// ==============================================================
+// PLUGIN INFO. -------------------------------------------------
+static const PLUGIN_NAME				[] = "BF4 Weapons - Claymore";
+static const PLUGIN_AUTHOR				[] = "Aoi.Kagase";
+static const PLUGIN_VERSION				[] = "0.1";
+static const CVAR_TAG					[] = "bf4_wpn_cm";
+
+// CED KEYS. ---------------------------------------------------->
+static const CM_OWNER					[] = "CED_CM_I_OWNER";
+static const CM_STEP					[] = "CED_CM_I_STEP";
+static const CM_DECALS					[] = "CED_CM_V_DECALS";
+static const CM_POWERUP					[] = "CED_CM_F_POWERUP";
+static const CM_WIRE_SPOINT				[] = "CED_CM_V_WIRE_START";
+static const CM_WIRE_EPOINT 			[][] = 
+{
+	"CED_CM_V_WIRE_END_1",
+	"CED_CM_V_WIRE_END_2",
+	"CED_CM_V_WIRE_END_3",
+};
+static const CM_WIRE_ENTID				[][] = 
+{
+	"CED_CM_ENTID_1",
+	"CED_CM_ENTID_2",
+	"CED_CM_ENTID_3",
+};
+// CED KEYS. ----------------------------------------------------<
+
+// PLUGIN LOGIC. ------------------------------------------------>
+#define IsPlayer(%1) 						( 1 <= %1 <= 32 ) 
+#define mines_get_health(%1,%2)				pev(%1, pev_health, %2)
+#define mines_set_health(%1,%2)				set_pev(%1, pev_health, %2)
+#define mines_get_user_frags(%1)			pev(%1,pev_frags)
+#define mines_set_user_frags(%1,%2)			set_pev(%1,pev_frags,%2)
+#define mines_get_user_max_speed(%1,%2)		pev(%1,pev_maxspeed,%2)
+#define mines_set_user_max_speed(%1,%2)		engfunc(EngFunc_SetClientMaxspeed,%1,%2);set_pev(%1, pev_maxspeed,%2)
+#define mines_get_user_deploy_state(%1)		gCPlayerData[%1][PL_STATE_DEPLOY]
+#define mines_set_user_deploy_state(%1,%2)	gCPlayerData[%1][PL_STATE_DEPLOY] = %2
+#define mines_load_user_max_speed(%1)		gCPlayerData[%1][PL_MAX_SPEED]
+#define mines_save_user_max_speed(%1,%2)	gCPlayerData[%1][PL_MAX_SPEED] = Float:%2
+// PLUGIN LOGIC. ------------------------------------------------<
+
+#define ENT_SPRITE1 				"sprites/mines/claymore_wire.spr"
+
+// RESOURCES. --------------------------------------------------->
 enum _:E_SOUNDS
 {
-	SOUND_START,
-	SOUND_FINISHED,
-	SOUND_FAILED,
-	SOUND_EQUIP,
+	SND_CM_DEPLOY,
+	SND_CM_ATTACK,
+	SND_CM_WIRE_WALLHIT,
+	SND_CM_EXPLOSION,
 
-	SOUND_PICKUP,
-	SOUND_BUTTON,
-	SOUND_GLASS_1,
-	SOUND_GLASS_2,	
+	SND_EQUIP,
+
+	SND_PICKUP,
+	SND_BUTTON,
+	SND_GLASS_1,
+	SND_GLASS_2,
+};
+// #define ENT_SOUND1					"mines/claymore_deploy.wav"
+// #define ENT_SOUND2					"mines/claymore_wallhit.wav"
+
+static const ENT_SOUNDS[E_SOUNDS][MAX_RESOURCE_PATH_LENGTH] = 
+{
+	"bf4_ranks/weapons/claymore_deploy.wav",
+	"bf4_ranks/weapons/claymore_attack.wav",
+	"bf4_ranks/weapons/claymore_wallhit.wav",
+	"bf4_ranks/weapons/claymore_explosion.wav",
+
+	"items/ammopickup2.wav",
+
+	"items/gunpickup2.wav"		,		// 0: PICKUP
+	"items/gunpickup4.wav"		,		// 1: PICKUP (BUTTON)
+	"debris/bustglass1.wav"		,		// 2: GLASS
+	"debris/bustglass2.wav"				// 3: GLASS	
 };
 
 enum _:E_MODELS
@@ -112,7 +135,12 @@ enum _:E_MODELS
 	W_WPN,
 	P_WPN,
 };
-
+new const ENT_MODELS[E_MODELS][MAX_RESOURCE_PATH_LENGTH] = 
+{
+	"models/bf4_ranks/v_claymore.mdl",
+	"models/bf4_ranks/w_claymore.mdl",
+	"models/bf4_ranks/p_claymore.mdl",
+};
 enum _:E_CLASS_NAME
 {
 	I_TARGET,
@@ -198,26 +226,6 @@ new const MESSAGES[E_MESSAGES][] =
 	"WeaponList",
 	"BarTime",
 	"TextMsg",
-};
-
-new const ENT_MODELS[E_MODELS][MAX_RESOURCE_PATH_LENGTH] = 
-{
-	"models/bf4_ranks/v_claymore.mdl",
-	"models/bf4_ranks/w_claymore.mdl",
-	"models/bf4_ranks/p_claymore.mdl",
-};
-
-new const ENT_SOUNDS[E_SOUNDS][MAX_RESOURCE_PATH_LENGTH] = 
-{
-	"items/medshot4.wav",
-	"items/smallmedkit2.wav",
-	"items/medshotno1.wav",
-	"items/ammopickup2.wav",
-
-	"items/gunpickup2.wav"		,		// 0: PICKUP
-	"items/gunpickup4.wav"		,		// 1: PICKUP (BUTTON)
-	"debris/bustglass1.wav"		,		// 2: GLASS
-	"debris/bustglass2.wav"				// 3: GLASS	
 };
 
 new const ENTITY_CLASS_NAME[E_CLASS_NAME][MAX_NAME_LENGTH] = 
@@ -364,14 +372,9 @@ new gDecalIndexBlood	[MAX_BLOOD_DECALS];
 new gNumDecalsExplosion;
 new gNumDecalsBlood;
 new const gWireLoop = 3;
-new const gEntSound	[][]={ENT_SOUND1, ENT_SOUND2};
 new const gEntSprite[]	= ENT_SPRITE1;
 new gMinesCSXID;
 
-#define mines_get_user_deploy_state(%1)		gCPlayerData[%1][PL_STATE_DEPLOY]
-#define mines_set_user_deploy_state(%1,%2)	gCPlayerData[%1][PL_STATE_DEPLOY] = %2
-#define mines_load_user_max_speed(%1)		gCPlayerData[%1][PL_MAX_SPEED]
-#define mines_save_user_max_speed(%1,%2)	gCPlayerData[%1][PL_MAX_SPEED] = Float:%2
 
 //====================================================
 //  PLUGIN PRECACHE
@@ -777,9 +780,9 @@ public mines_entity_set_position(iEnt, uID)
 
 				// set angle.
 				set_pev(iEnt, pev_angles, 	vEntAngles);
-				CED_SetArray(iEnt, MINES_DECALS, vDecals, sizeof(vDecals));
+				CED_SetArray(iEnt, CM_DECALS, vDecals, sizeof(vDecals));
 
-				CED_SetArray(iEnt, CLAYMORE_WIRE_STARTPOINT, vNewOrigin, sizeof(vNewOrigin));
+				CED_SetArray(iEnt, CM_WIRE_SPOINT, vNewOrigin, sizeof(vNewOrigin));
 			}
 		}
 	}
@@ -1078,7 +1081,7 @@ public bool:CheckPickup(id)
 		case ONLY_ME:
 		{
 			// is owner you?
-			CED_GetCell(target, MINES_OWNER, iOwner);
+			CED_GetCell(target, CM_OWNER, iOwner);
 			if(iOwner != id)
 			{
 //				print_info(id, iMinesId, L_NOT_PICKUP);
@@ -1108,7 +1111,7 @@ public bool:CheckPickup(id)
 stock CsTeams:mines_get_owner_team(iEnt)
 {
 	new iOwner;
-	if (!CED_GetCell(iEnt, MINES_OWNER, iOwner))
+	if (!CED_GetCell(iEnt, CM_OWNER, iOwner))
 		return CS_TEAM_UNASSIGNED;
 
 	return cs_get_user_team(iOwner);
@@ -1135,7 +1138,7 @@ stock mines_remove_entity(iEnt)
 		new wire;
 		for (new i = 0; i < 3; i++)
 		{
-			CED_GetCell(iEnt, CLAYMORE_WIRE[i], wire);
+			CED_GetCell(iEnt, CM_WIRE_ENTID[i], wire);
 			set_pev(wire, pev_flags, flag | FL_KILLME);
 		}
 
@@ -1191,7 +1194,7 @@ public SpawnMine(taskid)
 {
 	// Task Number to uID.
 	new uID = taskid - TASK_PLANT;
-client_print(uID, print_chat, "C");
+
 	// is Valid?
 	new iEnt	 = gDeployingMines[uID];
 	if(!pev_valid(iEnt) || IsPlayer(iEnt))
@@ -1263,12 +1266,12 @@ public mines_entity_spawn_settings(iEnt, uID)
 	mines_set_health(iEnt, 			gMinesParameter[MINE_HEALTH]);
 
 	// Save results to be used later.
-	CED_SetCell(iEnt,MINES_OWNER,	uID);
+	CED_SetCell(iEnt,CM_OWNER,	uID);
 
 	// Reset powoer on delay time.
 	new Float:fCurrTime = get_gametime();
-	CED_SetCell(iEnt, CLAYMORE_POWERUP, fCurrTime + 2.5);
-	CED_SetCell(iEnt, MINES_STEP, 		POWERUP_THINK);
+	CED_SetCell(iEnt, CM_POWERUP, 	fCurrTime + 2.5);
+	CED_SetCell(iEnt, CM_STEP, 		POWERUP_THINK);
 
 	// think rate. hmmm....
 	set_pev(iEnt, pev_nextthink, 	fCurrTime + 0.2 );
@@ -1373,11 +1376,8 @@ stock set_claymore_endpoint(iEnt, Float:vOrigin[3])
 			free_tr2(trace);
 		}
 		vResult[i] = hitPoint;
+		CED_SetArray(iEnt, CM_WIRE_EPOINT[i], vResult[i], sizeof(vResult[]));
 	}
-
-	CED_SetArray(iEnt, CLAYMORE_WIREENDPOINT[0], vResult[0], sizeof(vResult[]));
-	CED_SetArray(iEnt, CLAYMORE_WIREENDPOINT[1], vResult[1], sizeof(vResult[]));
-	CED_SetArray(iEnt, CLAYMORE_WIREENDPOINT[2], vResult[2], sizeof(vResult[]));
 }
 //====================================================
 // claymore Think Event.
@@ -1393,16 +1393,15 @@ public MinesThink(iEnt)
 	static iOwner;
 	fCurrTime = get_gametime();
 
-	if(!CED_GetCell(iEnt, MINES_STEP, step))
+	if(!CED_GetCell(iEnt, CM_STEP, step))
 		return;
 
-	if(!CED_GetCell(iEnt, MINES_OWNER, iOwner))
+	if(!CED_GetCell(iEnt, CM_OWNER, iOwner))
 		return;
 
 	// Get Laser line end potision.
-	CED_GetArray(iEnt, CLAYMORE_WIREENDPOINT[0], vEnd[0], sizeof(vEnd[]));
-	CED_GetArray(iEnt, CLAYMORE_WIREENDPOINT[1], vEnd[1], sizeof(vEnd[]));
-	CED_GetArray(iEnt, CLAYMORE_WIREENDPOINT[2], vEnd[2], sizeof(vEnd[]));
+	for (new i = 0; i < 3; i++)
+		CED_GetArray(iEnt, CM_WIRE_EPOINT[i], vEnd[i], sizeof(vEnd[]));
 
 	// claymore state.
 	// Power up.
@@ -1450,7 +1449,7 @@ public mines_explosion(id, iEnt)
 	static Float:vDecals[3];
 
 	pev(iEnt, pev_origin, 	vOrigin);
-	CED_GetArray(iEnt, MINES_DECALS, vDecals, sizeof(vDecals));
+	CED_GetArray(iEnt, CM_DECALS, vDecals, sizeof(vDecals));
 
 	sprBoom1 = (gMinesParameter[EXPLODE_SPRITE1]) 	 	? gMinesParameter[EXPLODE_SPRITE1]		: gSprites[SPR_EXPLOSION_1];
 	sprBoom2 = (gMinesParameter[EXPLODE_SPRITE2]) 	 	? gMinesParameter[EXPLODE_SPRITE2]		: gSprites[SPR_EXPLOSION_2];
@@ -2008,13 +2007,13 @@ bool:is_valid_takedamage(iAttacker, iTarget)
 mines_step_powerup(iEnt, Float:fCurrTime)
 {
 	static Float:fPowerupTime;
-	CED_GetCell(iEnt, CLAYMORE_POWERUP, fPowerupTime);
+	CED_GetCell(iEnt, CM_POWERUP, fPowerupTime);
 	// over power up time.
 		
 	if (fCurrTime > fPowerupTime)
 	{
 		// next state.
-		CED_SetCell(iEnt, MINES_STEP, BEAMUP_THINK);
+		CED_SetCell(iEnt, CM_STEP, BEAMUP_THINK);
 		// activate sound.
 		cm_play_sound(iEnt, SOUND_ACTIVATE);
 
@@ -2030,7 +2029,7 @@ mines_step_beamup(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 	for (new i = 0; i < gWireLoop; i++)
 	{
 		wire = draw_laserline(iEnt, vEnd[i]);
-		CED_SetCell(iEnt, CLAYMORE_WIRE[i], wire);
+		CED_SetCell(iEnt, CM_WIRE_ENTID[i], wire);
 		mines_spark_wall(vEnd[i]);
 	}
 	// solid complete.
@@ -2038,7 +2037,7 @@ mines_step_beamup(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 	// Think time.
 	set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
 	// next state.
-	CED_SetCell(iEnt, MINES_STEP, BEAMBREAK_THINK);
+	CED_SetCell(iEnt, CM_STEP, BEAMBREAK_THINK);
 }
 
 mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
@@ -2052,10 +2051,10 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 	// Get owner id.
 	new iOwner;
 
-	if (!CED_GetCell(iEnt, MINES_OWNER, iOwner))
+	if (!CED_GetCell(iEnt, CM_OWNER, iOwner))
 		return false;
 	// Get this mine position.
-	if (!CED_GetArray(iEnt, CLAYMORE_WIRE_STARTPOINT, vOrigin, sizeof(vOrigin)))
+	if (!CED_GetArray(iEnt, CM_WIRE_SPOINT, vOrigin, sizeof(vOrigin)))
 		return false;
 
 	for(new i = 0; i < gWireLoop; i++)
@@ -2100,7 +2099,7 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 		set_pev(iEnt, pev_enemy, iTarget);
 
 		// State change. to Explosing step.
-		CED_SetCell(iEnt, MINES_STEP, EXPLOSE_THINK);
+		CED_SetCell(iEnt, CM_STEP, EXPLOSE_THINK);
 	}
 
 	// Get mine health.
@@ -2112,7 +2111,7 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 	{
 		// next step explosion.
 		set_pev(iEnt, pev_nextthink, fCurrTime + random_float( 0.1, 0.3 ));
-		CED_SetCell(iEnt, MINES_STEP, EXPLOSE_THINK);
+		CED_SetCell(iEnt, CM_STEP, EXPLOSE_THINK);
 	}
 				
 	// Think time. random_float = laser line blinking.
@@ -2129,11 +2128,11 @@ cm_play_sound(iEnt, iSoundType)
 	{
 		case SOUND_POWERUP:
 		{
-			emit_sound(iEnt, CHAN_VOICE, gEntSound[0], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			emit_sound(iEnt, CHAN_VOICE, ENT_SOUNDS[SND_CM_DEPLOY], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 		}
 		case SOUND_ACTIVATE:
 		{
-			emit_sound(iEnt, CHAN_VOICE, gEntSound[1], 0.5, ATTN_NORM, 1, 75);
+			emit_sound(iEnt, CHAN_VOICE, ENT_SOUNDS[SND_CM_WIRE_WALLHIT], 0.5, ATTN_NORM, 1, 75);
 		}
 	}
 }
@@ -2161,7 +2160,7 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 	}
 
 	static Float:vStartOrigin[3];
-	CED_GetArray(iEnt, CLAYMORE_WIRE_STARTPOINT, vStartOrigin, sizeof(vStartOrigin));
+	CED_GetArray(iEnt, CM_WIRE_SPOINT, vStartOrigin, sizeof(vStartOrigin));
 	// lm_draw_laser(iEnt, vEndOrigin, gBeam, 0, 0, 0, width, 0, tcolor, bind_pcvar_num(gCvar[CVAR_CM_WIRE_BRIGHT]), 0);
 	return cm_draw_wire(vStartOrigin, vEndOrigin, 0.0, gCvar[CVAR_CM_WIRE_WIDTH], 0, tcolor, gCvar[CVAR_CM_WIRE_BRIGHT], 0.0);
 }
