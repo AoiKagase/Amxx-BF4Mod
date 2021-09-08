@@ -139,7 +139,7 @@ new const MESSAGES[E_MESSAGES][] =
 new const ENT_MODELS[E_MODELS][MAX_RESOURCE_PATH_LENGTH] = 
 {
 	"models/bf4_ranks/medkit.mdl",
-	"models/bf4_ranks/v_defibrillator.mdl"
+	"models/bf4_ranks/weapons/v_defibrillator.mdl"
 };
 
 new const ENT_SOUNDS[E_SOUNDS][MAX_RESOURCE_PATH_LENGTH] = 
