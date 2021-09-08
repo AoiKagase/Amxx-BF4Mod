@@ -27,9 +27,6 @@
 #if !defined MAX_PLAYERS
 	#define  MAX_PLAYERS	          	32
 #endif
-#if !defined MAX_RESOURCE_PATH_LENGTH
-	#define  MAX_RESOURCE_PATH_LENGTH 	64
-#endif
 #if !defined MAX_NAME_LENGTH
 	#define  MAX_NAME_LENGTH			32
 #endif
@@ -94,35 +91,43 @@ static const CM_WIRE_ENTID				[][] =
 #define mines_save_user_max_speed(%1,%2)	gCPlayerData[%1][PL_MAX_SPEED] = Float:%2
 // PLUGIN LOGIC. ------------------------------------------------<
 
-#define ENT_SPRITE1 				"sprites/mines/claymore_wire.spr"
+//#define ENT_SPRITE1 				"sprites/mines/claymore_wire.spr"
 
 // RESOURCES. --------------------------------------------------->
 enum _:E_SOUNDS
 {
-	SND_CM_DEPLOY,
+	SND_CM_DRAW,
 	SND_CM_ATTACK,
-	SND_CM_WIRE_WALLHIT,
 	SND_CM_EXPLOSION,
+//	SND_CM_DRAW_OFF,
+//  SND_CM_TRIGGER_OFF,
+//  SND_CM_TRIGGER_ON,
+//  SND_CM_TRIGGER_SHOOT_ON,
+
+	SND_CM_DEPLOY,
+	SND_CM_WIRE_WALLHIT,
 
 	SND_EQUIP,
-
 	SND_PICKUP,
 	SND_BUTTON,
 	SND_GLASS_1,
 	SND_GLASS_2,
 };
-// #define ENT_SOUND1					"mines/claymore_deploy.wav"
-// #define ENT_SOUND2					"mines/claymore_wallhit.wav"
 
-static const ENT_SOUNDS[E_SOUNDS][MAX_RESOURCE_PATH_LENGTH] = 
+static const ENT_SOUNDS[E_SOUNDS][] = 
 {
-	"bf4_ranks/weapons/claymore_deploy.wav",
-	"bf4_ranks/weapons/claymore_attack.wav",
-	"bf4_ranks/weapons/claymore_wallhit.wav",
+	"bf4_ranks/weapons/claymore_draw.wav",
+	"bf4_ranks/weapons/claymore_shoot.wav",
 	"bf4_ranks/weapons/claymore_explosion.wav",
+	// "bf4_ranks/weapons/claymore_draw_off.wav",
+	// "bf4_ranks/weapons/claymore_trigger_off.wav",
+	// "bf4_ranks/weapons/claymore_trigger_on.wav",
+	// "bf4_ranks/weapons/claymore_trigger_shoot_on.wav",
+
+	"bf4_ranks/weapons/claymore_deploy.wav",
+	"bf4_ranks/weapons/claymore_wallhit.wav",
 
 	"items/ammopickup2.wav",
-
 	"items/gunpickup2.wav"		,		// 0: PICKUP
 	"items/gunpickup4.wav"		,		// 1: PICKUP (BUTTON)
 	"debris/bustglass1.wav"		,		// 2: GLASS
@@ -135,12 +140,43 @@ enum _:E_MODELS
 	W_WPN,
 	P_WPN,
 };
-new const ENT_MODELS[E_MODELS][MAX_RESOURCE_PATH_LENGTH] = 
+new const ENT_MODELS[E_MODELS][] = 
 {
-	"models/bf4_ranks/v_claymore.mdl",
-	"models/bf4_ranks/w_claymore.mdl",
-	"models/bf4_ranks/p_claymore.mdl",
+	"models/bf4_ranks/weapons/v_claymore.mdl",
+	"models/bf4_ranks/weapons/w_claymore.mdl",
+	"models/bf4_ranks/weapons/p_claymore.mdl",
 };
+
+enum _:E_SPRITES
+{
+	SPR_WPN_SELECT,
+	SPR_WIRE,
+
+	SPR_EXPLOSION_1			,
+	SPR_EXPLOSION_2			,
+	SPR_EXPLOSION_WATER		,
+	SPR_BLAST				,
+	SPR_SMOKE				,
+	SPR_BUBBLE				,
+	SPR_BLOOD_SPLASH		,
+	SPR_BLOOD_SPRAY			,
+
+};
+new const ENT_SPRITES[E_SPRITES][] =
+{
+	"sprites/bf4_ranks/weapons/weapon_claymore.spr",
+	"sprites/bf4_ranks/weapons/claymore_wire.spr",
+
+	"sprites/fexplo.spr"		,		// 0: EXPLOSION
+	"sprites/eexplo.spr"		,		// 1: EXPLOSION
+	"sprites/WXplo1.spr"		,		// 2: WATER EXPLOSION
+	"sprites/blast.spr"			,		// 3: BLAST
+	"sprites/steam1.spr"		,		// 4: SMOKE
+	"sprites/bubble.spr"		,		// 5: BUBBLE
+	"sprites/blood.spr"			,		// 6: BLOOD SPLASH
+	"sprites/bloodspray.spr"			// 7: BLOOD SPRAY
+};
+
 enum _:E_CLASS_NAME
 {
 	I_TARGET,
@@ -236,16 +272,6 @@ new const ENTITY_CLASS_NAME[E_CLASS_NAME][MAX_NAME_LENGTH] =
 	"weapon_claymore"
 };
 
-enum _:WPN_SOUNDS
-{
-	WPN_SND_DRAW,
-	WPN_SND_DRAW_OFF,
-	WPN_SND_SHOOT,
-	WPN_SND_TRIGGER_OFF,
-	WPN_SND_TRIGGER_ON,
-	WPN_SND_TRIGGER_SHOOT_ON,
-	WPN_SND_EXPLODE,
-};
 
 enum _:PICKUP_MODE
 {
@@ -254,16 +280,6 @@ enum _:PICKUP_MODE
 	ALLOW_FRIENDLY			,
 	ALLOW_ENEMY				,
 }
-new const WEAPON_SOUND[WPN_SOUNDS][] = 
-{ 
-	"bf4_ranks/weapons/claymore_draw.wav",
-	"bf4_ranks/weapons/claymore_draw_off.wav",
-	"bf4_ranks/weapons/claymore_shoot.wav",
-	"bf4_ranks/weapons/claymore_trigger_off.wav",
-	"bf4_ranks/weapons/claymore_trigger_on.wav",
-	"bf4_ranks/weapons/claymore_trigger_shoot_on.wav",
-	"bf4_ranks/weapons/claymore_exp.wav",
-};
 //
 // PLAYER DATA AREA
 //
@@ -342,17 +358,6 @@ enum _:E_CVARS
 	CVAR_MAX_COUNT			,
 };
 
-enum _:E_SPRITES
-{
-	SPR_EXPLOSION_1			= 0,
-	SPR_EXPLOSION_2			,
-	SPR_EXPLOSION_WATER		,
-	SPR_BLAST				,
-	SPR_SMOKE				,
-	SPR_BUBBLE				,
-	SPR_BLOOD_SPLASH		,
-	SPR_BLOOD_SPRAY			,
-};
 //====================================================
 //  Enum Area.
 //====================================================
@@ -386,14 +391,13 @@ public plugin_precache()
 	for (new i = 0; i < E_SOUNDS; i++)
 		precache_sound(ENT_SOUNDS[i]);
 
-	for (new i = 0; i < sizeof WEAPON_SOUND; i++)
-		precache_sound(WEAPON_SOUND[i]);
-
 	for (new i = 0; i < E_MODELS; i++) 
 		precache_model(ENT_MODELS[i]);
 
+	for (new i = 0; i < E_SPRITES; i++)
+		precache_model(ENT_SPRITES[i]);
+
 	precache_generic("sprites/weapon_claymore.txt");
-	precache_generic("sprites/bf4_ranks/weapons/weapon_claymore.spr");
 	LoadDecals();
 	return PLUGIN_CONTINUE;
 }
@@ -578,6 +582,7 @@ public OnSetModels(const item)
 	set_pev(client, pev_weaponmodel2, 	ENT_MODELS[P_WPN]);
 
 	UTIL_PlayWeaponAnimation(client, SEQ_DRAW);
+	emit_sound(client, CHAN_WEAPON, ENT_SOUNDS[SND_CM_DRAW], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 
 	return PLUGIN_HANDLED;
 }
@@ -586,9 +591,8 @@ public OnPrimaryAttackPre(Weapon)
 {
 	new client = get_pdata_cbase(Weapon, 41, 4);
 	
-	if(get_pdata_cbase(client, 373) != Weapon)
+	if (get_pdata_cbase(client, 373) != Weapon)
 		return HAM_IGNORED;
-
 
 	return HAM_HANDLED;
 }
@@ -602,8 +606,8 @@ public OnPrimaryAttackPost(Weapon)
 
 	if (mines_get_user_deploy_state(client) == STATE_IDLE) {
 		UTIL_PlayWeaponAnimation(client, SEQ_SHOOT);
-		emit_sound(client, CHAN_WEAPON, WEAPON_SOUND[WPN_SND_SHOOT], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-		set_pdata_float(Weapon, 35, gCvar[CVAR_CM_ACTIVATE]);
+		emit_sound(client, CHAN_WEAPON, ENT_SOUNDS[SND_CM_ATTACK], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		set_pdata_float(Weapon, m_flNextPrimaryAttack, gCvar[CVAR_CM_ACTIVATE]);
 	}
 	return HAM_HANDLED;
 }
@@ -613,14 +617,17 @@ public OnTakeDamage(iVictim, inflictor, iAttacker, Float:damage, damage_type)
 	// Assist Damage.
 	if (is_user_connected(iAttacker) && is_user_connected(iVictim))
 	{
+		client_print(iAttacker, print_chat, "A");
+
 //		if (GetBF4PlayerClass(attacker) == BF4_CLASS_ASSAULT)
 		{
-			if (get_user_weapon(iAttacker) != CSW_KNIFE)
+			if (get_user_weapon(iAttacker) != CSW_C4)
 				return HAM_IGNORED;
+
 			if (cs_get_user_team(iAttacker) != cs_get_user_team(iVictim))
 			{
 				SetHamParamFloat(4, 200.0);
-				return HAM_HANDLED;
+				return HAM_SUPERCEDE;
 			}
 		}
 	}
@@ -722,7 +729,7 @@ stock mines_reset_have_mines(id)
 //====================================================
 // Set Claymore Position.
 //====================================================
-public mines_entity_set_position(iEnt, uID)
+stock mines_entity_set_position(iEnt, uID)
 {
 	// Vector settings.
 	new Float:vOrigin	[3],Float:vViewOfs	[3];
@@ -789,7 +796,7 @@ public mines_entity_set_position(iEnt, uID)
 
     // free the trace handle.
 	free_tr2(trace);
-	return PLUGIN_CONTINUE;
+	return true;
 }
 Float:get_claymore_wire_endpoint(cvar)
 {
@@ -836,12 +843,6 @@ stock bool:CheckDeploy(id)
 	// Check common.
 	if (!CheckCommon(id, gPlayerData[id]))
 		return false;
-
-#if defined BIOHAZARD_SUPPORT
-	// Check Started Round.
-	if (!CheckRoundStarted(id, gMinesParameter))
-		return false;
-#endif
 
 // 	// Have mine? (use buy system)
 // 	if (gMinesParameter[BUY_MODE])
@@ -999,7 +1000,7 @@ public _mines_progress_deploy(id)
 		if (wait > 0)
 			mines_show_progress(id, int:floatround(wait), g_msg_data[MSG_BARTIME]);
 		// Start Task. Put mines.
-		set_task(wait, "SpawnMine", (TASK_PLANT + id));
+		set_task_ex(wait, "SpawnMine", (TASK_PLANT + id));
 	}
 	else
 		_mines_progress_stop(id);
@@ -1121,6 +1122,7 @@ stock CsTeams:mines_get_owner_team(iEnt)
 //====================================================
 public _mines_progress_stop(id)
 {
+	client_print(id, print_chat, "progress stop");
 	if (pev_valid(gDeployingMines[id]))
 		mines_remove_entity(gDeployingMines[id]);
 	gDeployingMines[id] = 0;
@@ -1167,9 +1169,9 @@ delete_task(id)
 //====================================================
 stock mines_show_progress(id, int:time, msg)
 {
-	if (pev_valid(id))
+	if (is_user_alive(id))
 	{
-		engfunc(EngFunc_MessageBegin, MSG_ONE, msg, {0,0,0}, id);
+		message_begin(MSG_ONE_UNRELIABLE, msg, {0.0,0.0,0.0}, id);
 		write_short(time);
 		message_end();
 	}
@@ -1180,9 +1182,9 @@ stock mines_show_progress(id, int:time, msg)
 //====================================================
 stock mines_hide_progress(id, msg)
 {
-	if (pev_valid(id))
+	if (is_user_alive(id))
 	{
-		engfunc(EngFunc_MessageBegin, MSG_ONE, msg, {0,0,0}, id);
+		message_begin(MSG_ONE_UNRELIABLE, msg, {0.0,0.0,0.0}, id);
 		write_short(0);
 		message_end();
 	}
@@ -1194,6 +1196,7 @@ public SpawnMine(taskid)
 {
 	// Task Number to uID.
 	new uID = taskid - TASK_PLANT;
+client_print(uID, print_chat, "A");
 
 	// is Valid?
 	new iEnt	 = gDeployingMines[uID];
@@ -1203,13 +1206,17 @@ public SpawnMine(taskid)
 		return PLUGIN_HANDLED_MAIN;
 	}
 
+client_print(uID, print_chat, "B");
 	new iReturn;
 	// client_print(id, print_chat, "ENTITY ID: %d, USER ID: %d", iEnt, id);
 
+client_print(uID, print_chat, "C");
 	if (mines_entity_spawn_settings(iEnt, uID))
 	{
+client_print(uID, print_chat, "D");
 		if (mines_entity_set_position(iEnt, uID))
 		{
+client_print(uID, print_chat, "E");
 
 			// Cound up. deployed.
 			gPlayerData[uID][PL_COUNT_DEPLOYED]++;
@@ -1218,10 +1225,12 @@ public SpawnMine(taskid)
 
 			// Set Flag. end progress.
 			mines_set_user_deploy_state(uID, int:STATE_DEPLOYED);
+client_print(uID, print_chat, "F");
 
 //			show_ammo(id, iMinesId);
 		}
 	}
+client_print(uID, print_chat, "G");
 
 	gDeployingMines[uID] = 0;
 	// new csx_id = ArrayGetCell(gMinesCSXID, iMinesId);
@@ -2126,10 +2135,10 @@ cm_play_sound(iEnt, iSoundType)
 {
 	switch (iSoundType)
 	{
-		case SOUND_POWERUP:
-		{
-			emit_sound(iEnt, CHAN_VOICE, ENT_SOUNDS[SND_CM_DEPLOY], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-		}
+		// case SOUND_POWERUP:
+		// {
+		// 	// emit_sound(iEnt, CHAN_VOICE, ENT_SOUNDS[SND_CM_DEPLOY], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		// }
 		case SOUND_ACTIVATE:
 		{
 			emit_sound(iEnt, CHAN_VOICE, ENT_SOUNDS[SND_CM_WIRE_WALLHIT], 0.5, ATTN_NORM, 1, 75);
@@ -2176,7 +2185,7 @@ stock cm_draw_wire(
 		const Float:speed		= 255.0
 	)
 {
-	new beams = Beam_Create(gEntSprite, width);
+	new beams = Beam_Create(ENT_SPRITES[SPR_WIRE], width);
 	Beam_PointsInit(beams, vStartOrigin, vEndOrigin);
 	Beam_SetFlags(beams, BEAM_FSOLID);
 	Beam_SetFrame(beams, framestart);
@@ -2341,6 +2350,9 @@ public PlayerCmdStart(id, handle, random_seed)
 	if(!is_user_alive(id) || is_user_bot(id))
 		return FMRES_IGNORED;
 
+	if (get_user_weapon(id) != CSW_C4) 
+		return FMRES_IGNORED;
+
 	// Get user old and actual buttons
 	static const m_afButtonLast = 245;
 	static buttons, buttonsChanged, buttonPressed, buttonReleased;
@@ -2349,21 +2361,15 @@ public PlayerCmdStart(id, handle, random_seed)
     buttonPressed 	= buttonsChanged & buttons;
     buttonReleased 	= buttonsChanged & ~buttons;
 
-	if (pev(id, pev_weapons) & (1 << CSW_C4)) 
+	if (buttonPressed & IN_ATTACK)
 	{
-		if (buttonPressed & IN_ATTACK)
-		{
 			_mines_progress_deploy(id);
 			mines_deploy_status(id);
-			return FMRES_HANDLED;
-		} else if( buttonReleased & IN_ATTACK ) 
-		{
+	} else if( buttonReleased & IN_ATTACK ) 
+	{
 			_mines_progress_stop(id);
 			mines_deploy_status(id);
-			return FMRES_HANDLED;
-		}
 	}
-
 	return FMRES_IGNORED;
 }
 
@@ -2379,6 +2385,7 @@ mines_deploy_status(id)
 			new bool:now_speed = (speed <= 1.0);
 			if (now_speed)
 				ExecuteHamB(Ham_CS_Player_ResetMaxSpeed, id);
+
 		}
 		case STATE_DEPLOYING:
 		{
@@ -2405,7 +2412,7 @@ mines_deploy_status(id)
 			ExecuteHamB(Ham_CS_Player_ResetMaxSpeed, id);
 			mines_set_user_deploy_state(id, STATE_IDLE);
 			UTIL_PlayWeaponAnimation(id, SEQ_DRAW);
-			emit_sound(id, CHAN_WEAPON, WEAPON_SOUND[WPN_SND_DRAW], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);			
+			emit_sound(id, CHAN_WEAPON, ENT_SOUNDS[SND_CM_DEPLOY], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);			
 		}
 	}
 }
