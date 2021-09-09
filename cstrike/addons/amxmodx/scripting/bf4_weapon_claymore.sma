@@ -286,7 +286,6 @@ enum _:PICKUP_MODE
 enum _:PLAYER_DATA
 {
 	int:PL_COUNT_DELAY		= 0,
-	int:PL_COUNT_HAVE_MINE	,
 	int:PL_COUNT_DEPLOYED	,
 }
 enum _:TRIPMINE_THINK
@@ -371,13 +370,12 @@ new g_msg_data				[E_MESSAGES];
 new gMinesParameter			[COMMON_MINES_DATA];
 new gCPlayerData			[MAX_PLAYERS][COMMON_PLAYER_DATA];
 new const Float:gModelMargin[] = {0.0, 0.0, -2.0};
-new gSprites			[E_SPRITES];
-new gDecalIndexExplosion[MAX_EXPLOSION_DECALS];
-new gDecalIndexBlood	[MAX_BLOOD_DECALS];
+new gSprites				[E_SPRITES];
+new gDecalIndexExplosion	[MAX_EXPLOSION_DECALS];
+new gDecalIndexBlood		[MAX_BLOOD_DECALS];
 new gNumDecalsExplosion;
 new gNumDecalsBlood;
 new const gWireLoop = 3;
-new const gEntSprite[]	= ENT_SPRITE1;
 new gMinesCSXID;
 
 
@@ -604,10 +602,10 @@ public OnPrimaryAttackPost(Weapon)
 	if (get_pdata_cbase(client, 373) != Weapon)
 		return HAM_IGNORED;
 
-	if (mines_get_user_deploy_state(client) == STATE_IDLE) {
+	if (mines_get_user_deploy_state(client) == STATE_IDLE) 
+	{
 		UTIL_PlayWeaponAnimation(client, SEQ_SHOOT);
 		emit_sound(client, CHAN_WEAPON, ENT_SOUNDS[SND_CM_ATTACK], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-		set_pdata_float(Weapon, m_flNextPrimaryAttack, gCvar[CVAR_CM_ACTIVATE]);
 	}
 	return HAM_HANDLED;
 }
@@ -617,18 +615,38 @@ public OnTakeDamage(iVictim, inflictor, iAttacker, Float:damage, damage_type)
 	// Assist Damage.
 	if (is_user_connected(iAttacker) && is_user_connected(iVictim))
 	{
-		client_print(iAttacker, print_chat, "A");
-
 //		if (GetBF4PlayerClass(attacker) == BF4_CLASS_ASSAULT)
 		{
-			if (get_user_weapon(iAttacker) != CSW_C4)
+			if (!pev_valid(inflictor))
 				return HAM_IGNORED;
 
-			if (cs_get_user_team(iAttacker) != cs_get_user_team(iVictim))
-			{
-				SetHamParamFloat(4, 200.0);
-				return HAM_SUPERCEDE;
-			}
+			new classname[32];
+			pev(inflictor, pev_classname, classname, charsmax(classname));
+
+			if (!equali(classname, ENTITY_CLASS_NAME[WPN_CLAYMORE]))
+				return HAM_IGNORED;
+
+
+			if (!is_user_alive(iVictim))
+				return HAM_IGNORED;
+
+			new health = get_user_health(iVictim);
+			if (health - damage > 0.0)
+				return HAM_IGNORED;
+
+			// Get Target Team.
+			new CsTeams:aTeam = cs_get_user_team(iAttacker);
+			new CsTeams:vTeam = cs_get_user_team(iVictim);
+
+			new score  = (vTeam != aTeam) ? 1 : -1;
+			new tDeath = cs_get_user_deaths(iVictim);
+			cs_set_user_deaths(iVictim, tDeath);
+
+			// Get Money attacker.
+			new money  = 300 * score;
+			cs_set_user_money(iAttacker, cs_get_user_money(iAttacker) + money);
+
+			return HAM_HANDLED;
 		}
 	}
 	return HAM_IGNORED;
@@ -636,7 +654,7 @@ public OnTakeDamage(iVictim, inflictor, iAttacker, Float:damage, damage_type)
 
 public OnUpdateClientDataPost(Player, SendWeapons, CD_Handle)
 {
-	if(!is_user_alive(Player) || (get_user_weapon(Player) != CSW_C4))
+	if(!is_user_alive(Player) || (cs_get_user_weapon(Player) != CSW_C4))
 		return FMRES_IGNORED;
 	
 	set_cd(CD_Handle, CD_flNextAttack, halflife_time () + 0.001);
@@ -723,7 +741,7 @@ stock mines_reset_have_mines(id)
 	// reset deploy count.
 	gPlayerData[id][PL_COUNT_DEPLOYED]	= int:0;
 	// reset hove mines.
-	gPlayerData[id][PL_COUNT_HAVE_MINE]	= int:0;
+	cs_set_user_bpammo(id, CSW_C4, 0);
 }
 
 //====================================================
@@ -798,6 +816,7 @@ stock mines_entity_set_position(iEnt, uID)
 	free_tr2(trace);
 	return true;
 }
+
 Float:get_claymore_wire_endpoint(cvar)
 {
 	new i = 0, n = 0, iPos = 0;
@@ -814,6 +833,7 @@ Float:get_claymore_wire_endpoint(cvar)
 	}
 	return random_float(values[0], values[1]);
 }
+
 //====================================================
 // Check: common.
 //====================================================
@@ -844,15 +864,15 @@ stock bool:CheckDeploy(id)
 	if (!CheckCommon(id, gPlayerData[id]))
 		return false;
 
-// 	// Have mine? (use buy system)
-// 	if (gMinesParameter[BUY_MODE])
-// 	{
-// 		if (gPlayerData[id][PL_COUNT_HAVE_MINE] <= int:0) 
-// 		{
-// //			print_info(id, L_NOT_HAVE);
-// 			return false;
-// 		}
-// 	}
+	// Have mine? (use buy system)
+	// if (gMinesParameter[BUY_MODE])
+	{
+		if (cs_get_user_bpammo(id, CSW_C4) <= 0) 
+		{
+//			print_info(id, L_NOT_HAVE);
+			return false;
+		}
+	}
 
 // 	if (!CheckMaxDeploy(id, gPlayerData[id], gMinesParameter))
 // 	{
@@ -861,6 +881,7 @@ stock bool:CheckDeploy(id)
 	
 	return bool:CheckForDeploy(id);
 }
+
 //====================================================
 // Check: Max Deploy.
 //====================================================
@@ -918,6 +939,7 @@ stock int:mines_get_team_deployed_count(id)
 
 	return count;
 }
+
 //====================================================
 // Check: On the wall.
 //====================================================
@@ -960,10 +982,11 @@ public MinesBreaked(iEnt, iAttacker)
 {
     return HAM_IGNORED;
 }
+
 //====================================================
 // Put mines Start Progress A
 //====================================================
-public _mines_progress_deploy(id)
+public mines_progress_deploy(id)
 {
 	// Deploying Check.
 	if (!CheckDeploy(id))
@@ -996,6 +1019,8 @@ public _mines_progress_deploy(id)
 			set_pev(iEnt, pev_rendercolor,	{255.0,255.0,255.0});
 			// Set Flag. start progress.
 			mines_set_user_deploy_state(id, int:STATE_DEPLOYING);
+			if (cs_get_user_weapon(id) == CSW_C4)
+				set_pdata_float(cs_get_user_weapon_entity(id), 35, 999.0);
 		}
 		if (wait > 0)
 			mines_show_progress(id, int:floatround(wait), g_msg_data[MSG_BARTIME]);
@@ -1003,14 +1028,14 @@ public _mines_progress_deploy(id)
 		set_task_ex(wait, "SpawnMine", (TASK_PLANT + id));
 	}
 	else
-		_mines_progress_stop(id);
+		mines_progress_stop(id);
 
 	return PLUGIN_HANDLED;
 }
 //====================================================
 // Removing target put mines.
 //====================================================
-public _mines_progress_pickup(id)
+public mines_progress_pickup(id)
 {
 	// Removing Check.
 	if (!CheckPickup(id))
@@ -1041,7 +1066,7 @@ public bool:CheckPickup(id)
 	// have max ammo? (use buy system.)
 	if (gMinesParameter[BUY_MODE])
 	{
-		if (gPlayerData[id][PL_COUNT_HAVE_MINE] + int:1 > int:gMinesParameter[AMMO_HAVE_MAX])
+		if (cs_get_user_bpammo(id, CSW_C4) + 1 > gMinesParameter[AMMO_HAVE_MAX])
 			return false;
 	}
 
@@ -1106,6 +1131,7 @@ public bool:CheckPickup(id)
 	// Allow Enemy.
 	return true;
 }
+
 //====================================================
 // Get Owner Team.
 //====================================================
@@ -1120,7 +1146,7 @@ stock CsTeams:mines_get_owner_team(iEnt)
 //====================================================
 // Stopping Progress.
 //====================================================
-public _mines_progress_stop(id)
+public mines_progress_stop(id)
 {
 	client_print(id, print_chat, "progress stop");
 	if (pev_valid(gDeployingMines[id]))
@@ -1162,6 +1188,7 @@ delete_task(id)
 		remove_task((TASK_RELEASE + id));
 
 	mines_set_user_deploy_state(id, STATE_IDLE);
+
 	return;
 }
 //====================================================
@@ -1196,7 +1223,6 @@ public SpawnMine(taskid)
 {
 	// Task Number to uID.
 	new uID = taskid - TASK_PLANT;
-client_print(uID, print_chat, "A");
 
 	// is Valid?
 	new iEnt	 = gDeployingMines[uID];
@@ -1206,34 +1232,25 @@ client_print(uID, print_chat, "A");
 		return PLUGIN_HANDLED_MAIN;
 	}
 
-client_print(uID, print_chat, "B");
 	new iReturn;
 	// client_print(id, print_chat, "ENTITY ID: %d, USER ID: %d", iEnt, id);
 
-client_print(uID, print_chat, "C");
 	if (mines_entity_spawn_settings(iEnt, uID))
 	{
-client_print(uID, print_chat, "D");
 		if (mines_entity_set_position(iEnt, uID))
 		{
-client_print(uID, print_chat, "E");
-
 			// Cound up. deployed.
 			gPlayerData[uID][PL_COUNT_DEPLOYED]++;
 			// Cound down. have ammo.
-			gPlayerData[uID][PL_COUNT_HAVE_MINE]--;
+			cs_set_user_bpammo(uID, CSW_C4, cs_get_user_bpammo(uID, CSW_C4) - 1);
 
 			// Set Flag. end progress.
 			mines_set_user_deploy_state(uID, int:STATE_DEPLOYED);
-client_print(uID, print_chat, "F");
 
-//			show_ammo(id, iMinesId);
 		}
 	}
-client_print(uID, print_chat, "G");
 
 	gDeployingMines[uID] = 0;
-	// new csx_id = ArrayGetCell(gMinesCSXID, iMinesId);
 	custom_weapon_shot(gMinesCSXID, uID);
 
 	return iReturn;
@@ -1269,7 +1286,7 @@ public mines_entity_spawn_settings(iEnt, uID)
 	set_pev(iEnt, pev_dmg, 			100.0);
 
 	// set size.
-	engfunc(EngFunc_SetSize, 		iEnt, Float:{ -4.0, -4.0, -4.0 }, Float:{ 4.0, 4.0, 4.0 } );
+	engfunc(EngFunc_SetSize, 		iEnt, Float:{-6.430000, -6.690000, -13.090000 }, Float:{ 2.470000, 7.080000, 3.340000 } );
 
 	// set entity health.
 	mines_set_health(iEnt, 			gMinesParameter[MINE_HEALTH]);
@@ -2227,7 +2244,7 @@ stock get_dec_string(const a[])
 }
 
 // Spark Effect.
-stock mines_spark_wall				(const Float:vEndOrigin[3])
+stock mines_spark_wall(const Float:vEndOrigin[3])
 {
  	// Sparks
 	engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vEndOrigin, 0);
@@ -2363,11 +2380,11 @@ public PlayerCmdStart(id, handle, random_seed)
 
 	if (buttonPressed & IN_ATTACK)
 	{
-			_mines_progress_deploy(id);
+			mines_progress_deploy(id);
 			mines_deploy_status(id);
 	} else if( buttonReleased & IN_ATTACK ) 
 	{
-			_mines_progress_stop(id);
+			mines_progress_stop(id);
 			mines_deploy_status(id);
 	}
 	return FMRES_IGNORED;
@@ -2381,6 +2398,7 @@ mines_deploy_status(id)
 		{
 			new Float:speed;
 			mines_get_user_max_speed(id, speed);
+			set_pdata_float(cs_get_user_weapon_entity(id), 35, 0.0);
 
 			new bool:now_speed = (speed <= 1.0);
 			if (now_speed)
@@ -2397,7 +2415,7 @@ mines_deploy_status(id)
 			{
 				if (!mines_entity_set_position(iEnt, id))
 				{
-					_mines_progress_stop(id);
+					mines_progress_stop(id);
 				}
 			}
 
