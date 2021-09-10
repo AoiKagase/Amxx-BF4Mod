@@ -85,13 +85,68 @@ static const CM_WIRE_ENTID				[][] =
 #define mines_set_user_frags(%1,%2)			set_pev(%1,pev_frags,%2)
 #define mines_get_user_max_speed(%1,%2)		pev(%1,pev_maxspeed,%2)
 #define mines_set_user_max_speed(%1,%2)		engfunc(EngFunc_SetClientMaxspeed,%1,%2);set_pev(%1, pev_maxspeed,%2)
-#define mines_get_user_deploy_state(%1)		gCPlayerData[%1][PL_STATE_DEPLOY]
-#define mines_set_user_deploy_state(%1,%2)	gCPlayerData[%1][PL_STATE_DEPLOY] = %2
+#define mines_get_user_deploy_state(%1)		PLAYER_DEPLOY_STATE:gCPlayerData[%1][PL_STATE_DEPLOY]
+#define mines_set_user_deploy_state(%1,%2)	gCPlayerData[%1][PL_STATE_DEPLOY] = PLAYER_DEPLOY_STATE:%2
 #define mines_load_user_max_speed(%1)		gCPlayerData[%1][PL_MAX_SPEED]
 #define mines_save_user_max_speed(%1,%2)	gCPlayerData[%1][PL_MAX_SPEED] = Float:%2
 // PLUGIN LOGIC. ------------------------------------------------<
 
 //#define ENT_SPRITE1 				"sprites/mines/claymore_wire.spr"
+
+// ==============================================================
+// ENUM/VARIABLE.
+// ==============================================================
+// CVAR SETTINGS ------------------------------------------------>
+enum _:E_CVARS
+{
+	CVAR_ENABLE				= 0,    // Plugin Enable.
+//	CVAR_ACCESS_LEVEL		,		// Access level for 0 = ADMIN or 1 = ALL.
+	CVAR_NOROUND			,		// Check Started Round.
+	CVAR_CMD_MODE			,    	// 0 = +USE key, 1 = bind, 2 = each.
+	CVAR_FRIENDLY_FIRE		,		// Friendly Fire.
+	CVAR_START_DELAY        ,   	// Round start delay time.
+
+	CVAR_MAX_HAVE			,    	// Max having ammo.
+	CVAR_START_HAVE			,    	// Start having ammo.
+	CVAR_FRAG_MONEY         ,    	// Get money per kill.
+	CVAR_COST               ,    	// Buy cost.
+	CVAR_BUY_ZONE           ,    	// Stay in buy zone can buy.
+	CVAR_MAX_DEPLOY			,		// user max deploy.
+	CVAR_TEAM_MAX           ,    	// Max deployed in team.
+	Float:CVAR_EXPLODE_RADIUS     ,   	// Explosion Radius.
+	Float:CVAR_EXPLODE_DMG        ,   	// Explosion Damage.
+	CVAR_FRIENDLY_FIRE      ,   	// Friendly Fire.
+	CVAR_CBT[4]             ,   	// Can buy team. TR/CT/ALL
+	CVAR_BUY_MODE           ,   	// Buy mode. 0 = off, 1 = on.
+	Float:CVAR_MINE_HEALTH  ,   	// Claymore health. (Can break.)
+	CVAR_MINE_GLOW          ,   	// Glowing tripmine.
+	CVAR_MINE_GLOW_MODE     ,   	// Glowing color mode.
+	CVAR_MINE_GLOW_CT [13]    	,   	// Glowing color for CT.
+	CVAR_MINE_GLOW_TR [13]   	,   	// Glowing color for T.
+	CVAR_MINE_BROKEN		,		// Can Broken Mines. 0 = Mine, 1 = Team, 2 = Enemy.
+	CVAR_MINE_OFFSET_ANGLE	[20],		// MODEL OFFSET ANGLE
+	CVAR_MINE_OFFSET_POS	[20],		// MODEL OFFSET POSITION
+	CVAR_DEATH_REMOVE		,		// Dead Player Remove Claymore.
+	Float:CVAR_CM_ACTIVATE	,		// Waiting for put claymore. (0 = no progress bar.)
+	CVAR_ALLOW_PICKUP		,		// allow pickup.
+	Float:CVAR_CM_WIRE_RANGE		,		// Claymore Wire Range.
+	Float:CVAR_CM_WIRE_WIDTH		,		// Claymore Wire Width.
+	CVAR_CM_CENTER_PITCH	[20],		// Claymore Wire Area Center Pitch.
+	CVAR_CM_CENTER_YAW		[20],		// Claymore Wire Area Center Yaw.
+	CVAR_CM_LEFT_PITCH		[20],		// Claymore Wire Area Left Pitch.
+	CVAR_CM_LEFT_YAW		[20],		// Claymore Wire Area Left Yaw.
+	CVAR_CM_RIGHT_PITCH		[20],		// Claymore Wire Area Right Pitch.
+	CVAR_CM_RIGHT_YAW		[20],		// Claymore Wire Area Right Yaw.
+	CVAR_CM_TRIAL_FREQ		,		// Claymore Wire trial frequency.
+	CVAR_CM_WIRE_VISIBLE    ,   	// Wire Visiblity. 0 = off, 1 = on.
+	Float:CVAR_CM_WIRE_BRIGHT     ,   	// Wire brightness.
+	CVAR_CM_WIRE_COLOR		,
+	CVAR_CM_WIRE_COLOR_T	[13],
+	CVAR_CM_WIRE_COLOR_CT	[13],
+	CVAR_MAX_COUNT			,
+};
+new gCvar					[E_CVARS];
+// CVAR SETTINGS ------------------------------------------------<
 
 // RESOURCES. --------------------------------------------------->
 enum _:E_SOUNDS
@@ -177,12 +232,21 @@ new const ENT_SPRITES[E_SPRITES][] =
 	"sprites/bloodspray.spr"			// 7: BLOOD SPRAY
 };
 
+
 enum _:E_CLASS_NAME
 {
 	I_TARGET,
 	F_BREAKABLE,
 	WPN_C4,
 	WPN_CLAYMORE,
+};
+
+new const ENTITY_CLASS_NAME[E_CLASS_NAME][MAX_NAME_LENGTH] = 
+{
+	"info_target",
+	"func_breakable",
+	"weapon_c4",
+	"weapon_claymore"
 };
 
 
@@ -192,6 +256,15 @@ enum _:E_MESSAGES
 	MSG_BARTIME,
 	MSG_TEXTMSG,
 }
+
+new const MESSAGES[E_MESSAGES][] = 
+{
+	"WeaponList",
+	"BarTime",
+	"TextMsg",
+};
+// RESOURCES. ---------------------------------------------------<
+
 
 enum _:E_SEQUENCE
 {
@@ -208,48 +281,14 @@ enum _:E_SEQUENCE
 	SEQ_TRIGGER_DRAW_OFF,
 }
 
-enum _:COMMON_MINES_DATA
-{
-	AMMO_HAVE_START			,
-	AMMO_HAVE_MAX			,
-	NO_ROUND				,
-	DEPLOY_MAX				,
-	DEPLOY_TEAM_MAX			,
-	DEPLOY_POSITION			,	// FLY, GROUND, WALL
-	BUY_MODE				,
-	BUY_PRICE				,
-	BUY_ZONE				,
-	CsTeams:BUY_TEAM		,
-	FRAG_MONEY				,
-	MINES_BROKEN			,
-	ALLOW_PICKUP			,
-	DEATH_REMOVE			,
-	GLOW_ENABLE				,
-	GLOW_MODE				,
-	GLOW_COLOR_TR			,
-	GLOW_COLOR_CT			,
-	Float:ACTIVATE_TIME		,
-	Float:MINE_HEALTH		,
-	Float:EXPLODE_RADIUS	,
-	Float:EXPLODE_DAMAGE	,
-	EXPLODE_SPRITE1			,
-	EXPLODE_SPRITE2			,
-	EXPLODE_SPRITE_BLAST	,
-	EXPLODE_SPRITE_SMOKE	,
-	EXPLODE_SPRITE_WATER	,
-	EXPLODE_SPRITE_BUBBLE	,
-	BLOOD_SPLASH			,
-	BLOOD_SPRAY				,
-}
-
 enum _:COMMON_PLAYER_DATA
 {
-	int:PL_STATE_DEPLOY		,
+	PLAYER_DEPLOY_STATE:PL_STATE_DEPLOY		,
 	Float:PL_MAX_SPEED		,
 	Float:PL_DEPLOY_POS[3]	,
 }
 
-enum int:PLAYER_DEPLOY_STATE
+enum _:PLAYER_DEPLOY_STATE
 {
 	STATE_IDLE				= 0,
 	STATE_DEPLOYING			,
@@ -257,20 +296,6 @@ enum int:PLAYER_DEPLOY_STATE
 	STATE_DEPLOYED			,
 }
 
-new const MESSAGES[E_MESSAGES][] = 
-{
-	"WeaponList",
-	"BarTime",
-	"TextMsg",
-};
-
-new const ENTITY_CLASS_NAME[E_CLASS_NAME][MAX_NAME_LENGTH] = 
-{
-	"info_target",
-	"func_breakable",
-	"weapon_c4",
-	"weapon_claymore"
-};
 
 
 enum _:PICKUP_MODE
@@ -285,8 +310,9 @@ enum _:PICKUP_MODE
 //
 enum _:PLAYER_DATA
 {
-	int:PL_COUNT_DELAY		= 0,
-	int:PL_COUNT_DEPLOYED	,
+	PL_COUNT_DELAY			= 0,
+	PL_COUNT_DEPLOYED		,
+	PL_DEPLOY_MINE_ID		,
 }
 enum _:TRIPMINE_THINK
 {
@@ -308,75 +334,23 @@ enum _:TRIPMINE_SOUND
 //
 // CVAR SETTINGS
 //
-enum _:E_CVARS
-{
-	CVAR_ENABLE				= 0,    // Plugin Enable.
-//	CVAR_ACCESS_LEVEL		,		// Access level for 0 = ADMIN or 1 = ALL.
-	CVAR_NOROUND			,		// Check Started Round.
-	CVAR_CMD_MODE			,    	// 0 = +USE key, 1 = bind, 2 = each.
-	CVAR_FRIENDLY_FIRE		,		// Friendly Fire.
-	CVAR_START_DELAY        ,   	// Round start delay time.
-
-	CVAR_MAX_HAVE			,    	// Max having ammo.
-	CVAR_START_HAVE			,    	// Start having ammo.
-	CVAR_FRAG_MONEY         ,    	// Get money per kill.
-	CVAR_COST               ,    	// Buy cost.
-	CVAR_BUY_ZONE           ,    	// Stay in buy zone can buy.
-	CVAR_MAX_DEPLOY			,		// user max deploy.
-	CVAR_TEAM_MAX           ,    	// Max deployed in team.
-	Float:CVAR_EXPLODE_RADIUS     ,   	// Explosion Radius.
-	Float:CVAR_EXPLODE_DMG        ,   	// Explosion Damage.
-	CVAR_FRIENDLY_FIRE      ,   	// Friendly Fire.
-	CVAR_CBT[4]             ,   	// Can buy team. TR/CT/ALL
-	CVAR_BUY_MODE           ,   	// Buy mode. 0 = off, 1 = on.
-	Float:CVAR_MINE_HEALTH  ,   	// Claymore health. (Can break.)
-	CVAR_MINE_GLOW          ,   	// Glowing tripmine.
-	CVAR_MINE_GLOW_MODE     ,   	// Glowing color mode.
-	CVAR_MINE_GLOW_CT [13]    	,   	// Glowing color for CT.
-	CVAR_MINE_GLOW_TR [13]   	,   	// Glowing color for T.
-	CVAR_MINE_BROKEN		,		// Can Broken Mines. 0 = Mine, 1 = Team, 2 = Enemy.
-	CVAR_MINE_OFFSET_ANGLE	[20],		// MODEL OFFSET ANGLE
-	CVAR_MINE_OFFSET_POS	[20],		// MODEL OFFSET POSITION
-	CVAR_DEATH_REMOVE		,		// Dead Player Remove Claymore.
-	Float:CVAR_CM_ACTIVATE	,		// Waiting for put claymore. (0 = no progress bar.)
-	CVAR_ALLOW_PICKUP		,		// allow pickup.
-	Float:CVAR_CM_WIRE_RANGE		,		// Claymore Wire Range.
-	Float:CVAR_CM_WIRE_WIDTH		,		// Claymore Wire Width.
-	CVAR_CM_CENTER_PITCH	[20],		// Claymore Wire Area Center Pitch.
-	CVAR_CM_CENTER_YAW		[20],		// Claymore Wire Area Center Yaw.
-	CVAR_CM_LEFT_PITCH		[20],		// Claymore Wire Area Left Pitch.
-	CVAR_CM_LEFT_YAW		[20],		// Claymore Wire Area Left Yaw.
-	CVAR_CM_RIGHT_PITCH		[20],		// Claymore Wire Area Right Pitch.
-	CVAR_CM_RIGHT_YAW		[20],		// Claymore Wire Area Right Yaw.
-	CVAR_CM_TRIAL_FREQ		,		// Claymore Wire trial frequency.
-	CVAR_CM_WIRE_VISIBLE    ,   	// Wire Visiblity. 0 = off, 1 = on.
-	Float:CVAR_CM_WIRE_BRIGHT     ,   	// Wire brightness.
-	CVAR_CM_WIRE_COLOR		,
-	CVAR_CM_WIRE_COLOR_T	[13],
-	CVAR_CM_WIRE_COLOR_CT	[13],
-	CVAR_MAX_COUNT			,
-};
 
 //====================================================
 //  Enum Area.
 //====================================================
 new gPlayerData				[MAX_PLAYERS][PLAYER_DATA];
-
-new gDeployingMines			[MAX_PLAYERS];
 new gEntMine;
-new gCvar					[E_CVARS];
-new g_msg_data				[E_MESSAGES];
+new gMsgData				[E_MESSAGES];
 
-new gMinesParameter			[COMMON_MINES_DATA];
 new gCPlayerData			[MAX_PLAYERS][COMMON_PLAYER_DATA];
-new const Float:gModelMargin[] = {0.0, 0.0, -2.0};
-new gSprites				[E_SPRITES];
+// new const Float:gModelMargin[] = {0.0, 0.0, -2.0};
 new gDecalIndexExplosion	[MAX_EXPLOSION_DECALS];
 new gDecalIndexBlood		[MAX_BLOOD_DECALS];
 new gNumDecalsExplosion;
 new gNumDecalsBlood;
 new gMinesCSXID;
-
+new	gModelIndex				[E_MODELS];
+new gSpriteIndex			[E_SPRITES];
 
 //====================================================
 //  PLUGIN PRECACHE
@@ -389,10 +363,10 @@ public plugin_precache()
 		precache_sound(ENT_SOUNDS[i]);
 
 	for (new i = 0; i < E_MODELS; i++) 
-		precache_model(ENT_MODELS[i]);
+		gModelIndex[i] 	= precache_model(ENT_MODELS[i]);
 
 	for (new i = 0; i < E_SPRITES; i++)
-		precache_model(ENT_SPRITES[i]);
+		gSpriteIndex[i] = precache_model(ENT_SPRITES[i]);
 
 	precache_generic("sprites/weapon_claymore.txt");
 	LoadDecals();
@@ -465,7 +439,7 @@ public plugin_init()
 
 //	register_event		("Damage", "OnDamage", "b", "2>0");
 	// Register Forward.
-	// register_message 	(g_msg_data[MSG_CLCORPSE],					"message_clcorpse");
+	// register_message 	(gMsgData[MSG_CLCORPSE],					"message_clcorpse");
 	// Register Forward.
 
 /// =======================================================================================
@@ -494,36 +468,10 @@ public plugin_init()
 /// =======================================================================================
 
 	for(new i = 0; i < E_MESSAGES; i++)
-		g_msg_data[i] = get_user_msgid(MESSAGES[i]);
+		gMsgData[i] = get_user_msgid(MESSAGES[i]);
 
 	register_message(get_user_msgid(MESSAGES[MSG_TEXTMSG]), "Message_TextMsg") ;
 	gMinesCSXID = custom_weapon_add(ENTITY_CLASS_NAME[WPN_CLAYMORE], 0, "Claymore");
-
-	update_mines_parameter();
-}
-
-update_mines_parameter()
-{
-	gMinesParameter[AMMO_HAVE_START]=	gCvar[CVAR_START_HAVE];
-	gMinesParameter[AMMO_HAVE_MAX]	=	gCvar[CVAR_MAX_HAVE];
-	gMinesParameter[DEPLOY_MAX]		=	gCvar[CVAR_MAX_DEPLOY];
-	gMinesParameter[DEPLOY_TEAM_MAX]=	gCvar[CVAR_TEAM_MAX];
-	gMinesParameter[BUY_MODE]		=	gCvar[CVAR_BUY_MODE];
-	gMinesParameter[BUY_ZONE]		=	gCvar[CVAR_BUY_ZONE];
-	gMinesParameter[BUY_PRICE]		=	gCvar[CVAR_COST];
-	gMinesParameter[FRAG_MONEY]		=	gCvar[CVAR_FRAG_MONEY];
-	gMinesParameter[MINES_BROKEN]	=	gCvar[CVAR_MINE_BROKEN];
-	gMinesParameter[ALLOW_PICKUP]	=	gCvar[CVAR_ALLOW_PICKUP];
-	gMinesParameter[DEATH_REMOVE]	=	gCvar[CVAR_DEATH_REMOVE];
-	gMinesParameter[GLOW_ENABLE]	=	gCvar[CVAR_MINE_GLOW];
-	gMinesParameter[GLOW_MODE]		=	gCvar[CVAR_MINE_GLOW_MODE];
-	gMinesParameter[MINE_HEALTH]	=	_:gCvar[CVAR_MINE_HEALTH];
-	gMinesParameter[ACTIVATE_TIME]	=	_:gCvar[CVAR_CM_ACTIVATE];
-	gMinesParameter[EXPLODE_RADIUS]	=	_:gCvar[CVAR_EXPLODE_RADIUS];
-	gMinesParameter[EXPLODE_DAMAGE]	=	_:gCvar[CVAR_EXPLODE_DMG];
-	gMinesParameter[BUY_TEAM] 		=	_:get_team_code(gCvar[CVAR_CBT]);
-	gMinesParameter[GLOW_COLOR_TR]	=	get_cvar_to_color(gCvar[CVAR_MINE_GLOW_TR]);
-	gMinesParameter[GLOW_COLOR_CT]	=	get_cvar_to_color(gCvar[CVAR_MINE_GLOW_CT]);
 
 	// registered func_breakable
 	gEntMine = engfunc(EngFunc_AllocString, ENTITY_CLASS_NAME[F_BREAKABLE]);
@@ -536,7 +484,7 @@ public OnAddToPlayerKnife(const item, const player)
 {
     if(pev_valid(item) && is_user_alive(player)) 	// just for safety.
     {
-        message_begin( MSG_ONE, g_msg_data[MSG_WEAPONLIST], .player = player );
+        message_begin( MSG_ONE, gMsgData[MSG_WEAPONLIST], .player = player );
         {
             write_string("weapon_claymore");  		 // WeaponName
             write_byte(14);                   		// PrimaryAmmoID
@@ -601,17 +549,17 @@ public OnPrimaryAttackPost(Weapon)
 	if (get_pdata_cbase(client, 373) != Weapon)
 		return HAM_IGNORED;
 
-	if (mines_get_user_deploy_state(client) == STATE_IDLE) 
+	if (mines_get_user_deploy_state(client) == PLAYER_DEPLOY_STATE:STATE_IDLE) 
 	{
 		UTIL_PlayWeaponAnimation(client, SEQ_SHOOT);
 		emit_sound(client, CHAN_WEAPON, ENT_SOUNDS[SND_CM_ATTACK], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		set_pdata_float(Weapon, m_flNextPrimaryAttack, 999.9);
 	}
 	return HAM_HANDLED;
 }
 
 public OnTakeDamage(iVictim, inflictor, iAttacker, Float:damage, damage_type)
 {
-	// Assist Damage.
 	if (is_user_connected(iAttacker) && is_user_connected(iVictim))
 	{
 //		if (GetBF4PlayerClass(attacker) == BF4_CLASS_ASSAULT)
@@ -622,10 +570,12 @@ public OnTakeDamage(iVictim, inflictor, iAttacker, Float:damage, damage_type)
 			new classname[32];
 			pev(inflictor, pev_classname, classname, charsmax(classname));
 
+			// CLAYMORE ?
 			if (!equali(classname, ENTITY_CLASS_NAME[WPN_CLAYMORE]))
 				return HAM_IGNORED;
 
 
+			// DEAD...
 			if (!is_user_alive(iVictim))
 				return HAM_IGNORED;
 
@@ -800,12 +750,14 @@ stock mines_entity_set_position(iEnt, uID)
 
 				// set entity position.
 				engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin);
-				xs_vec_add(vNewOrigin, gModelMargin, vNewOrigin);
+//				xs_vec_add(vNewOrigin, gModelMargin, vNewOrigin);
+				// get wire start point.
+				engfunc(EngFunc_GetBonePosition, iEnt, 1, vNewOrigin, vEntAngles);
 
 				// set angle.
 				set_pev(iEnt, pev_angles, 	vEntAngles);
-				CED_SetArray(iEnt, CM_DECALS, vDecals, sizeof(vDecals));
 
+				CED_SetArray(iEnt, CM_DECALS, vDecals, sizeof(vDecals));
 				CED_SetArray(iEnt, CM_WIRE_SPOINT, vNewOrigin, sizeof(vNewOrigin));
 			}
 		}
@@ -884,9 +836,9 @@ stock bool:CheckDeploy(id)
 //====================================================
 // Check: Max Deploy.
 //====================================================
-stock bool:CheckMaxDeploy(id, plData[PLAYER_DATA], minesData[COMMON_MINES_DATA])
+stock bool:CheckMaxDeploy(id, plData[PLAYER_DATA])
 {
-	new max_have 	= minesData[AMMO_HAVE_MAX];
+	new max_have 	= gCvar[CVAR_MAX_HAVE];
 	new team_max 	= minesData[DEPLOY_TEAM_MAX];
 	new team_count 	= mines_get_team_deployed_count(id);
 
@@ -991,11 +943,11 @@ public mines_progress_deploy(id)
 	if (!CheckDeploy(id))
 		return PLUGIN_HANDLED;
 
-	new Float:wait = Float:gMinesParameter[ACTIVATE_TIME];
+	new Float:wait = Float:gCvar[CVAR_CM_ACTIVATE];
 
-	if (gDeployingMines[id] == 0 || !pev_valid(gDeployingMines[id]))
+	if (gPlayerData[id][PL_DEPLOY_MINE_ID] == 0 || !pev_valid(gPlayerData[id][PL_DEPLOY_MINE_ID]))
 	{
-		new iEnt = gDeployingMines[id] = engfunc(EngFunc_CreateNamedEntity, gEntMine);
+		new iEnt = gPlayerData[id][PL_DEPLOY_MINE_ID] = engfunc(EngFunc_CreateNamedEntity, gEntMine);
 		// client_print(id, print_chat, "ENTITY ID: %d, USER ID: %d", iEnt, id);
 
 		if (pev_valid(iEnt) && !IsPlayer(iEnt))
@@ -1004,6 +956,8 @@ public mines_progress_deploy(id)
 			set_pev(iEnt, pev_classname, 	ENTITY_CLASS_NAME[WPN_CLAYMORE]);
 			// set models.
 			engfunc(EngFunc_SetModel, 		iEnt, ENT_MODELS[W_WPN]);
+			set_pev(iEnt, pev_modelindex,	gModelIndex[W_WPN]);
+
 			// set solid.
 			set_pev(iEnt, pev_solid, 		SOLID_NOT);
 			// set movetype.
@@ -1022,7 +976,7 @@ public mines_progress_deploy(id)
 				set_pdata_float(cs_get_user_weapon_entity(id), 35, 999.0);
 		}
 		if (wait > 0)
-			mines_show_progress(id, int:floatround(wait), g_msg_data[MSG_BARTIME]);
+			mines_show_progress(id, int:floatround(wait));
 		// Start Task. Put mines.
 		set_task_ex(wait, "SpawnMine", (TASK_PLANT + id));
 	}
@@ -1040,9 +994,9 @@ public mines_progress_pickup(id)
 	if (!CheckPickup(id))
 		return PLUGIN_HANDLED;
 
-	new Float:wait = Float:gMinesParameter[ACTIVATE_TIME];
+	new Float:wait = Float:gCvar[CVAR_CM_ACTIVATE];
 	if (wait > 0)
-		mines_show_progress(id, int:floatround(wait), g_msg_data[MSG_BARTIME]);
+		mines_show_progress(id, int:floatround(wait));
 
 	// Set Flag. start progress.
 	mines_set_user_deploy_state(id, int:STATE_PICKING);
@@ -1063,9 +1017,9 @@ public bool:CheckPickup(id)
 
 
 	// have max ammo? (use buy system.)
-	if (gMinesParameter[BUY_MODE])
+	if (gCvar[CVAR_BUY_MODE])
 	{
-		if (cs_get_user_bpammo(id, CSW_C4) + 1 > gMinesParameter[AMMO_HAVE_MAX])
+		if (cs_get_user_bpammo(id, CSW_C4) + 1 > gCvar[CVAR_MAX_HAVE])
 			return false;
 	}
 
@@ -1096,7 +1050,7 @@ public bool:CheckPickup(id)
 	if(!equali(sClassName, ENTITY_CLASS_NAME[WPN_CLAYMORE]))
 		return false;
 
-	switch(gMinesParameter[ALLOW_PICKUP])
+	switch(gCvar[CVAR_ALLOW_PICKUP])
 	{
 		case DISALLOW_PICKUP:
 		{
@@ -1147,12 +1101,11 @@ stock CsTeams:mines_get_owner_team(iEnt)
 //====================================================
 public mines_progress_stop(id)
 {
-	client_print(id, print_chat, "progress stop");
-	if (pev_valid(gDeployingMines[id]))
-		mines_remove_entity(gDeployingMines[id]);
-	gDeployingMines[id] = 0;
+	if (pev_valid(gPlayerData[id][PL_DEPLOY_MINE_ID]))
+		mines_remove_entity(gPlayerData[id][PL_DEPLOY_MINE_ID]);
+	gPlayerData[id][PL_DEPLOY_MINE_ID] = 0;
 
-	mines_hide_progress(id, g_msg_data[MSG_BARTIME]);
+	mines_hide_progress(id);
 	delete_task(id);
 
 	return PLUGIN_HANDLED;
@@ -1192,11 +1145,11 @@ delete_task(id)
 //====================================================
 // Show Progress Bar.
 //====================================================
-stock mines_show_progress(id, int:time, msg)
+stock mines_show_progress(id, int:time)
 {
 	if (is_user_alive(id))
 	{
-		message_begin(MSG_ONE_UNRELIABLE, msg, {0.0,0.0,0.0}, id);
+		message_begin(MSG_ONE_UNRELIABLE, gMsgData[MSG_BARTIME], {0.0,0.0,0.0}, id);
 		write_short(time);
 		message_end();
 	}
@@ -1205,11 +1158,11 @@ stock mines_show_progress(id, int:time, msg)
 //====================================================
 // Hide Progress Bar.
 //====================================================
-stock mines_hide_progress(id, msg)
+stock mines_hide_progress(id)
 {
 	if (is_user_alive(id))
 	{
-		message_begin(MSG_ONE_UNRELIABLE, msg, {0.0,0.0,0.0}, id);
+		message_begin(MSG_ONE_UNRELIABLE, gMsgData[MSG_BARTIME], {0.0,0.0,0.0}, id);
 		write_short(0);
 		message_end();
 	}
@@ -1223,7 +1176,7 @@ public SpawnMine(taskid)
 	new uID = taskid - TASK_PLANT;
 
 	// is Valid?
-	new iEnt	 = gDeployingMines[uID];
+	new iEnt	 = gPlayerData[uID][PL_DEPLOY_MINE_ID];
 	if(!pev_valid(iEnt) || IsPlayer(iEnt))
 	{
 //		print_info(uID, iMinesId, L_DEBUG);
@@ -1248,7 +1201,7 @@ public SpawnMine(taskid)
 		}
 	}
 
-	gDeployingMines[uID] = 0;
+	gPlayerData[uID][PL_DEPLOY_MINE_ID] = 0;
 	custom_weapon_shot(gMinesCSXID, uID);
 
 	return iReturn;
@@ -1264,6 +1217,7 @@ public mines_entity_spawn_settings(iEnt, uID)
 
 	// set models.
 	engfunc(EngFunc_SetModel, 		iEnt, ENT_MODELS[W_WPN]);
+	set_pev(iEnt, pev_modelindex,	gModelIndex[W_WPN]);
 
 	// set solid.
 	set_pev(iEnt, pev_solid, 		SOLID_NOT);
@@ -1287,7 +1241,7 @@ public mines_entity_spawn_settings(iEnt, uID)
 	engfunc(EngFunc_SetSize, 		iEnt, Float:{-6.430000, -6.690000, -13.090000 }, Float:{ 2.470000, 7.080000, 3.340000 } );
 
 	// set entity health.
-	mines_set_health(iEnt, 			gMinesParameter[MINE_HEALTH]);
+	mines_set_health(iEnt, 			gCvar[CVAR_MINE_HEALTH]);
 
 	// Save results to be used later.
 	CED_SetCell(iEnt,CM_OWNER,	uID);
@@ -1462,41 +1416,27 @@ public mines_explosion(id, iEnt)
 	// Count down. deployed lasermines.
 	gPlayerData[id][PL_COUNT_DEPLOYED]--;
 
-	static sprBoom1;
-	static sprBoom2;
-	static sprBlast;
-	static sprSmoke;
-	static sprWater;
-	static sprBubble;
-
 	static Float:vOrigin[3];
 	static Float:vDecals[3];
 
 	pev(iEnt, pev_origin, 	vOrigin);
 	CED_GetArray(iEnt, CM_DECALS, vDecals, sizeof(vDecals));
 
-	sprBoom1 = (gMinesParameter[EXPLODE_SPRITE1]) 	 	? gMinesParameter[EXPLODE_SPRITE1]		: gSprites[SPR_EXPLOSION_1];
-	sprBoom2 = (gMinesParameter[EXPLODE_SPRITE2]) 	 	? gMinesParameter[EXPLODE_SPRITE2]		: gSprites[SPR_EXPLOSION_2];
-	sprBlast = (gMinesParameter[EXPLODE_SPRITE_BLAST])  ? gMinesParameter[EXPLODE_SPRITE_BLAST] : gSprites[SPR_BLAST];
-	sprSmoke = (gMinesParameter[EXPLODE_SPRITE_SMOKE])  ? gMinesParameter[EXPLODE_SPRITE_SMOKE] : gSprites[SPR_SMOKE];
-	sprWater = (gMinesParameter[EXPLODE_SPRITE_WATER])  ? gMinesParameter[EXPLODE_SPRITE_WATER] : gSprites[SPR_EXPLOSION_WATER];
-	sprBubble= (gMinesParameter[EXPLODE_SPRITE_BUBBLE]) ? gMinesParameter[EXPLODE_SPRITE_BUBBLE]: gSprites[SPR_BUBBLE];
-
 	if(engfunc(EngFunc_PointContents, vOrigin) != CONTENTS_WATER) 
 	{
-		mines_create_explosion	(vOrigin, Float:gMinesParameter[EXPLODE_DAMAGE], Float:gMinesParameter[EXPLODE_RADIUS], sprBoom1, sprBoom2, sprBlast);
-		mines_create_smoke		(vOrigin, Float:gMinesParameter[EXPLODE_DAMAGE], Float:gMinesParameter[EXPLODE_RADIUS], sprSmoke);
+		mines_create_explosion	(vOrigin, gCvar[CVAR_EXPLODE_DMG], gCvar[CVAR_EXPLODE_RADIUS], gSpriteIndex[SPR_EXPLOSION_1], gSpriteIndex[SPR_EXPLOSION_2], gSpriteIndex[SPR_BLAST]);
+		mines_create_smoke		(vOrigin, gCvar[CVAR_EXPLODE_DMG], gCvar[CVAR_EXPLODE_RADIUS], gSpriteIndex[SPR_SMOKE]);
 	}
 	else 
 	{
-		mines_create_water_explosion(vOrigin, Float:gMinesParameter[EXPLODE_DAMAGE], Float:gMinesParameter[EXPLODE_RADIUS], sprWater);
-		mines_create_bubbles		(vOrigin, Float:gMinesParameter[EXPLODE_DAMAGE] * 1.0, Float:gMinesParameter[EXPLODE_RADIUS] * 1.0, sprBubble);
+		mines_create_water_explosion(vOrigin, gCvar[CVAR_EXPLODE_DMG], gCvar[CVAR_EXPLODE_RADIUS], gSpriteIndex[SPR_EXPLOSION_WATER]);
+		mines_create_bubbles		(vOrigin, gCvar[CVAR_EXPLODE_DMG], gCvar[CVAR_EXPLODE_RADIUS], gSpriteIndex[SPR_BUBBLE]);
 	}
 	// decals
 	mines_create_explosion_decals(vDecals);
 
 	// damage.
-	mines_create_explosion_damage(gMinesCSXID, iEnt, id, Float:gMinesParameter[EXPLODE_DAMAGE], Float:gMinesParameter[EXPLODE_RADIUS]);
+	mines_create_explosion_damage(gMinesCSXID, iEnt, id, gCvar[CVAR_EXPLODE_DMG], gCvar[CVAR_EXPLODE_RADIUS]);
 
 	// remove this.
 	mines_remove_entity(iEnt);
@@ -2042,7 +1982,7 @@ mines_step_powerup(iEnt, Float:fCurrTime)
 		cm_play_sound(iEnt, SOUND_ACTIVATE);
 
 	}
-	mines_glow(iEnt, gMinesParameter);
+	mines_glow(iEnt);
 	// Think time.
 	set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
 }
@@ -2317,22 +2257,22 @@ stock get_cvar_to_array(const args[], values[], size)
 
 
 // Glowing.
-stock mines_glow(iEnt, const minesData[COMMON_MINES_DATA])
+stock mines_glow(iEnt)
 {
 	// Glow mode.
-	if (minesData[GLOW_ENABLE])
+	if (gCvar[CVAR_MINE_GLOW])
 	{
 		new Float:tcolor[3];
 		// Color setting.
-		if (!minesData[GLOW_MODE])
+		if (!gCvar[CVAR_MINE_GLOW_MODE])
 		{
 			// Team color.
 			switch (mines_get_owner_team(iEnt))
 			{
 				case CS_TEAM_T:
-					for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(minesData[GLOW_COLOR_TR], i));
+					for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(get_cvar_to_color(gCvar[CVAR_MINE_GLOW_TR]), i));
 				case CS_TEAM_CT:
-					for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(minesData[GLOW_COLOR_CT], i));
+					for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(get_cvar_to_color(gCvar[CVAR_MINE_GLOW_CT]), i));
 				default:
 				{
 					tcolor[0] = 0.0;
@@ -2406,7 +2346,7 @@ mines_deploy_status(id)
 		case STATE_DEPLOYING:
 		{
 			static iEnt;
-			iEnt = gDeployingMines[id];
+			iEnt = gPlayerData[id][PL_DEPLOY_MINE_ID];
 			// client_print(id, print_chat, "ENTITY ID: %d, USER ID: %d", iEnt, id);
 
 			if (pev_valid(iEnt) && !IsPlayer(iEnt))
@@ -2427,6 +2367,9 @@ mines_deploy_status(id)
 		{
 			ExecuteHamB(Ham_CS_Player_ResetMaxSpeed, id);
 			mines_set_user_deploy_state(id, STATE_IDLE);
+			new Weapon = -1;
+			while ((Weapon = engfunc(EngFunc_FindEntityByString, Weapon, "classname", ENTITY_CLASS_NAME[WPN_CLAYMORE])) && pev(Weapon, pev_owner) != id) {}
+			set_pdata_float(Weapon, m_flNextPrimaryAttack, 0.0);
 			UTIL_PlayWeaponAnimation(id, SEQ_DRAW);
 			emit_sound(id, CHAN_WEAPON, ENT_SOUNDS[SND_CM_DEPLOY], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);			
 		}
