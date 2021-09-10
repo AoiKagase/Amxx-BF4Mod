@@ -47,7 +47,7 @@
 #define TASK_RELEASE					315900
 #define MAX_EXPLOSION_DECALS 			3
 #define MAX_BLOOD_DECALS 				10
-
+#define WIRE_COUNT						3
 // ==============================================================
 // CONST STRINGS.
 // ==============================================================
@@ -375,7 +375,6 @@ new gDecalIndexExplosion	[MAX_EXPLOSION_DECALS];
 new gDecalIndexBlood		[MAX_BLOOD_DECALS];
 new gNumDecalsExplosion;
 new gNumDecalsBlood;
-new const gWireLoop = 3;
 new gMinesCSXID;
 
 
@@ -1158,13 +1157,14 @@ public mines_progress_stop(id)
 
 	return PLUGIN_HANDLED;
 }
+
 stock mines_remove_entity(iEnt)
 {
 	if (pev_valid(iEnt))
 	{
 		new flag;
 		new wire;
-		for (new i = 0; i < 3; i++)
+		for (new i = 0; i < WIRE_COUNT; i++)
 		{
 			CED_GetCell(iEnt, CM_WIRE_ENTID[i], wire);
 			set_pev(wire, pev_flags, flag | FL_KILLME);
@@ -1188,8 +1188,6 @@ delete_task(id)
 		remove_task((TASK_RELEASE + id));
 
 	mines_set_user_deploy_state(id, STATE_IDLE);
-
-	return;
 }
 //====================================================
 // Show Progress Bar.
@@ -1336,7 +1334,7 @@ stock set_claymore_endpoint(iEnt, Float:vOrigin[3])
 	static trace;
 	pev(iEnt, pev_angles, vAngles);
 	vAngles[2] = 0.0;
-	for (new i = 0; i < 3; i++)
+	for (new i = 0; i < WIRE_COUNT; i++)
 	{
 		hitPoint	= vOrigin;
 		vTmp		= vOrigin;
@@ -1426,7 +1424,7 @@ public MinesThink(iEnt)
 		return;
 
 	// Get Laser line end potision.
-	for (new i = 0; i < 3; i++)
+	for (new i = 0; i < WIRE_COUNT; i++)
 		CED_GetArray(iEnt, CM_WIRE_EPOINT[i], vEnd[i], sizeof(vEnd[]));
 
 	// claymore state.
@@ -2052,7 +2050,7 @@ mines_step_powerup(iEnt, Float:fCurrTime)
 mines_step_beamup(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 {
 	static wire;
-	for (new i = 0; i < gWireLoop; i++)
+	for (new i = 0; i < WIRE_COUNT; i++)
 	{
 		wire = draw_laserline(iEnt, vEnd[i]);
 		CED_SetCell(iEnt, CM_WIRE_ENTID[i], wire);
@@ -2083,7 +2081,7 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 	if (!CED_GetArray(iEnt, CM_WIRE_SPOINT, vOrigin, sizeof(vOrigin)))
 		return false;
 
-	for(new i = 0; i < gWireLoop; i++)
+	for(new i = 0; i < WIRE_COUNT; i++)
 	{
 		// create the trace handle.
 		trace = create_tr2();
@@ -2176,11 +2174,11 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 		switch(teamid)
 		{
 			case CS_TEAM_T:
-				for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(get_cvar_to_color(gCvar[CVAR_CM_WIRE_COLOR_T]), i));
+				for(new i = 0; i < sizeof tcolor; i++) tcolor[i] = float(get_color(get_cvar_to_color(gCvar[CVAR_CM_WIRE_COLOR_T]), i));
 			case CS_TEAM_CT:
-				for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(get_cvar_to_color(gCvar[CVAR_CM_WIRE_COLOR_CT]), i));
+				for(new i = 0; i < sizeof tcolor; i++) tcolor[i] = float(get_color(get_cvar_to_color(gCvar[CVAR_CM_WIRE_COLOR_CT]), i));
 			default:
-				for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(get_cvar_to_color("20,20,20"), i));
+				for(new i = 0; i < sizeof tcolor; i++) tcolor[i] = float(get_color(get_cvar_to_color("20,20,20"), i));
 		}
 
 	}
