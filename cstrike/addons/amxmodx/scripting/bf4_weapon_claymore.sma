@@ -48,6 +48,8 @@
 #define MAX_EXPLOSION_DECALS 			3
 #define MAX_BLOOD_DECALS 				10
 #define WIRE_COUNT						3
+#define ACTIVATE_TIME					1.0
+#define RELOAD_TIME						0.4
 // ==============================================================
 // CONST STRINGS.
 // ==============================================================
@@ -127,7 +129,7 @@ enum _:E_CVARS
 	CVAR_MINE_OFFSET_ANGLE	[20],		// MODEL OFFSET ANGLE
 	CVAR_MINE_OFFSET_POS	[20],		// MODEL OFFSET POSITION
 	CVAR_DEATH_REMOVE		,		// Dead Player Remove Claymore.
-	Float:CVAR_CM_ACTIVATE	,		// Waiting for put claymore. (0 = no progress bar.)
+//	Float:CVAR_CM_ACTIVATE	,		// Waiting for put claymore. (0 = no progress bar.)
 	CVAR_ALLOW_PICKUP		,		// allow pickup.
 	Float:CVAR_CM_WIRE_RANGE		,		// Claymore Wire Range.
 	Float:CVAR_CM_WIRE_WIDTH		,		// Claymore Wire Width.
@@ -292,8 +294,9 @@ enum _:PLAYER_DEPLOY_STATE
 {
 	STATE_IDLE				= 0,
 	STATE_DEPLOYING			,
-	STATE_PICKING			,
 	STATE_DEPLOYED			,
+	STATE_RELOAD			,
+	STATE_PICKING			,
 }
 
 
@@ -412,7 +415,7 @@ public plugin_init()
 
 	// Misc Settings.
 	bind_pcvar_num		(create_cvar(fmt("%s%s", CVAR_TAG, "_death_remove"),		"0"),			gCvar[CVAR_DEATH_REMOVE]);	// Dead Player remove claymore. 0 = off, 1 = on.
-	bind_pcvar_float	(create_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),		"3.0"),			gCvar[CVAR_CM_ACTIVATE]);	// Waiting for put claymore. (int:seconds. 0 = no progress bar.)
+//	bind_pcvar_float	(create_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),		"1.4"),			gCvar[CVAR_CM_ACTIVATE]);	// Waiting for put claymore. (int:seconds. 0 = no progress bar.)
 	bind_pcvar_num		(create_cvar(fmt("%s%s", CVAR_TAG, "_allow_pickup"),		"1"),			gCvar[CVAR_ALLOW_PICKUP]);	// allow pickup mine. (0 = disable, 1 = it's mine, 2 = allow friendly mine, 3 = allow enemy mine!)
 
 	// Claymore Settings. (Color is Laser color)
@@ -514,14 +517,14 @@ public OnItemSlotKnife(const item)
 public OnSetModels(const item)
 {
 	if(pev_valid(item) != 2)
-		return PLUGIN_CONTINUE;
+		return HAM_IGNORED;
 
 	static client; client = get_pdata_cbase(item, 41, 4);
 	if(!is_user_alive(client))
-		return PLUGIN_CONTINUE;
+		return HAM_IGNORED;
 
 	if(get_pdata_cbase(client, 373) != item)
-		return PLUGIN_CONTINUE;
+		return HAM_IGNORED;
 
 	set_pev(client, pev_viewmodel2, 	ENT_MODELS[V_WPN]);
 	set_pev(client, pev_weaponmodel2, 	ENT_MODELS[P_WPN]);
@@ -529,7 +532,7 @@ public OnSetModels(const item)
 	UTIL_PlayWeaponAnimation(client, SEQ_DRAW);
 	emit_sound(client, CHAN_WEAPON, ENT_SOUNDS[SND_CM_DRAW], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 
-	return PLUGIN_HANDLED;
+	return HAM_HANDLED;
 }
 
 public OnPrimaryAttackPre(Weapon)
@@ -549,7 +552,7 @@ public OnPrimaryAttackPost(Weapon)
 	if (get_pdata_cbase(client, 373) != Weapon)
 		return HAM_IGNORED;
 
-	if (mines_get_user_deploy_state(client) == PLAYER_DEPLOY_STATE:STATE_IDLE) 
+	if (mines_get_user_deploy_state(client) == PLAYER_DEPLOY_STATE:STATE_DEPLOYING) 
 	{
 		UTIL_PlayWeaponAnimation(client, SEQ_SHOOT);
 		emit_sound(client, CHAN_WEAPON, ENT_SOUNDS[SND_CM_ATTACK], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
@@ -709,7 +712,7 @@ stock mines_entity_set_position(iEnt, uID)
 	pev(uID, pev_view_ofs, 	vViewOfs);
 
 	velocity_by_aim(uID, 128, vTraceEnd);
-	vTraceEnd[2] = -512.0;
+	vTraceEnd[2] = -90.0;
 
 	xs_vec_add(vOrigin, 	vViewOfs, vOrigin);
 	xs_vec_add(vTraceEnd, 	vOrigin, vTraceEnd);
@@ -745,17 +748,18 @@ stock mines_entity_set_position(iEnt, uID)
 				vEntAngles[2] = 0.0;
 
 				// calc origin.
-				xs_vec_mul_scalar(vNormal, 8.0, vNormal);
+//				xs_vec_mul_scalar(vNormal, 8.0, vNormal);
 				xs_vec_add(vTraceEnd, vNormal, vNewOrigin);
 
 				// set entity position.
 				engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin);
-//				xs_vec_add(vNewOrigin, gModelMargin, vNewOrigin);
-				// get wire start point.
-				engfunc(EngFunc_GetBonePosition, iEnt, 1, vNewOrigin, vEntAngles);
-
 				// set angle.
 				set_pev(iEnt, pev_angles, 	vEntAngles);
+
+//				xs_vec_add(vNewOrigin, gModelMargin, vNewOrigin);
+				// get wire start point.
+				engfunc(EngFunc_GetBonePosition, iEnt, 0, vNewOrigin, vEntAngles);
+
 
 				CED_SetArray(iEnt, CM_DECALS, vDecals, sizeof(vDecals));
 				CED_SetArray(iEnt, CM_WIRE_SPOINT, vNewOrigin, sizeof(vNewOrigin));
@@ -943,8 +947,6 @@ public mines_progress_deploy(id)
 	if (!CheckDeploy(id))
 		return PLUGIN_HANDLED;
 
-	new Float:wait = Float:gCvar[CVAR_CM_ACTIVATE];
-
 	if (gPlayerData[id][PL_DEPLOY_MINE_ID] == 0 || !pev_valid(gPlayerData[id][PL_DEPLOY_MINE_ID]))
 	{
 		new iEnt = gPlayerData[id][PL_DEPLOY_MINE_ID] = engfunc(EngFunc_CreateNamedEntity, gEntMine);
@@ -975,10 +977,9 @@ public mines_progress_deploy(id)
 			if (cs_get_user_weapon(id) == CSW_C4)
 				set_pdata_float(cs_get_user_weapon_entity(id), 35, 999.0);
 		}
-		if (wait > 0)
-			mines_show_progress(id, int:floatround(wait));
+		mines_show_progress(id, int:floatround(ACTIVATE_TIME));
 		// Start Task. Put mines.
-		set_task_ex(wait, "SpawnMine", (TASK_PLANT + id));
+		set_task_ex(ACTIVATE_TIME, "SpawnMine", (TASK_PLANT + id));
 	}
 	else
 		mines_progress_stop(id);
@@ -994,15 +995,13 @@ public mines_progress_pickup(id)
 	if (!CheckPickup(id))
 		return PLUGIN_HANDLED;
 
-	new Float:wait = Float:gCvar[CVAR_CM_ACTIVATE];
-	if (wait > 0)
-		mines_show_progress(id, int:floatround(wait));
+	mines_show_progress(id, int:floatround(ACTIVATE_TIME));
 
 	// Set Flag. start progress.
 	mines_set_user_deploy_state(id, int:STATE_PICKING);
 
 	// Start Task. Remove mines.
-	set_task(wait, "RemoveMine", (TASK_RELEASE + id));
+	set_task(ACTIVATE_TIME, "RemoveMine", (TASK_RELEASE + id));
 
 	return PLUGIN_HANDLED;
 }
@@ -1197,7 +1196,6 @@ public SpawnMine(taskid)
 
 			// Set Flag. end progress.
 			mines_set_user_deploy_state(uID, int:STATE_DEPLOYED);
-
 		}
 	}
 
@@ -2090,13 +2088,21 @@ cm_play_sound(iEnt, iSoundType)
 {
 	switch (iSoundType)
 	{
-		// case SOUND_POWERUP:
-		// {
-		// 	// emit_sound(iEnt, CHAN_VOICE, ENT_SOUNDS[SND_CM_DEPLOY], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-		// }
+		case SOUND_POWERUP:
+		{
+	client_print(0, print_chat, "A iEnt=%d, iSoundType=%d", iEnt, iSoundType);
+			emit_sound(iEnt, CHAN_VOICE, ENT_SOUNDS[SND_CM_DEPLOY], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		}
 		case SOUND_ACTIVATE:
 		{
+	client_print(0, print_chat, "B iEnt=%d, iSoundType=%d", iEnt, iSoundType);
 			emit_sound(iEnt, CHAN_VOICE, ENT_SOUNDS[SND_CM_WIRE_WALLHIT], 0.5, ATTN_NORM, 1, 75);
+		}
+		case SOUND_STOP:
+		{
+	client_print(0, print_chat, "C iEnt=%d, iSoundType=%d", iEnt, iSoundType);
+			emit_sound(iEnt, CHAN_VOICE , ENT_SOUNDS[SND_CM_DEPLOY], VOL_NORM, ATTN_NORM, SND_STOP, PITCH_NORM);
+			emit_sound(iEnt, CHAN_VOICE , ENT_SOUNDS[SND_CM_WIRE_WALLHIT], VOL_NORM, ATTN_NORM, SND_STOP, PITCH_NORM);
 		}
 	}
 }
@@ -2296,6 +2302,86 @@ stock mines_glow(iEnt)
 }
 
 //====================================================
+// Task: Remove Lasermine.
+//====================================================
+public RemoveMine(id)
+{
+	new target, body;
+	new Float:vOrigin[3];
+	new Float:tOrigin[3];
+
+	// Task Number to uID.
+	new uID = id - TASK_RELEASE;
+
+	// Get target entity.
+	get_user_aiming(uID, target, body);
+
+	// is valid target?
+	if(!pev_valid(target))
+		return;
+	
+	// Get Player Vector Origin.
+	pev(uID, pev_origin, vOrigin);
+	// Get Mine Vector Origin.
+	pev(target, pev_origin, tOrigin);
+
+	// Distance Check. far 70.0 (cm?)
+	if(get_distance_f(vOrigin, tOrigin) > 70.0)
+		return;
+	
+	new entityName[MAX_NAME_LENGTH];
+	pev(target, pev_classname, entityName, charsmax(entityName));
+
+	// Check. is Target Entity Lasermine?
+	if(!equali(entityName, ENTITY_CLASS_NAME[WPN_CLAYMORE]))
+		return;
+
+	new ownerID;
+	CED_GetCell(target, CM_OWNER, ownerID);
+
+	new PICKUP_MODE:pickup 	= PICKUP_MODE:gCvar[CVAR_ALLOW_PICKUP];
+	switch(pickup)
+	{
+		case DISALLOW_PICKUP:
+			return;
+		case ONLY_ME:
+		{
+			// Check. is Owner you?
+			if(ownerID != uID)
+				return;
+		}
+		case ALLOW_FRIENDLY:
+		{
+			// Check. is friendly team?
+			if(mines_get_owner_team(target) != cs_get_user_team(uID))
+				return;
+		}		
+	}
+
+	// Remove!
+	mines_remove_entity(target);
+
+	// Collect for this removed lasermine.
+	cs_set_user_bpammo(uID, CSW_C4, cs_get_user_bpammo(uID, CSW_C4) + 1);
+
+	if (pev_valid(ownerID))
+	{
+		// Return to before deploy count.
+		gPlayerData[ownerID][PL_COUNT_DEPLOYED]--;
+	}
+
+	// Play sound.
+	cm_play_sound(uID, SOUND_PICKUP);
+
+	// Set Flag. end progress.
+	mines_set_user_deploy_state(uID, STATE_DEPLOYED);
+
+	// Refresh show ammo.
+	// show_ammo(uID);
+	return;
+}
+
+//====================================================
 // Player Cmd Start event.
 // Stop movement for mine deploying.
 //====================================================
@@ -2318,19 +2404,49 @@ public PlayerCmdStart(id, handle, random_seed)
 
 	if (buttonPressed & IN_ATTACK)
 	{
-			mines_progress_deploy(id);
-			mines_deploy_status(id);
-	} else if( buttonReleased & IN_ATTACK ) 
+		UTIL_PlayWeaponAnimation(id, SEQ_SHOOT);
+		emit_sound(id, CHAN_WEAPON, ENT_SOUNDS[SND_CM_ATTACK], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+
+		mines_progress_deploy(id);
+		mines_deploy_status(id);
+
+		return FMRES_HANDLED;
+
+	} else if (buttonReleased & IN_ATTACK) 
 	{
-			mines_progress_stop(id);
-			mines_deploy_status(id);
+		UTIL_PlayWeaponAnimation(id, SEQ_DRAW);
+		emit_sound(id, CHAN_WEAPON, ENT_SOUNDS[SND_CM_DRAW], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		mines_progress_stop(id);
+		mines_deploy_status(id);
+
+		return FMRES_HANDLED;
+
+	} else if (buttons & IN_ATTACK)
+	{
+		if (mines_deploy_status(id) == PLAYER_DEPLOY_STATE:STATE_IDLE)
+		{
+			set_uc(handle, UC_Buttons, buttons & ~IN_ATTACK);
+		}
+		return FMRES_HANDLED;
 	}
+
+	if (buttonPressed & IN_USE)
+	{
+		mines_progress_pickup(id);
+		return FMRES_HANDLED;
+	} else if (buttonReleased & IN_USE)
+	{
+		mines_progress_stop(id);
+		return FMRES_HANDLED;
+	}
+
 	return FMRES_IGNORED;
 }
 
-mines_deploy_status(id)
+PLAYER_DEPLOY_STATE:mines_deploy_status(id)
 {
-	switch (mines_get_user_deploy_state(id))
+	new PLAYER_DEPLOY_STATE:stats = mines_get_user_deploy_state(id);
+	switch (stats)
 	{
 		case STATE_IDLE:
 		{
@@ -2366,16 +2482,23 @@ mines_deploy_status(id)
 		case STATE_DEPLOYED:
 		{
 			ExecuteHamB(Ham_CS_Player_ResetMaxSpeed, id);
+			set_task_ex(RELOAD_TIME, "Reload", TASK_PLANT + id);
+		}
+		case STATE_RELOAD:
+		{
+			mines_progress_stop(id);
 			mines_set_user_deploy_state(id, STATE_IDLE);
-			new Weapon = -1;
-			while ((Weapon = engfunc(EngFunc_FindEntityByString, Weapon, "classname", ENTITY_CLASS_NAME[WPN_CLAYMORE])) && pev(Weapon, pev_owner) != id) {}
-			set_pdata_float(Weapon, m_flNextPrimaryAttack, 0.0);
 			UTIL_PlayWeaponAnimation(id, SEQ_DRAW);
-			emit_sound(id, CHAN_WEAPON, ENT_SOUNDS[SND_CM_DEPLOY], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);			
 		}
 	}
+	return stats;
 }
 
+public Reload(taskid)
+{
+	new id = taskid - TASK_PLANT;
+	mines_set_user_deploy_state(id, STATE_RELOAD);
+}
 
 // Cvar to TeamCode.
 stock CsTeams:get_team_code(const arg[])
