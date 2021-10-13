@@ -15,13 +15,13 @@
 	#assert "AMX Mod X v1.9.0 or Higher library required!"
 #endif
 
-#pragma compress 					1
-#pragma semicolon 					1
-#pragma tabsize 					4
+#pragma compress 						1
+#pragma semicolon 						1
+#pragma tabsize 						4
 
-static const PLUGIN_NAME	[] 		= "BF4 Weapons - Defibrillator";
-static const PLUGIN_AUTHOR	[] 		= "Aoi.Kagase";
-static const PLUGIN_VERSION	[]		= "0.1";
+static const PLUGIN_NAME	[] 			= "BF4 Weapons - Defibrillator";
+static const PLUGIN_AUTHOR	[] 			= "Aoi.Kagase";
+static const PLUGIN_VERSION	[]			= "0.1";
 
 #if !defined MAX_PLAYERS
 	#define  MAX_PLAYERS	          	32
@@ -33,23 +33,23 @@ static const PLUGIN_VERSION	[]		= "0.1";
 	#define  MAX_NAME_LENGTH			32
 #endif
 
-#define TASKID_DIE_COUNT			41320
-#define TASKID_REVIVING				41360
-#define TASKID_CHECK_DEAD_FLAG		41400
-#define TASKID_RESPAWN 	            41440
-#define TASKID_CHECKRE 	            41480
-#define TASKID_CHECKST 	            41520
-#define TASKID_ORIGIN 	            41560
-#define TASKID_SETUSER 	            41600
-#define TASKID_SPAWN				41650
-
-#define pev_zorigin					pev_fuser4
-#define seconds(%1) 				((1<<12) * (%1))
+#define TASKID_DIE_COUNT				41320
+#define TASKID_REVIVING					41360
+#define TASKID_CHECK_DEAD_FLAG			41400
+#define TASKID_RESPAWN 	            	41440
+#define TASKID_CHECKRE 	            	41480
+#define TASKID_CHECKST 	            	41520
+#define TASKID_ORIGIN 	            	41560
+#define TASKID_SETUSER 	            	41600
+#define TASKID_SPAWN					41650
+#define m_flNextSecondaryAttack			47
+#define pev_zorigin						pev_fuser4
+#define seconds(%1) 					((1<<12) * (%1))
 
 #define HUDINFO_PARAMS
 
-#define ITEM_OWNER 					pev_iuser1
-#define ITEM_TEAM  					pev_iuser2
+#define ITEM_OWNER 						pev_iuser1
+#define ITEM_TEAM  						pev_iuser2
 enum _:E_ICON_STATE
 {
 	ICON_HIDE = 0,
@@ -369,7 +369,9 @@ public OnSecondaryAttackPre(Weapon)
 	if(get_pdata_cbase(client, 373) != Weapon)
 		return HAM_IGNORED;
 
+	UTIL_PlayWeaponAnimation(client, SEQ_MID_SLASH1);
 	BF4SpawnEntity(client);
+	set_pdata_float(Weapon, m_flNextSecondaryAttack, 10.0);
 	return HAM_SUPERCEDE;
 }
 
@@ -461,7 +463,7 @@ BF4SpawnEntity(id)
 		// set models.
 		engfunc(EngFunc_SetModel, iEnt, ENT_MODELS[R_KIT]);
 		// set solid.
-		set_pev(iEnt, pev_solid, 		SOLID_TRIGGER);
+		set_pev(iEnt, pev_solid, 		SOLID_BBOX);
 		// set movetype.
 		set_pev(iEnt, pev_movetype, 	MOVETYPE_TOSS);
 
