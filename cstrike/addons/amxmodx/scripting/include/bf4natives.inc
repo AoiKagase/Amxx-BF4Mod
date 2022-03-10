@@ -45,6 +45,22 @@ enum _:E_BF4_CLASS
 	BF4_CLASS_ENGINEER,
 }
 
+enum _:BF4_WEAPONCLASS
+{
+	BF4_WEAPONCLASS_NONE,
+	BF4_WEAPONCLASS_PISTOLS,
+	BF4_WEAPONCLASS_ASSAULTS,
+//	BF4_WEAPONCLASS_CARBINS,
+	BF4_WEAPONCLASS_SNIPERS,
+//	BF4_WEAPONCLASS_PDWS,
+	BF4_WEAPONCLASS_LMGS,	
+	BF4_WEAPONCLASS_DMRS,
+	BF4_WEAPONCLASS_SMGS,
+	BF4_WEAPONCLASS_SHOTGUNS,
+	BF4_WEAPONCLASS_MELEE,
+	BF4_WEAPONCLASS_GRENADE,
+};
+
 native BF4BuyRivivekit(id);
 native BF4CtfCapture(id);
 native BF4CtfWin(team);
@@ -53,3 +69,5 @@ native BF4ReviveBonus(id);
 
 native BF4TriggerGetRibbon(const client, const ribbon, const comment[]);
 native GetBF4PlayerClass(const client);
+
+// Class System.
