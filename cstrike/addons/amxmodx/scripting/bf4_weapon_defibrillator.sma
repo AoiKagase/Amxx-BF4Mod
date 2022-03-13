@@ -73,13 +73,13 @@ enum _:E_MODELS
 
 enum _:E_CVARS
 {
-	REVIVAL_HEALTH,
-	REVIVAL_COST,
-	REVIVAL_SC_FADE,
-	REVIVAL_TIME,
-	REVIVAL_SC_FADE_TIME,
-	REVIVAL_DEATH_TIME,
-	Float:REVIVAL_DISTANCE,
+	RKIT_HEALTH,
+	RKIT_COST,
+	RKIT_SC_FADE,
+	RKIT_TIME,
+	RKIT_SC_FADE_TIME,
+	RKIT_DEATH_TIME,
+	Float:RKIT_DISTANCE,
 	HEALTHKIT_COST,
 	HEALTHKIT_AMOUNT,
 	Float:HEALTHKIT_INTERVAL,
@@ -155,7 +155,7 @@ new const ENTITY_CLASS_NAME[E_CLASS_NAME][MAX_NAME_LENGTH] =
 	"info_target",
 	"player",
 	"fake_corpse",
-	"revival_kit",
+	"RKIT_kit",
 	"weapon_knife",
 };
 
@@ -223,13 +223,13 @@ public plugin_init()
 	register_plugin		(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR);
 	register_cvar		(PLUGIN_NAME, PLUGIN_VERSION, FCVAR_SPONLY|FCVAR_SERVER);
 
-	bind_pcvar_num		(create_cvar("bf4_rkit_health", 			"75"), 		g_cvars[REVIVAL_HEALTH]);
-	bind_pcvar_num		(create_cvar("bf4_rkit_cost", 				"1200"), 	g_cvars[REVIVAL_COST]);
-	bind_pcvar_num		(create_cvar("bf4_rkit_screen_fade",		"1"), 		g_cvars[REVIVAL_SC_FADE]);
-	bind_pcvar_num		(create_cvar("bf4_rkit_delay_revive", 		"0.2"),		g_cvars[REVIVAL_TIME]);
-	bind_pcvar_num		(create_cvar("bf4_rkit_delay_die", 			"15"), 		g_cvars[REVIVAL_DEATH_TIME]);
-	bind_pcvar_num		(create_cvar("bf4_rkit_screen_fade_time", 	"2"), 		g_cvars[REVIVAL_SC_FADE_TIME]);
-	bind_pcvar_float	(create_cvar("bf4_rkit_distance", 			"70.0"), 	g_cvars[REVIVAL_DISTANCE]);
+	bind_pcvar_num		(create_cvar("bf4_rkit_health", 			"75"), 		g_cvars[RKIT_HEALTH]);
+	bind_pcvar_num		(create_cvar("bf4_rkit_cost", 				"1200"), 	g_cvars[RKIT_COST]);
+	bind_pcvar_num		(create_cvar("bf4_rkit_screen_fade",		"1"), 		g_cvars[RKIT_SC_FADE]);
+	bind_pcvar_num		(create_cvar("bf4_rkit_delay_revive", 		"0.2"),		g_cvars[RKIT_TIME]);
+	bind_pcvar_num		(create_cvar("bf4_rkit_delay_die", 			"15"), 		g_cvars[RKIT_DEATH_TIME]);
+	bind_pcvar_num		(create_cvar("bf4_rkit_screen_fade_time", 	"2"), 		g_cvars[RKIT_SC_FADE_TIME]);
+	bind_pcvar_float	(create_cvar("bf4_rkit_distance", 			"70.0"), 	g_cvars[RKIT_DISTANCE]);
 
 	bind_pcvar_num		(create_cvar("bf4_hkit_cost", 				"3000"),	g_cvars[HEALTHKIT_COST]);
 	bind_pcvar_float	(create_cvar("bf4_hkit_interval",			"1.0"), 	g_cvars[HEALTHKIT_INTERVAL]);
@@ -577,7 +577,7 @@ public client_putinserver(id)
 public client_disconnected(id)
 {
 	player_reset(id);
-	remove_target_entity(id, ENTITY_CLASS_NAME[CORPSE]);
+	remove_target_entity_by_owner(id, ENTITY_CLASS_NAME[CORPSE]);
 }
 
 public PlayerKilled(iVictim, iAttacker)
@@ -594,7 +594,8 @@ public PlayerKilled(iVictim, iAttacker)
 		
 	g_player_data[iVictim][DEAD_LINE] = get_gametime();
 
-	set_task_ex(1.0, "PlayerDie", 		  TASKID_DIE_COUNT 		 + iVictim, _, _, SetTaskFlags:SetTask_Repeat);
+	if (g_cvars[RKIT_DEATH_TIME] > 0)
+		set_task_ex(1.0, "PlayerDie", 	  TASKID_DIE_COUNT 		 + iVictim, _, _, SetTaskFlags:SetTask_Repeat);
 	set_task_ex(0.5, "TaskCheckDeadFlag", TASKID_CHECK_DEAD_FLAG + iVictim, _, _, SetTaskFlags:SetTask_Repeat);
 
 	return HAM_IGNORED;
@@ -616,12 +617,12 @@ public PlayerDie(taskid)
 
 	if (!is_user_alive(id))
 	{
-		if (time < g_cvars[REVIVAL_DEATH_TIME])
+		if (time < g_cvars[RKIT_DEATH_TIME])
 		{
 			if (!is_user_bot(id))
 			{
-				remaining = g_cvars[REVIVAL_DEATH_TIME] - time;
-				show_time_bar(100 / GUAGE_MAX, floatround(remaining * 100.0 / float(g_cvars[REVIVAL_DEATH_TIME]), floatround_ceil), bar);
+				remaining = g_cvars[RKIT_DEATH_TIME] - time;
+				show_time_bar(100 / GUAGE_MAX, floatround(remaining * 100.0 / float(g_cvars[RKIT_DEATH_TIME]), floatround_ceil), bar);
 				new timestr[6];
 				get_time_format(remaining, timestr, charsmax(timestr));
 				set_hudmessage(255, 0, 0, -1.00, -1.00, .effects= 0 , .fxtime = 0.0, .holdtime = 1.0, .fadeintime = 0.0, .fadeouttime = 0.0, .channel = -1);
@@ -633,7 +634,7 @@ public PlayerDie(taskid)
 //			if (is_bf4_deathmatch())
 				ExecuteHamB(Ham_CS_RoundRespawn, id);
 //			else
-//				remove_target_entity(id, ENTITY_CLASS_NAME[CORPSE]);
+				remove_target_entity_by_owner(id, ENTITY_CLASS_NAME[CORPSE]);
 		}
 	}
 	else
@@ -658,8 +659,8 @@ public PlayerSpawn(id)
 public TaskSpawn(taskid)
 {
 	new id = taskid - TASKID_SPAWN;
-	remove_target_entity(id, ENTITY_CLASS_NAME[CORPSE]);
-	remove_target_entity(id, ENTITY_CLASS_NAME[R_KIT]);
+	remove_target_entity_by_owner(id, ENTITY_CLASS_NAME[CORPSE]);
+	remove_target_entity_by_owner(id, ENTITY_CLASS_NAME[R_KIT]);
 
 	if (pev_valid(gObjectItem[id]))
 	{
@@ -704,15 +705,15 @@ public PlayerCmdStart(id, handle, random_seed)
 */
 
 //====================================================
-// Removing target put lasermine.
+// Revive Progress.
 //====================================================
 public wait_revive(id)
 {
-	if (g_cvars[REVIVAL_TIME] > 0.0)
-		show_progress(id, g_cvars[REVIVAL_TIME]);
+	if (g_cvars[RKIT_TIME] > 0.0)
+		show_progress(id, g_cvars[RKIT_TIME]);
 	
 	new Float:gametime = get_gametime();
-	g_player_data[id][REVIVE_DELAY] = (gametime + g_cvars[REVIVAL_TIME] - 0.01);
+	g_player_data[id][REVIVE_DELAY] = (gametime + g_cvars[RKIT_TIME] - 0.01);
 
 //	emit_sound(id, CHAN_AUTO, ENT_SOUNDS[SOUND_START], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 	set_task_ex(0.1, "TaskRevive", TASKID_REVIVING + id, _,_, SetTaskFlags:SetTask_Repeat);
@@ -733,7 +734,7 @@ stock CheckDeadBody(id)
 	if(lb_team != CS_TEAM_T && lb_team != CS_TEAM_CT || lb_team != rev_team)
 		return false;
 
-	client_print(id, print_chat, "Reviving %n", lucky_bastard);
+//	client_print(id, print_chat, "Reviving %n", lucky_bastard);
 	return true;
 }
 
@@ -832,19 +833,17 @@ public TaskSetplayer(taskid)
 {
 	new id = taskid - TASKID_SETUSER;
 	
-	// if (pev(id, pev_weapons) & (1<<CSW_C4))
-	//     engclient_cmd(id, "drop", "weapon_c4");
-
 	new entity = -1;
 	new Float:vOrigin[3];
 	new Float:radius = 128.0;
+	pev(id, pev_origin, vOrigin);
 
-	set_user_health(id, g_cvars[REVIVAL_HEALTH]);
+	set_user_health(id, g_cvars[RKIT_HEALTH]);
 
 	if (!is_user_bot(id))
-	if (g_cvars[REVIVAL_SC_FADE])
+	if (g_cvars[RKIT_SC_FADE])
 	{
-		new sec = seconds(g_cvars[REVIVAL_SC_FADE_TIME]);
+		new sec = seconds(g_cvars[RKIT_SC_FADE_TIME]);
 		message_begin(MSG_ONE,g_msg_data[MSG_SCREEN_FADE], _, id);
 		write_short(sec);
 		write_short(sec);
@@ -865,7 +864,7 @@ public TaskSetplayer(taskid)
 		{
 			if(pev(entity, pev_owner) == id)
 			{
-				ExecuteHam(Ham_CS_Player_OnTouchingWeapon, id, entity);			
+				dllfunc(DLLFunc_Touch, entity, id);
 			}
 		}
 	}
@@ -908,10 +907,10 @@ stock find_dead_body(id)
 	new ent;
 	static classname[32];
 
-	while((ent = engfunc(EngFunc_FindEntityInSphere, ent, origin, g_cvars[REVIVAL_DISTANCE])) != 0)
+	while((ent = engfunc(EngFunc_FindEntityInSphere, ent, origin, g_cvars[RKIT_DISTANCE])) != 0)
 	{
 		pev(ent, pev_classname, classname, 31);
-		if(equali(classname, ENTITY_CLASS_NAME[CORPSE]) && is_ent_visible(id, ent))
+		if(equali(classname, ENTITY_CLASS_NAME[CORPSE]) && is_ent_visible(id, ent, IGNORE_MONSTERS))
 			return ent;
 	}
 	return 0;
@@ -981,6 +980,7 @@ stock create_fake_corpse(id)
 		set_pev(ent, pev_angles, 	player_angles);
 		set_pev(ent, pev_sequence, 	sequence);
 		set_pev(ent, pev_frame, 	9999.9);
+		set_pev(ent, pev_flags, pev(ent, pev_flags) | FL_MONSTER);
 	}	
 }
 
@@ -1101,7 +1101,7 @@ stock get_time_format(Float:times, result[], len)
     formatex(result, len, "%02d:%02d", min, sec);
 }
 
-stock remove_target_entity(id, className[])
+stock remove_target_entity_by_owner(id, className[])
 {
 	new iEnt = -1;
 	new flags;
@@ -1115,6 +1115,24 @@ stock remove_target_entity(id, className[])
 				set_pev(iEnt, pev_flags, flags | FL_KILLME);
 				dllfunc(DLLFunc_Think, iEnt);
 			}
+		}
+	}
+}
+
+//====================================================
+// Remove target entity by classname.
+//====================================================
+stock remove_target_entity_by_classname(className[])
+{
+	new iEnt = -1;
+	new flags;
+	while ((iEnt = cs_find_ent_by_class(iEnt, className)))
+	{
+		if (pev_valid(iEnt))
+		{
+			pev(iEnt, pev_flags, flags);
+			set_pev(iEnt, pev_flags, flags | FL_KILLME);
+			dllfunc(DLLFunc_Think, iEnt);
 		}
 	}
 }

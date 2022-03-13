@@ -19,7 +19,7 @@ new const PLUGIN_NAME			[]	= "[BF4] Class System";
 new const PLUGIN_VERSION		[]	= "0.01";
 new const PLUGIN_AUTHOR			[]	= "Aoi.Kagase";
 new const PLUGIN_URL			[]	= "github.com/AoiKagase";
-new const PLUGIN_DESC			[]	= "BF4 Class System.";
+new const PLUGIN_DESC			[]	= "BattleField 4 Mod: Class System.";
 
 new CsTeams:gSelectTeam			[MAX_PLAYERS + 1];
 new E_BF4_CLASS:gSelectClass	[MAX_PLAYERS + 1];
@@ -243,7 +243,34 @@ public bf4_menu_select_weapon_primary(id)
 // =====================================================================
 public bf4_menu_select_weapon_primary_handler(id, menu, item)
 {
-
+	switch(gSelectClass[id])
+	{
+		case BF4_CLASS_ASSAULT:
+			switch(item)
+			{
+				case BF4_WEAPONCLASS_ASSAULT:
+				case BF4_WEAPONCLASS_SMGS:
+				case BF4_WEAPONCLASS_SHOTGUNS:
+			}
+		case BF4_CLASS_RECON:
+			switch(item)
+			{
+				case BF4_WEAPONCLASS_SNIPERS:
+				case BF4_WEAPONCLASS_DMR:
+			}
+		case BF4_CLASS_SUPPORT:
+			switch(item)
+			{
+				case BF4_WEAPONCLASS_SMGS:
+				case BF4_WEAPONCLASS_LMGS:
+			}
+		case BF4_CLASS_ENGINEER:
+			switch(item)
+			{
+				case BF4_WEAPONCLASS_SMGS:
+				case BF4_WEAPONCLASS_SHOTGUNS:
+			}
+	}
 }
 
 public bf4_menu_select_weapon_secondary(id)
