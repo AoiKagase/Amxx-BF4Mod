@@ -36,6 +36,8 @@
 #include <nvault>
 #include <reapi>
 #include <csflags>
+#include <bf4const>
+#include <bf4natives>
 
 #define UnitsToMeters(%1)	(%1*0.0254)
 #define BF4_VAULT			"BF4Ranks"
@@ -44,7 +46,7 @@
 #define MAX_QUERY_LENGTH	2048
 #define PLUGIN 				"BF4 Rank System (CRX Addon)"
 #define VERSION 			"0.01"
-#define AUTHER				"Aoi.Kagase"
+#define AUTHOR				"Aoi.Kagase"
 enum _:E_BF4_RANK_CVARS
 {
 	E_CV_REWARD,
@@ -61,32 +63,6 @@ enum _:E_BF4_TYPE
 	TYPE_RIBBON			= 0,
 	TYPE_MEDAL,
 	TYPE_MAX
-};
-
-enum _:E_BF4_RANK
-{
-	BF4_RNK_MARKSMAN 	= 0,
-	BF4_RNK_HEADSHOT,
-	BF4_RNK_PISTOL	,
-	BF4_RNK_ASSAULT ,
-	// BF4_RNK_CARBIN	, // M4A1 only...
-	BF4_RNK_SNIPER	,
-	BF4_RNK_LMG		,
-	BF4_RNK_DMR		,
-	// BF4_RNK_PDW 	, // P90 only...
-	BF4_RNK_SMG		, // PDW Alternative
-	BF4_RNK_SHOTGUN	,
-	BF4_RNK_MELEE	,
-	BF4_RNK_ASSIST	,
-	BF4_RNK_AVENGER	,
-	BF4_RNK_SAVIOR	,
-	BF4_RNK_MVP		,
-	BF4_RNK_MEDIKIT	,
-	BF4_RNK_AMMOBOX	,
-	BF4_RNK_REVIVE	, 
-	BF4_RNK_CTF_CAP	,
-	BF4_RNK_CTF_WIN	,
-	BF4_RNK_MAX
 };
 
 enum _:E_RANK_PARAM
@@ -120,22 +96,6 @@ enum _:E_SAVIOR
 	SV_TARGET,
 };
 
-enum _:E_AMMO_IDS
-{
-	ammo_none,
-	ammo_338magnum = 1,
-	ammo_762nato,
-	ammo_556natobox,
-	ammo_556nato,
-	ammo_buckshot,
-	ammo_45acp,
-	ammo_57mm,
-	ammo_50ae,
-	ammo_357sig,
-	ammo_9mm
-};
-#pragma semicolon	1
-
 #define ITEM_OWNER pev_iuser1
 #define ITEM_TEAM  pev_iuser2
 
@@ -157,57 +117,6 @@ new const TASK_AWARD		= 1122100;
 new const TASK_HUD_SPR     	= 1122200;
 new const TASK_ROUND_READY	= 1122300;
 new const TASK_SPAWN	 	= 1122400;
-
-// AMMOID, MAXBPAMMO
-new const CSW_AMMO_ID[CSW_P90 + 1][2] =
-{
-	{ -1, -1},			// CSW_NONE
-	{  9, 52},			// CSW_P228
-	{ -1, -1},			// CSW_GLOCK Unused by game, See CSW_GLOCK18.
-	{  2, 90},			// CSW_SCOUT
-	{ 12,  1},			// CSW_HEGRENADE
-	{  5, 32},			// CSW_XM1014
-	{ 14,  1},			// CSW_C4
-	{  6,100},			// CSW_MAC10
-	{  4, 90},			// CSW_AUG
-	{ 13,  1},			// CSW_SMOKEGRENADE
-	{ 10,120},			// CSW_ELITE
-	{  7,100}, 			// CSW_FIVESEVEN
-	{  6,100}, 			// CSW_UMP45
-	{  4, 90}, 			// CSW_SG550
-	{  4, 90}, 			// CSW_GALIL
-	{  4, 90}, 			// CSW_FAMAS
-	{  6,100}, 			// CSW_USP
-	{ 10,120}, 			// CSW_GLOCK18
-	{  1, 30}, 			// CSW_AWP
-	{ 10,120}, 			// CSW_MP5NAVY
-	{  3,200}, 			// CSW_M249
-	{  5, 32}, 			// CSW_M3
-	{  4, 90}, 			// CSW_M4A1
-	{ 10,120}, 			// CSW_TMP
-	{  2, 90}, 			// CSW_G3SG1
-	{ 11,  2}, 			// CSW_FLASHBANG
-	{  8, 35}, 			// CSW_DEAGLE
-	{  4, 90}, 			// CSW_SG552
-	{  2, 90}, 			// CSW_AK47
-	{ -1, -1}, 			// CSW_KNIFE
-	{  7,100} 			// CSW_P90
-};
-
-
-new const g_szAmmoNames[E_AMMO_IDS][] = {
-	"",
-	"338magnum",
-	"762nato",
-	"556natobox",
-	"556nato",
-	"buckshot",
-	"45acp",
-	"57mm",
-	"50ae",
-	"357sig",
-	"9mm"
-};
 
 new const g_points[E_BF4_RANK] =
 {
@@ -345,23 +254,6 @@ new g_sync_obj;
 new Array:g_QueScoreEffect	[MAX_PLAYERS + 1];
 new g_authids				[MAX_PLAYERS + 1][MAX_AUTHID_LENGTH];
 
-enum BF4_WEAPONCLASS
-{
-	BF4_WEAPONCLASS_NONE,
-	BF4_WEAPONCLASS_PISTOLS,
-	BF4_WEAPONCLASS_ASSAULTS,
-//	BF4_WEAPONCLASS_CARBINS,
-	BF4_WEAPONCLASS_SNIPERS,
-//	BF4_WEAPONCLASS_PDWS,
-	BF4_WEAPONCLASS_LMGS,	
-	BF4_WEAPONCLASS_DMRS,
-	BF4_WEAPONCLASS_SMGS,
-	BF4_WEAPONCLASS_SHOTGUNS,
-	BF4_WEAPONCLASS_MELEE,
-	BF4_WEAPONCLASS_GRENADE,
-};
-
-
 //Database Handles
 new Handle:g_dbTaple;
 new Handle:g_dbConnect;
@@ -497,8 +389,8 @@ public plugin_precache()
 
 public plugin_init()
 {
-	register_plugin		("BF4 Rank System (CRX Addon)", "0.01", "Aoi.Kagase", "github.com/AoiKagase", "BF4 Ribbon");
-	create_cvar			("BF4 Rank System", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
+	register_plugin		(PLUGIN, VERSION, AUTHOR, "github.com/AoiKagase", "BF4 Ribbon");
+	create_cvar			(PLUGIN, VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 	bind_pcvar_num		(create_cvar("bf4_spawn_reward", 		"1600"), g_cvars[E_CV_REWARD]);
 	bind_pcvar_num		(create_cvar("bf4_ammobox_cost", 		"2000"), g_cvars[E_CV_AMMOBOX_COST]);
 	bind_pcvar_float	(create_cvar("bf4_ammobox_interval",	"0.5"),  g_cvars[E_CV_AMMOBOX_INTERVAL]);
@@ -509,7 +401,6 @@ public plugin_init()
 
 	RegisterHamPlayer	(Ham_TakeDamage,	"BF4TakeDamage", 		0);
 	RegisterHamPlayer	(Ham_Spawn, 		"BF4PlayerSpawnPost", 	1);  
- 	RegisterHam			(Ham_Touch,			"weaponbox",			"BF4TouchWeaponBox", 0);
 
 	register_event_ex	("CurWeapon", 		"Event_CurWeapon", 		RegisterEvent_Single | RegisterEvent_OnlyAlive, "1=1");
 	register_event_ex	("DeathMsg",  		"BF4DeathMsg", 			RegisterEvent_Global);
@@ -1258,10 +1149,10 @@ public bf4_object_menu_handler(id, menu, item)
 			cs_set_user_money(id, cs_get_user_money(id) - iCost, 1);
 			BF4SpawnEntity(id, E_AMMO_BOX);
 		}
-		// case E_REVIVAL_KIT:
-		// {
-		// 	BF4BuyRivivekit(id);
-		// }
+		case E_REVIVAL_KIT:
+		{
+			BF4BuyRivivekit(id);
+		}
 	}
 	return PLUGIN_HANDLED;
 }
@@ -1364,7 +1255,7 @@ public BF4ObjectThink(iEnt)
 	new CsTeams:team = CsTeams:pev(iEnt, ITEM_TEAM);
 	new Float:vOrigin[3];
 	new Float:fCurrTime = get_gametime();
-	new weapon, ammo, entity;//, health;
+	new weapon, ammo, entity, health;
 	new Float:radius = 128.0;
 	new classname[32];
 	new owner = pev(iEnt, pev_owner);
@@ -1376,30 +1267,30 @@ public BF4ObjectThink(iEnt)
 		{
 			switch(i)
 			{
-				// case E_HEALTH_KIT:
-				// {
-				// 	entity = -1;
-				// 	while((entity = engfunc(EngFunc_FindEntityInSphere, entity, vOrigin, radius)) != 0)
-				// 	{
-				// 		if (is_user_alive(entity))
-				// 		{
-				// 			if (cs_get_user_team(entity) == team)
-				// 			{
-				// 				health = get_user_health(entity);
-				// 				if (health < 100)
-				// 				{
-				// 					set_user_health(entity, min(health + g_cvars[E_CV_HEALTHKIT_AMOUNT], 100));
-				// 					emit_sound(entity, CHAN_ITEM, "items/medshot4.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-				// 					if (owner != entity)
-				// 					{
-				// 						stock_bf4_trigger_ribbon(owner, BF4_RNK_MEDIKIT, "Mate Healing.");
-				// 					}
-				// 				}
-				// 			}
-				// 		}
-				// 	}
-				// 	set_pev(iEnt, pev_nextthink, fCurrTime + g_cvars[E_CV_HEALTHKIT_INTERVAL]);
-				// }
+				case E_HEALTH_KIT:
+				{
+					entity = -1;
+					while((entity = engfunc(EngFunc_FindEntityInSphere, entity, vOrigin, radius)) != 0)
+					{
+						if (is_user_alive(entity))
+						{
+							if (cs_get_user_team(entity) == team)
+							{
+								health = get_user_health(entity);
+								if (health < 100)
+								{
+									set_user_health(entity, min(health + g_cvars[E_CV_HEALTHKIT_AMOUNT], 100));
+									emit_sound(entity, CHAN_ITEM, "items/medshot4.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+									if (owner != entity)
+									{
+										stock_bf4_trigger_ribbon(owner, BF4_RNK_MEDIKIT, "Mate Healing.");
+									}
+								}
+							}
+						}
+					}
+					set_pev(iEnt, pev_nextthink, fCurrTime + g_cvars[E_CV_HEALTHKIT_INTERVAL]);
+				}
 				case E_AMMO_BOX:
 				{
 					entity = -1;
@@ -1459,50 +1350,4 @@ public BF4JoinTeam()
 		}
 	}
     return PLUGIN_CONTINUE;
-}
-
-// new const m_rgAmmo = 73;
-public BF4TouchWeaponBox(iWpnBox, iToucher)
-{
-	if (is_user_alive(iToucher))
-	{
-		new iPWeapon = cs_get_weapon_id(cs_get_user_weapon_entity(iToucher));
-		new iDWeapon = cs_get_weapon_id(GetWeaponBoxWeaponType(iWpnBox));
-
-		if (iPWeapon == iDWeapon)
-		{
-//			new ammo = get_member(iBoxWeapon, m_Weapon_iClip);
-			new ammo = GetAmmoBox(iWpnBox);
-			if (ammo)
-			{
-				ExecuteHamB(Ham_GiveAmmo, iToucher, ammo, g_szAmmoNames[CSW_AMMO_ID[iDWeapon][0]], CSW_AMMO_ID[iDWeapon][1]);
-				emit_sound(iToucher, CHAN_ITEM, "items/gunpickup2.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-				new flags;
-				pev(iWpnBox, pev_flags, flags);
-				set_pev(iWpnBox, pev_flags, flags | FL_KILLME);
-			}
-		}
-	}
-}
-
-GetWeaponBoxWeaponType(iEnt) 
-{ 
-    for(new i, iWeapon; i < MAX_ITEM_TYPES; i++)
-    {
-        iWeapon = get_member(iEnt, m_WeaponBox_rgpPlayerItems, i);
-        if(!is_nullent(iWeapon))
-            return iWeapon;
-    }
-    return NULLENT;
-} 
-
-GetAmmoBox(iEnt)
-{
-    for(new i, iAmmo; i < MAX_ITEM_TYPES; i++)
-    {
-        iAmmo = get_member(iEnt, m_WeaponBox_rgAmmo, i);
-        if(!is_nullent(iAmmo))
-            return iAmmo;
-    }
-    return NULLENT;
 }
