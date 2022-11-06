@@ -48,7 +48,7 @@
 #define MAX_EXPLOSION_DECALS 			3
 #define MAX_BLOOD_DECALS 				10
 #define WIRE_COUNT						3
-#define ACTIVATE_TIME					1.0
+#define ACTIVATE_TIME					0.8
 #define RELOAD_TIME						0.4
 // ==============================================================
 // CONST STRINGS.
@@ -175,7 +175,7 @@ static const ENT_SOUNDS[E_SOUNDS][] =
 {
 	"bf4_ranks/weapons/claymore_draw.wav",
 	"bf4_ranks/weapons/claymore_shoot.wav",
-	"bf4_ranks/weapons/claymore_explosion.wav",
+	"bf4_ranks/weapons/claymore_exp.wav",
 	// "bf4_ranks/weapons/claymore_draw_off.wav",
 	// "bf4_ranks/weapons/claymore_trigger_off.wav",
 	// "bf4_ranks/weapons/claymore_trigger_on.wav",
@@ -206,9 +206,8 @@ new const ENT_MODELS[E_MODELS][] =
 
 enum _:E_SPRITES
 {
-	SPR_WPN_SELECT,
-	SPR_WIRE,
-
+	SPR_WPN_SELECT			,
+	SPR_WIRE				,
 	SPR_EXPLOSION_1			,
 	SPR_EXPLOSION_2			,
 	SPR_EXPLOSION_WATER		,
@@ -217,7 +216,6 @@ enum _:E_SPRITES
 	SPR_BUBBLE				,
 	SPR_BLOOD_SPLASH		,
 	SPR_BLOOD_SPRAY			,
-
 };
 new const ENT_SPRITES[E_SPRITES][] =
 {
@@ -332,6 +330,7 @@ enum _:TRIPMINE_SOUND
 	SOUND_PICKUP			,
 	SOUND_HIT				,
 	SOUND_HIT_SHIELD		,
+	SOUND_EXPLODE			,
 };
 
 //
@@ -404,7 +403,7 @@ public plugin_init()
 	bind_pcvar_num		(create_cvar(fmt("%s%s", CVAR_TAG, "_frag_money"), 			"300"),			gCvar[CVAR_FRAG_MONEY]);	// Get money.
 
 	// Mine design.
-	bind_pcvar_num		(create_cvar(fmt("%s%s", CVAR_TAG, "_mine_health"),			"50"),			gCvar[CVAR_MINE_HEALTH]);	// Tripmine Health. (Can break.)
+	bind_pcvar_float	(create_cvar(fmt("%s%s", CVAR_TAG, "_mine_health"),			"50.0"),		gCvar[CVAR_MINE_HEALTH]);	// Tripmine Health. (Can break.)
 	bind_pcvar_num		(create_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow"),			"0"), 			gCvar[CVAR_MINE_GLOW]);	// Tripmine glowing. 0 = off, 1 = on.
 	bind_pcvar_num		(create_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_mode"),"0"),			gCvar[CVAR_MINE_GLOW_MODE]);	// Mine glow coloer 0 = team color, 1 = green.
 	bind_pcvar_string	(create_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_t"),	"255,0,0"),		gCvar[CVAR_MINE_GLOW_TR], 		charsmax(gCvar[CVAR_MINE_GLOW_TR]));	// Team-Color for Terrorist. default:red (R,G,B)
@@ -455,7 +454,7 @@ public plugin_init()
 	RegisterHam			(Ham_Weapon_PrimaryAttack, 	ENTITY_CLASS_NAME[WPN_C4], 	"OnPrimaryAttackPost",	.Post = true);
 	// RegisterHam			(Ham_Weapon_SecondaryAttack,ENTITY_CLASS_NAME[WPN_C4], 	"OnSecondaryAttackPre");
 	RegisterHamPlayer	(Ham_TakeDamage,			"OnTakeDamage");
-	register_forward	(FM_EmitSound, 				"KnifeSound");
+///	register_forward	(FM_EmitSound, 				"KnifeSound");
 /// =======================================================================================
 /// END Custom Weapon Defibrillator
 /// =======================================================================================
@@ -466,6 +465,7 @@ public plugin_init()
 /// START HealthKit
 /// =======================================================================================
 	RegisterHam			(Ham_Think, 				ENTITY_CLASS_NAME[F_BREAKABLE],	"MinesThink");
+	RegisterHam			(Ham_TakeDamage,			ENTITY_CLASS_NAME[F_BREAKABLE],	"MinesTakeDamaged", true);
 /// =======================================================================================
 /// END HealthKit
 /// =======================================================================================
@@ -1090,7 +1090,8 @@ public bool:CheckPickup(id)
 stock CsTeams:mines_get_owner_team(iEnt)
 {
 	new iOwner;
-	if (!CED_GetCell(iEnt, CM_OWNER, iOwner))
+	CED_GetCell(iEnt, CM_OWNER, iOwner);
+	if (!IsPlayer(iOwner))
 		return CS_TEAM_UNASSIGNED;
 
 	return cs_get_user_team(iOwner);
@@ -1119,7 +1120,8 @@ stock mines_remove_entity(iEnt)
 		for (new i = 0; i < WIRE_COUNT; i++)
 		{
 			CED_GetCell(iEnt, CM_WIRE_ENTID[i], wire);
-			set_pev(wire, pev_flags, flag | FL_KILLME);
+			if (pev_valid(wire))
+				set_pev(wire, pev_flags, flag | FL_KILLME);
 		}
 
 		pev(iEnt, pev_flags, flag);
@@ -1139,7 +1141,7 @@ delete_task(id)
 	if (task_exists((TASK_RELEASE + id)))
 		remove_task((TASK_RELEASE + id));
 
-	mines_set_user_deploy_state(id, STATE_IDLE);
+	mines_set_user_deploy_state(id, STATE_RELOAD);
 }
 //====================================================
 // Show Progress Bar.
@@ -1361,19 +1363,20 @@ stock set_claymore_endpoint(iEnt, Float:vOrigin[3])
 public MinesThink(iEnt)
 {
 	if (!pev_valid(iEnt))
-		return;
+		return HAM_IGNORED;
+
+	static classname[MAX_NAME_LENGTH];
+	pev(iEnt, pev_classname, classname, charsmax(classname));
+	if (!equali(classname, ENTITY_CLASS_NAME[WPN_CLAYMORE]))
+		return HAM_IGNORED;
 
 	static Float:fCurrTime;
 	static Float:vEnd[3][3];
 	static step;
 	static iOwner;
 	fCurrTime = get_gametime();
-
-	if(!CED_GetCell(iEnt, CM_STEP, step))
-		return;
-
-	if(!CED_GetCell(iEnt, CM_OWNER, iOwner))
-		return;
+	CED_GetCell(iEnt, CM_STEP, step);
+	CED_GetCell(iEnt, CM_OWNER, iOwner);
 
 	// Get Laser line end potision.
 	for (new i = 0; i < WIRE_COUNT; i++)
@@ -1384,26 +1387,73 @@ public MinesThink(iEnt)
 	switch(step)
 	{
 		case POWERUP_THINK:
+		{
 			mines_step_powerup(iEnt, fCurrTime);
+		}
 
 		case BEAMUP_THINK:
+		{
 			mines_step_beamup(iEnt, vEnd, fCurrTime);
+		}
 		// Laser line activated.
 		case BEAMBREAK_THINK:
-			mines_step_beambreak(iEnt, vEnd, fCurrTime);
-		// EXPLODE
-		case EXPLOSE_THINK:
 		{
-			// Stopping sound.
-			cm_play_sound(iEnt, SOUND_STOP);
-
-			// effect explosion.
-			mines_explosion(iOwner, iEnt);
+			mines_step_beambreak(iEnt, vEnd, fCurrTime);
 		}
+		// // EXPLODE
+		// case EXPLOSE_THINK:
+		// {
+		// 	// Stopping sound.
+		// 	cm_play_sound(iEnt, SOUND_STOP);
+
+		// 	// effect explosion.
+		// 	mines_explosion(iOwner, iEnt);
+		// }
 	}
 
-	return;
+	return HAM_IGNORED;
 }
+
+public MinesTakeDamaged(iVictim, inflictor, iAttacker, Float:damage, damage_type)
+{
+	if (!pev_valid(iVictim))
+		return HAM_IGNORED;
+	
+	static classname[MAX_NAME_LENGTH];
+	pev(iVictim, pev_classname, classname, charsmax(classname));
+	client_print(0, print_chat, "[DEBUG] MinesTakeDamage A");
+
+	if (!equali(classname, ENTITY_CLASS_NAME[WPN_CLAYMORE]))
+		return HAM_IGNORED;
+
+	client_print(0, print_chat, "[DEBUG] MinesTakeDamage B");
+	static iOwner;	
+	CED_GetCell(iVictim, CM_OWNER, iOwner);
+	client_print(0, print_chat, "[DEBUG] MinesTakeDamage C");
+
+
+	// Get mine health.
+	static Float:fHealth;
+	mines_get_health(iVictim, fHealth);
+	client_print(0, print_chat, "[DEBUG] MinesTakeDamage D");
+	client_print(iOwner, print_chat, "[DEBUG] EXPLODE B HP=%f, cmp=%d", fHealth, floatcmp(fHealth, 0.0));
+	// break?
+	if (floatcmp(fHealth, 0.0) <= 0)
+	{
+		client_print(0, print_chat, "[DEBUG] MinesTakeDamage E");
+		client_print(iOwner, print_chat, "[DEBUG] EXPLODE");
+	// 	// next step explosion.
+	// 	set_pev(iEnt, pev_nextthink, fCurrTime + random_float( 0.1, 0.3 ));
+	// 	CED_SetCell(iEnt, CM_STEP, EXPLOSE_THINK);
+		// Stopping sound.
+		cm_play_sound(iVictim, SOUND_STOP);
+
+		// effect explosion.
+		mines_explosion(iOwner, iVictim);
+	}
+	return HAM_IGNORED;
+}
+
 // mines_mines_explosion(id, iMinesId, iEnt);
 public mines_explosion(id, iEnt)
 {
@@ -1435,6 +1485,7 @@ public mines_explosion(id, iEnt)
 
 	// damage.
 	mines_create_explosion_damage(gMinesCSXID, iEnt, id, gCvar[CVAR_EXPLODE_DMG], gCvar[CVAR_EXPLODE_RADIUS]);
+	cm_play_sound(iEnt, SOUND_EXPLODE);
 
 	// remove this.
 	mines_remove_entity(iEnt);
@@ -1460,6 +1511,7 @@ stock remove_target_entity(id, const className[])
 stock mines_create_explosion(const Float:vOrigin[3], const Float:fDamage, const Float:fRadius, sprExplosion1, sprExplosion2, sprBlast) 
 {
 	new Float:fZPos = (fDamage + ((fRadius * 3.0) / 2.0)) / 8.0;
+	new TE_FLAG;
 
 	if(fZPos < 25.0)
 		fZPos = 25.0;
@@ -1475,6 +1527,10 @@ stock mines_create_explosion(const Float:vOrigin[3], const Float:fDamage, const 
 	if(iIntensity > 128)
 		iIntensity = 128;
 
+//  TE_FLAG |= TE_EXPLFLAG_NODLIGHTS;
+    TE_FLAG |= TE_EXPLFLAG_NOSOUND;
+//  TE_FLAG |= TE_EXPLFLAG_NOPARTICLES;
+
 	engfunc		(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vOrigin, 0);
 	write_byte	(TE_EXPLOSION);
 	engfunc		(EngFunc_WriteCoord, vOrigin[0]);
@@ -1483,7 +1539,7 @@ stock mines_create_explosion(const Float:vOrigin[3], const Float:fDamage, const 
 	write_short	(sprExplosion1);
 	write_byte	(iIntensity);
 	write_byte	(24);
-	write_byte	(0);
+	write_byte	(TE_FLAG);
 	message_end	();
 
 	fZPos /= 6.0;
@@ -1509,7 +1565,7 @@ stock mines_create_explosion(const Float:vOrigin[3], const Float:fDamage, const 
 	write_short	(sprExplosion2);
 	write_byte	(iIntensity);
 	write_byte	(20);
-	write_byte	(0);
+	write_byte	(TE_FLAG);
 	message_end	();
 
 	fZPos = ((((fDamage * 3.0) / 2.0) + fRadius) * 4.0) / 6.0;
@@ -1549,6 +1605,7 @@ stock mines_create_explosion(const Float:vOrigin[3], const Float:fDamage, const 
 	write_byte	(0);
 	message_end	();
 }
+
 stock mines_create_water_explosion(const Float:vOrigin[3], const Float:fDamage, const Float:fRadius, const sprExplosionWater) 
 {
 	new Float:fZPos = (fDamage + ((fRadius * 3.0) / 2.0)) / 34.0;
@@ -2012,12 +2069,8 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 
 	// Get owner id.
 	new iOwner;
-
-	if (!CED_GetCell(iEnt, CM_OWNER, iOwner))
-		return false;
-	// Get this mine position.
-	if (!CED_GetArray(iEnt, CM_WIRE_SPOINT, vOrigin, sizeof(vOrigin)))
-		return false;
+	CED_GetCell(iEnt, CM_OWNER, iOwner);
+	CED_GetArray(iEnt, CM_WIRE_SPOINT, vOrigin, sizeof(vOrigin));
 
 	for(new i = 0; i < WIRE_COUNT; i++)
 	{
@@ -2069,12 +2122,12 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 	mines_get_health(iEnt, fHealth);
 
 	// break?
-	if (fHealth <= 0.0 || (pev(iEnt, pev_flags) & FL_KILLME))
-	{
-		// next step explosion.
-		set_pev(iEnt, pev_nextthink, fCurrTime + random_float( 0.1, 0.3 ));
-		CED_SetCell(iEnt, CM_STEP, EXPLOSE_THINK);
-	}
+	// if (fHealth <= 0.0)
+	// {
+	// 	// next step explosion.
+	// 	set_pev(iEnt, pev_nextthink, fCurrTime + random_float( 0.1, 0.3 ));
+	// 	CED_SetCell(iEnt, CM_STEP, EXPLOSE_THINK);
+	// }
 				
 	// Think time. random_float = laser line blinking.
 	set_pev(iEnt, pev_nextthink, fCurrTime + random_float(0.01, 0.02));
@@ -2086,23 +2139,35 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 //====================================================
 cm_play_sound(iEnt, iSoundType)
 {
+	if (!pev_valid(iEnt))
+	{
+		client_print(0, print_chat, "[DEBUG] Invalid Entity.");
+		return;
+	}
+
 	switch (iSoundType)
 	{
 		case SOUND_POWERUP:
 		{
-	client_print(0, print_chat, "A iEnt=%d, iSoundType=%d", iEnt, iSoundType);
-			emit_sound(iEnt, CHAN_VOICE, ENT_SOUNDS[SND_CM_DEPLOY], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			client_print(0, print_chat, "[DEBUG] A iEnt=%d, iSoundType=%d, path=%s", iEnt, iSoundType, ENT_SOUNDS[SND_CM_DEPLOY]);
+			emit_sound(iEnt, CHAN_ITEM, ENT_SOUNDS[SND_CM_DEPLOY], 		VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 		}
 		case SOUND_ACTIVATE:
 		{
-	client_print(0, print_chat, "B iEnt=%d, iSoundType=%d", iEnt, iSoundType);
-			emit_sound(iEnt, CHAN_VOICE, ENT_SOUNDS[SND_CM_WIRE_WALLHIT], 0.5, ATTN_NORM, 1, 75);
+			client_print(0, print_chat, "[DEBUG] B iEnt=%d, iSoundType=%d, path=%s", iEnt, iSoundType, ENT_SOUNDS[SND_CM_WIRE_WALLHIT]);
+			emit_sound(iEnt, CHAN_ITEM, ENT_SOUNDS[SND_CM_WIRE_WALLHIT], 	VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 		}
 		case SOUND_STOP:
 		{
-	client_print(0, print_chat, "C iEnt=%d, iSoundType=%d", iEnt, iSoundType);
-			emit_sound(iEnt, CHAN_VOICE , ENT_SOUNDS[SND_CM_DEPLOY], VOL_NORM, ATTN_NORM, SND_STOP, PITCH_NORM);
-			emit_sound(iEnt, CHAN_VOICE , ENT_SOUNDS[SND_CM_WIRE_WALLHIT], VOL_NORM, ATTN_NORM, SND_STOP, PITCH_NORM);
+			client_print(0, print_chat, "[DEBUG] C iEnt=%d, iSoundType=%d, path=%s", iEnt, iSoundType, ENT_SOUNDS[SND_CM_DEPLOY]);
+			client_print(0, print_chat, "[DEBUG] C iEnt=%d, iSoundType=%d, path=%s", iEnt, iSoundType, ENT_SOUNDS[SND_CM_WIRE_WALLHIT]);
+			emit_sound(iEnt, CHAN_ITEM, ENT_SOUNDS[SND_CM_DEPLOY], 		VOL_NORM, ATTN_NORM, SND_STOP, PITCH_NORM);
+			emit_sound(iEnt, CHAN_ITEM, ENT_SOUNDS[SND_CM_WIRE_WALLHIT], 	VOL_NORM, ATTN_NORM, SND_STOP, PITCH_NORM);
+		}
+		case SOUND_EXPLODE:
+		{
+			client_print(0, print_chat, "[DEBUG] D iEnt=%d, iSoundType=%d, path=%s", iEnt, iSoundType, ENT_SOUNDS[SND_CM_EXPLOSION]);
+			emit_sound(iEnt, CHAN_ITEM, ENT_SOUNDS[SND_CM_EXPLOSION],		VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 		}
 	}
 }
@@ -2404,12 +2469,14 @@ public PlayerCmdStart(id, handle, random_seed)
 
 	if (buttonPressed & IN_ATTACK)
 	{
-		UTIL_PlayWeaponAnimation(id, SEQ_SHOOT);
-		emit_sound(id, CHAN_WEAPON, ENT_SOUNDS[SND_CM_ATTACK], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		if (CheckDeploy(id))
+		{
+			UTIL_PlayWeaponAnimation(id, SEQ_SHOOT);
+			emit_sound(id, CHAN_WEAPON, ENT_SOUNDS[SND_CM_ATTACK], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 
-		mines_progress_deploy(id);
-		mines_deploy_status(id);
-
+			mines_progress_deploy(id);
+			mines_deploy_status(id);
+		}
 		return FMRES_HANDLED;
 
 	} else if (buttonReleased & IN_ATTACK) 
