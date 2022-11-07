@@ -48,7 +48,7 @@
 #define MAX_EXPLOSION_DECALS 			3
 #define MAX_BLOOD_DECALS 				10
 #define WIRE_COUNT						3
-#define ACTIVATE_TIME					0.8
+#define ACTIVATE_TIME					1.0
 #define RELOAD_TIME						0.4
 // ==============================================================
 // CONST STRINGS.
@@ -111,15 +111,15 @@ enum _:E_CVARS
 	CVAR_MAX_HAVE			,    	// Max having ammo.
 	CVAR_START_HAVE			,    	// Start having ammo.
 	CVAR_FRAG_MONEY         ,    	// Get money per kill.
-	CVAR_COST               ,    	// Buy cost.
-	CVAR_BUY_ZONE           ,    	// Stay in buy zone can buy.
+	// CVAR_COST               ,    	// Buy cost.
+	// CVAR_BUY_ZONE           ,    	// Stay in buy zone can buy.
 	CVAR_MAX_DEPLOY			,		// user max deploy.
 	CVAR_TEAM_MAX           ,    	// Max deployed in team.
 	Float:CVAR_EXPLODE_RADIUS     ,   	// Explosion Radius.
 	Float:CVAR_EXPLODE_DMG        ,   	// Explosion Damage.
 	CVAR_FRIENDLY_FIRE      ,   	// Friendly Fire.
-	CVAR_CBT[4]             ,   	// Can buy team. TR/CT/ALL
-	CVAR_BUY_MODE           ,   	// Buy mode. 0 = off, 1 = on.
+	// CVAR_CBT[4]             ,   	// Can buy team. TR/CT/ALL
+	// CVAR_BUY_MODE           ,   	// Buy mode. 0 = off, 1 = on.
 	Float:CVAR_MINE_HEALTH  ,   	// Claymore health. (Can break.)
 	CVAR_MINE_GLOW          ,   	// Glowing tripmine.
 	CVAR_MINE_GLOW_MODE     ,   	// Glowing color mode.
@@ -396,10 +396,10 @@ public plugin_init()
 	bind_pcvar_num		(create_cvar(fmt("%s%s", CVAR_TAG, "_max_deploy"),			"10"),			gCvar[CVAR_MAX_DEPLOY]);	// Max deployed in user.
 
 	// Buy system.
-	bind_pcvar_num		(create_cvar(fmt("%s%s", CVAR_TAG, "_buy_mode"),			"1"),			gCvar[CVAR_BUY_MODE]);		// 0 = off, 1 = on.
-	bind_pcvar_string	(create_cvar(fmt("%s%s", CVAR_TAG, "_buy_team"),			"ALL"),			gCvar[CVAR_CBT], 				charsmax(gCvar[CVAR_CBT]));	// Can buy team. TR / CT / ALL. (BIOHAZARD: Z = Zombie)
-	bind_pcvar_num		(create_cvar(fmt("%s%s", CVAR_TAG, "_buy_price"),			"2500"),		gCvar[CVAR_COST]);			// Buy cost.
-	bind_pcvar_num		(create_cvar(fmt("%s%s", CVAR_TAG, "_buy_zone"),			"1"),			gCvar[CVAR_BUY_ZONE]);		// Stay in buy zone can buy.
+	// bind_pcvar_num		(create_cvar(fmt("%s%s", CVAR_TAG, "_buy_mode"),			"1"),			gCvar[CVAR_BUY_MODE]);		// 0 = off, 1 = on.
+	// bind_pcvar_string	(create_cvar(fmt("%s%s", CVAR_TAG, "_buy_team"),			"ALL"),			gCvar[CVAR_CBT], 				charsmax(gCvar[CVAR_CBT]));	// Can buy team. TR / CT / ALL. (BIOHAZARD: Z = Zombie)
+	// bind_pcvar_num		(create_cvar(fmt("%s%s", CVAR_TAG, "_buy_price"),			"2500"),		gCvar[CVAR_COST]);			// Buy cost.
+	// bind_pcvar_num		(create_cvar(fmt("%s%s", CVAR_TAG, "_buy_zone"),			"1"),			gCvar[CVAR_BUY_ZONE]);		// Stay in buy zone can buy.
 	bind_pcvar_num		(create_cvar(fmt("%s%s", CVAR_TAG, "_frag_money"), 			"300"),			gCvar[CVAR_FRAG_MONEY]);	// Get money.
 
 	// Mine design.
@@ -448,7 +448,8 @@ public plugin_init()
 /// START Custom Weapon Defibrillator
 /// =======================================================================================
     register_clcmd		("weapon_claymore", 		"SelectClaymore");
-	RegisterHam			(Ham_Item_ItemSlot, 		ENTITY_CLASS_NAME[WPN_C4], 	"OnItemSlotKnife");
+    RegisterHam			(Ham_Item_AddToPlayer, 		ENTITY_CLASS_NAME[WPN_C4], 	"OnAddToPlayerC4",		.Post = true);
+	RegisterHam			(Ham_Item_ItemSlot, 		ENTITY_CLASS_NAME[WPN_C4], 	"OnItemSlotC4");
 	RegisterHam			(Ham_Item_Deploy, 			ENTITY_CLASS_NAME[WPN_C4], 	"OnSetModels",			.Post = true);
 	RegisterHam			(Ham_Weapon_PrimaryAttack, 	ENTITY_CLASS_NAME[WPN_C4], 	"OnPrimaryAttackPre");
 	RegisterHam			(Ham_Weapon_PrimaryAttack, 	ENTITY_CLASS_NAME[WPN_C4], 	"OnPrimaryAttackPost",	.Post = true);
@@ -483,7 +484,7 @@ public plugin_init()
 /// =======================================================================================
 /// START Custom Weapon Claymore
 /// =======================================================================================
-public OnAddToPlayerKnife(const item, const player)
+public OnAddToPlayerC4(const item, const player)
 {
     if(pev_valid(item) && is_user_alive(player)) 	// just for safety.
     {
@@ -508,7 +509,7 @@ public SelectClaymore(const client)
     engclient_cmd(client, "weapon_c4"); 
 } 
 
-public OnItemSlotKnife(const item)
+public OnItemSlotC4(const item)
 {
     SetHamReturnInteger(5);
     return HAM_SUPERCEDE;
@@ -1016,11 +1017,11 @@ public bool:CheckPickup(id)
 
 
 	// have max ammo? (use buy system.)
-	if (gCvar[CVAR_BUY_MODE])
-	{
-		if (cs_get_user_bpammo(id, CSW_C4) + 1 > gCvar[CVAR_MAX_HAVE])
-			return false;
-	}
+	// if (gCvar[CVAR_BUY_MODE])
+	// {
+	// 	if (cs_get_user_bpammo(id, CSW_C4) + 1 > gCvar[CVAR_MAX_HAVE])
+	// 		return false;
+	// }
 
 	new target;
 	new Float:vOrigin[3];
@@ -1400,15 +1401,15 @@ public MinesThink(iEnt)
 		{
 			mines_step_beambreak(iEnt, vEnd, fCurrTime);
 		}
-		// // EXPLODE
-		// case EXPLOSE_THINK:
-		// {
-		// 	// Stopping sound.
-		// 	cm_play_sound(iEnt, SOUND_STOP);
+		// EXPLODE
+		case EXPLOSE_THINK:
+		{
+			// Stopping sound.
+			cm_play_sound(iEnt, SOUND_STOP);
 
-		// 	// effect explosion.
-		// 	mines_explosion(iOwner, iEnt);
-		// }
+			// effect explosion.
+			mines_explosion(iOwner, iEnt);
+		}
 	}
 
 	return HAM_IGNORED;
@@ -1421,27 +1422,21 @@ public MinesTakeDamaged(iVictim, inflictor, iAttacker, Float:damage, damage_type
 	
 	static classname[MAX_NAME_LENGTH];
 	pev(iVictim, pev_classname, classname, charsmax(classname));
-	client_print(0, print_chat, "[DEBUG] MinesTakeDamage A");
 
 	if (!equali(classname, ENTITY_CLASS_NAME[WPN_CLAYMORE]))
 		return HAM_IGNORED;
 
-	client_print(0, print_chat, "[DEBUG] MinesTakeDamage B");
 	static iOwner;	
 	CED_GetCell(iVictim, CM_OWNER, iOwner);
-	client_print(0, print_chat, "[DEBUG] MinesTakeDamage C");
 
 
 	// Get mine health.
 	static Float:fHealth;
 	mines_get_health(iVictim, fHealth);
-	client_print(0, print_chat, "[DEBUG] MinesTakeDamage D");
-	client_print(iOwner, print_chat, "[DEBUG] EXPLODE B HP=%f, cmp=%d", fHealth, floatcmp(fHealth, 0.0));
+
 	// break?
 	if (floatcmp(fHealth, 0.0) <= 0)
 	{
-		client_print(0, print_chat, "[DEBUG] MinesTakeDamage E");
-		client_print(iOwner, print_chat, "[DEBUG] EXPLODE");
 	// 	// next step explosion.
 	// 	set_pev(iEnt, pev_nextthink, fCurrTime + random_float( 0.1, 0.3 ));
 	// 	CED_SetCell(iEnt, CM_STEP, EXPLOSE_THINK);
@@ -2139,35 +2134,31 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 //====================================================
 cm_play_sound(iEnt, iSoundType)
 {
-	if (!pev_valid(iEnt))
-	{
-		client_print(0, print_chat, "[DEBUG] Invalid Entity.");
-		return;
-	}
+	//CED_GetCell(iEnt, CM_OWNER, iEnt);
 
 	switch (iSoundType)
 	{
 		case SOUND_POWERUP:
 		{
-			client_print(0, print_chat, "[DEBUG] A iEnt=%d, iSoundType=%d, path=%s", iEnt, iSoundType, ENT_SOUNDS[SND_CM_DEPLOY]);
-			emit_sound(iEnt, CHAN_ITEM, ENT_SOUNDS[SND_CM_DEPLOY], 		VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			emit_sound(iEnt, CHAN_STATIC, ENT_SOUNDS[SND_CM_DEPLOY], 		VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 		}
 		case SOUND_ACTIVATE:
 		{
-			client_print(0, print_chat, "[DEBUG] B iEnt=%d, iSoundType=%d, path=%s", iEnt, iSoundType, ENT_SOUNDS[SND_CM_WIRE_WALLHIT]);
-			emit_sound(iEnt, CHAN_ITEM, ENT_SOUNDS[SND_CM_WIRE_WALLHIT], 	VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			emit_sound(iEnt, CHAN_STATIC, ENT_SOUNDS[SND_CM_WIRE_WALLHIT], 	VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 		}
 		case SOUND_STOP:
 		{
-			client_print(0, print_chat, "[DEBUG] C iEnt=%d, iSoundType=%d, path=%s", iEnt, iSoundType, ENT_SOUNDS[SND_CM_DEPLOY]);
-			client_print(0, print_chat, "[DEBUG] C iEnt=%d, iSoundType=%d, path=%s", iEnt, iSoundType, ENT_SOUNDS[SND_CM_WIRE_WALLHIT]);
-			emit_sound(iEnt, CHAN_ITEM, ENT_SOUNDS[SND_CM_DEPLOY], 		VOL_NORM, ATTN_NORM, SND_STOP, PITCH_NORM);
-			emit_sound(iEnt, CHAN_ITEM, ENT_SOUNDS[SND_CM_WIRE_WALLHIT], 	VOL_NORM, ATTN_NORM, SND_STOP, PITCH_NORM);
+			emit_sound(iEnt, CHAN_STATIC, ENT_SOUNDS[SND_CM_DEPLOY], 		VOL_NORM, ATTN_NORM, SND_STOP, PITCH_NORM);
+			emit_sound(iEnt, CHAN_STATIC, ENT_SOUNDS[SND_CM_WIRE_WALLHIT], 	VOL_NORM, ATTN_NORM, SND_STOP, PITCH_NORM);
+		}
+		case SOUND_PICKUP:
+		{
+			CED_GetCell(iEnt, CM_OWNER, iEnt);
+			emit_sound(iEnt, CHAN_ITEM, ENT_SOUNDS[SND_PICKUP], 			VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 		}
 		case SOUND_EXPLODE:
 		{
-			client_print(0, print_chat, "[DEBUG] D iEnt=%d, iSoundType=%d, path=%s", iEnt, iSoundType, ENT_SOUNDS[SND_CM_EXPLOSION]);
-			emit_sound(iEnt, CHAN_ITEM, ENT_SOUNDS[SND_CM_EXPLOSION],		VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			emit_sound(iEnt, CHAN_STATIC, ENT_SOUNDS[SND_CM_EXPLOSION],		VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 		}
 	}
 }
@@ -2456,9 +2447,6 @@ public PlayerCmdStart(id, handle, random_seed)
 	if(!is_user_alive(id) || is_user_bot(id))
 		return FMRES_IGNORED;
 
-	if (get_user_weapon(id) != CSW_C4) 
-		return FMRES_IGNORED;
-
 	// Get user old and actual buttons
 	static const m_afButtonLast = 245;
 	static buttons, buttonsChanged, buttonPressed, buttonReleased;
@@ -2466,6 +2454,19 @@ public PlayerCmdStart(id, handle, random_seed)
     buttonsChanged 	= get_pdata_int(id, m_afButtonLast) ^ buttons;
     buttonPressed 	= buttonsChanged & buttons;
     buttonReleased 	= buttonsChanged & ~buttons;
+
+	if (buttonPressed & IN_USE)
+	{
+		mines_progress_pickup(id);
+		return FMRES_IGNORED;
+	} else if (buttonReleased & IN_USE)
+	{
+		mines_progress_stop(id);
+		return FMRES_IGNORED;
+	}
+
+	if (get_user_weapon(id) != CSW_C4) 
+		return FMRES_IGNORED;
 
 	if (buttonPressed & IN_ATTACK)
 	{
@@ -2477,7 +2478,7 @@ public PlayerCmdStart(id, handle, random_seed)
 			mines_progress_deploy(id);
 			mines_deploy_status(id);
 		}
-		return FMRES_HANDLED;
+		return FMRES_IGNORED;
 
 	} else if (buttonReleased & IN_ATTACK) 
 	{
@@ -2486,7 +2487,7 @@ public PlayerCmdStart(id, handle, random_seed)
 		mines_progress_stop(id);
 		mines_deploy_status(id);
 
-		return FMRES_HANDLED;
+		return FMRES_IGNORED;
 
 	} else if (buttons & IN_ATTACK)
 	{
@@ -2494,19 +2495,8 @@ public PlayerCmdStart(id, handle, random_seed)
 		{
 			set_uc(handle, UC_Buttons, buttons & ~IN_ATTACK);
 		}
-		return FMRES_HANDLED;
+		return FMRES_IGNORED;
 	}
-
-	if (buttonPressed & IN_USE)
-	{
-		mines_progress_pickup(id);
-		return FMRES_HANDLED;
-	} else if (buttonReleased & IN_USE)
-	{
-		mines_progress_stop(id);
-		return FMRES_HANDLED;
-	}
-
 	return FMRES_IGNORED;
 }
 
