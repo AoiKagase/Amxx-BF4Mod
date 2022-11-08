@@ -370,7 +370,7 @@ public plugin_precache()
 	for (new i = 0; i < E_SPRITES; i++)
 		gSpriteIndex[i] = precache_model(ENT_SPRITES[i]);
 
-	precache_generic("sprites/weapon_claymore.txt");
+	precache_generic("sprites/bf4_ranks/weapons/weapon_claymore.txt");
 	LoadDecals();
 	return PLUGIN_CONTINUE;
 }
@@ -447,7 +447,7 @@ public plugin_init()
 /// =======================================================================================
 /// START Custom Weapon Defibrillator
 /// =======================================================================================
-    register_clcmd		("weapon_claymore", 		"SelectClaymore");
+    register_clcmd		("bf4_ranks/weapons/weapon_claymore", 		"SelectClaymore");
     RegisterHam			(Ham_Item_AddToPlayer, 		ENTITY_CLASS_NAME[WPN_C4], 	"OnAddToPlayerC4",		.Post = true);
 	RegisterHam			(Ham_Item_ItemSlot, 		ENTITY_CLASS_NAME[WPN_C4], 	"OnItemSlotC4");
 	RegisterHam			(Ham_Item_Deploy, 			ENTITY_CLASS_NAME[WPN_C4], 	"OnSetModels",			.Post = true);
@@ -490,7 +490,7 @@ public OnAddToPlayerC4(const item, const player)
     {
         message_begin( MSG_ONE, gMsgData[MSG_WEAPONLIST], .player = player );
         {
-            write_string("weapon_claymore");  		 // WeaponName
+            write_string("bf4_ranks/weapons/weapon_claymore");  		 // WeaponName
             write_byte(14);                   		// PrimaryAmmoID
             write_byte(1);                  		// PrimaryAmmoMaxAmount
             write_byte(-1);                   		// SecondaryAmmoID

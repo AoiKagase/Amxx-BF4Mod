@@ -1111,13 +1111,13 @@ public BF4ObjectMenu(id)
 	formatex(szMenu, charsmax(szMenu), "Ammo Box^t\y[$%6d]", g_cvars[E_CV_AMMOBOX_COST]);
 	menu_additem(menu, szMenu, szCost, 0, gSubMenuCallback);
 
-	if (cvar_exists("bf4_rkit_cost"))
-	{
-		new rkitCost = get_cvar_num("bf4_rkit_cost");
-		num_to_str(rkitCost, szCost, charsmax(szCost));
-		formatex(szMenu, charsmax(szMenu), "Revival Kit^t\y[$%6d]", rkitCost);
-		menu_additem(menu, szMenu, szCost, 0, gSubMenuCallback);
-	}
+	// if (cvar_exists("bf4_rkit_cost"))
+	// {
+	// 	new rkitCost = get_cvar_num("bf4_rkit_cost");
+	// 	num_to_str(rkitCost, szCost, charsmax(szCost));
+	// 	formatex(szMenu, charsmax(szMenu), "Revival Kit^t\y[$%6d]", rkitCost);
+	// 	menu_additem(menu, szMenu, szCost, 0, gSubMenuCallback);
+	// }
 
 	//We now have all players in the menu, lets display the menu
 	menu_display( id, menu, 0 );
@@ -1149,10 +1149,10 @@ public bf4_object_menu_handler(id, menu, item)
 			cs_set_user_money(id, cs_get_user_money(id) - iCost, 1);
 			BF4SpawnEntity(id, E_AMMO_BOX);
 		}
-		case E_REVIVAL_KIT:
-		{
-			BF4BuyRivivekit(id);
-		}
+		// case E_REVIVAL_KIT:
+		// {
+		// 	BF4BuyRivivekit(id);
+		// }
 	}
 	return PLUGIN_HANDLED;
 }
