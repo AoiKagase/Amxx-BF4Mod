@@ -7,6 +7,7 @@
 #include <hamsandwich>
 #include <xs>
 #include <bf4natives>
+#include <bf4const>
 
 //=====================================
 //  VERSION CHECK
@@ -209,7 +210,7 @@ public plugin_precache()
 	for (new i = 0; i < E_MODELS; i++) 
 		precache_model(ENT_MODELS[i]);
 
-	precache_generic("sprites/weapon_defibrillator.txt");
+	precache_generic("sprites/bf4_ranks/weapons/weapon_defibrillator.txt");
 	precache_generic("sprites/bf4_ranks/weapons/weapon_defibrillator.spr");
 
 	return PLUGIN_CONTINUE;
@@ -248,7 +249,7 @@ public plugin_init()
 /// =======================================================================================
 /// START Custom Weapon Defibrillator
 /// =======================================================================================
-    register_clcmd		("weapon_defibrillator", 	"SelectDefibrillator");
+    register_clcmd		("bf4_ranks/weapons/weapon_defibrillator", 	"SelectDefibrillator");
     RegisterHam			(Ham_Item_AddToPlayer, 		ENTITY_CLASS_NAME[WPN_KNIFE], 	"OnAddToPlayerKnife", 	.Post = true);
 	RegisterHam			(Ham_Item_ItemSlot, 		ENTITY_CLASS_NAME[WPN_KNIFE], 	"OnItemSlotKnife");
 	RegisterHam			(Ham_Item_Deploy, 			ENTITY_CLASS_NAME[WPN_KNIFE], 	"OnSetModels",			.Post = true);
@@ -284,7 +285,7 @@ public OnAddToPlayerKnife(const item, const player)
     {
         message_begin( MSG_ONE, g_msg_data[MSG_WEAPONLIST], .player = player );
         {
-            write_string("weapon_defibrillator");   // WeaponName
+            write_string("bf4_ranks/weapons/weapon_defibrillator");   // WeaponName
             write_byte(-1);                   		// PrimaryAmmoID
             write_byte(-1);                   		// PrimaryAmmoMaxAmount
             write_byte(-1);                   		// SecondaryAmmoID
