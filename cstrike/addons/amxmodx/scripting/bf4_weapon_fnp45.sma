@@ -16,6 +16,12 @@
 #define VERSION		"0.1"
 #define AUTHOR		"Aoi.Kagase"
 
+// P228 Damage is 32.0
+#define FIRE1_DAMAGE	(30.0 / 32.0)
+// P228 Recoil is +50%
+#define RECOIL 			(1.19 / 1.5)
+
+#define FIRE_RATE		GetWeaponDefaultDelay(CSW_USP)
 enum _:FNP45_ANIMS
 {
 	FNP45_IDLE,
@@ -55,8 +61,8 @@ enum _:FNP45_MODELS
 new const gModels[][] =
 {
 	"models/bf4_ranks/weapons/v_fnp45.mdl",
-	"models/bf4_ranks/weapons/p_fnp45.mdl",
-	"models/bf4_ranks/weapons/w_fnp45.mdl",
+	"models/p_p228.mdl",
+	"models/w_p228.mdl",
 };
 #define TASK_RELOAD 2938510
 
@@ -71,24 +77,18 @@ public plugin_init()
 public plugin_precache()
 {
 	Weapon      = CreateWeapon("fnp45", Pistol, "FNP-45");
-	// new Ammo = CreateAmmo(100, 1, 5);
-	// SetAmmoName(Ammo, "40x46mm grenade");
+
 	BuildWeaponModels(Weapon, gModels[V_MODEL], gModels[P_MODEL], gModels[W_MODEL]);
 	BuildWeaponDeploy(Weapon, FNP45_DRAW, 0.0);
-//	BuildWeaponPrimaryAttack(Weapon, 0.0, 0.0, 1.0);
 	BuildWeaponAmmunition(Weapon, 15, Ammo_45ACP);
 	BuildWeaponList(Weapon, "bf4_ranks/weapons/weapon_fnp45");
-//	BuildWeaponFlags(Weapon, WFlag_AutoReload);
 	BuildWeaponSecondaryAttack(Weapon, A2_None);
 	BuildWeaponFireSound(Weapon, gSound[SND_FIRE1]);
 	BuildWeaponReload(Weapon, FNP45_RELOAD, 2.5);
-	BuildWeaponPrimaryAttack(Weapon, GetWeaponDefaultDelay(CSW_USP), 30.0, 0.19, FNP45_SHOOT1);
-	RegisterWeaponForward(Weapon, WForward_ReloadPost, 			"FNP45_ReloadPre");
+	BuildWeaponPrimaryAttack(Weapon, FIRE_RATE, FIRE1_DAMAGE, RECOIL, FNP45_SHOOT1);
 	RegisterWeaponForward(Weapon, WForward_PrimaryAttackPost, 	"FNP45_PrimaryPost");
 
-	// RegisterWeaponForward(Weapon, WForward_PrimaryAttackPre, "FNP45_PrimaryAttackPre");
 	PrecacheWeaponModelSounds(Weapon);
-
 	for(new i = 0; i < sizeof(gSound); i++)
 		precache_sound(gSound[i]);
 
@@ -97,25 +97,12 @@ public plugin_precache()
 
 public PlayerSpawn(id)
 {
-    GiveWeaponByID(id, Weapon);
-}
-
-public FNP45_ReloadPre(Entity)
-{
-	emit_sound(Entity, CHAN_VOICE, gSound[SND_CLIPOUT], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-	set_task(2.5, "FNP45_ReloadPost", Entity+TASK_RELOAD);
-}
-
-public FNP45_ReloadPost(Entity)
-{
-	Entity -= TASK_RELOAD;
-	emit_sound(Entity, CHAN_VOICE, gSound[random_num(SND_CLIPIN1, SND_CLIPIN2)], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+	if (is_user_alive(id))
+	    GiveWeaponByID(id, Weapon);
 }
 
 public FNP45_PrimaryPost(Entity)
 {
 	if (GetWeaponClip(Entity) <= 0)
-	{
-		SetWeaponIdleAnim(Entity, FNP45_SHOOT_LAST);
-	}
+		SendWeaponAnim(Entity, FNP45_SHOOT_LAST);
 }
