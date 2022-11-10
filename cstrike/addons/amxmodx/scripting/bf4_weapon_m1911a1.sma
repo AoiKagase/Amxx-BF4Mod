@@ -19,8 +19,12 @@
 // P228 Damage is 32.0
 #define FIRE1_DAMAGE	(30.0 / 32.0)
 // P228 Recoil is +50%
-#define RECOIL 			(1.56 / 1.5)
+#define RECOIL_P228		30.0
+#define RECOIL_M1911A1	56.0
+#define RECOIL 			((100.0 + (RECOIL_M1911A1 - RECOIL_P228)) / 100.0)
+
 #define FIRE_RATE		GetWeaponDefaultDelay(CSW_P228)
+
 enum _:M1911A1_ANIMS
 {
 	M1911A1_IDLE,
@@ -34,10 +38,16 @@ enum _:M1911A1_ANIMS
 
 enum _:M1911A1_SOUNDS
 {
+	SND_CLIPIN,
+	SND_CLIPOUT,
+	SND_SLIDEBACK,
 	SND_FIRE1,
 };
 new const gSound[][] =
 {
+	"bf4_ranks/weapons/coltm1911a1_clipin.wav",
+	"bf4_ranks/weapons/coltm1911a1_clipout.wav",
+	"bf4_ranks/weapons/coltm1911a1_slideback.wav",
 	"bf4_ranks/weapons/coltm1911a1-1.wav",
 };
 
@@ -57,8 +67,7 @@ new const gModels[][] =
 new Weapon;
 public plugin_init()
 {
-	register_plugin("[BF4 Weapons] M1911A1", "0.1", "Aoi.Kagase");
-
+	register_plugin(PLUGIN, VERSION, AUTHOR);
 	RegisterHamPlayer(Ham_Spawn, "PlayerSpawn", true);
 }
 
@@ -75,7 +84,8 @@ public plugin_precache()
 	BuildWeaponReload(Weapon, M1911A1_RELOAD, 2.2);
 	BuildWeaponPrimaryAttack(Weapon, FIRE_RATE, FIRE1_DAMAGE, RECOIL, M1911A1_SHOOT1);
 	RegisterWeaponForward(Weapon, WForward_PrimaryAttackPost, 	"M1911A1_PrimaryPost");
-
+	RegisterWeaponForward(Weapon, WForward_ReloadPost, 			"M1911A1_ReloadPost");
+	RegisterWeaponForward(Weapon, WForward_HolsterPost, 		"M1911A1_HolsterPost");
 	PrecacheWeaponModelSounds(Weapon);
 	for(new i = 0; i < sizeof(gSound); i++)
 		precache_sound(gSound[i]);
@@ -93,4 +103,24 @@ public M1911A1_PrimaryPost(Entity)
 {
 	if (GetWeaponClip(Entity) <= 0)
 		SendWeaponAnim(Entity, M1911A1_SHOOT_LAST);
+}
+public M1911A1_ReloadPost(Entity)
+{
+	set_task(1.0, "ReloadSound1", Entity);
+}
+
+public ReloadSound1(task)
+{
+	emit_sound(task, CHAN_STATIC, gSound[SND_CLIPIN], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+	set_task(0.7, "ReloadSound2", task);
+}
+public ReloadSound2(task)
+{
+	emit_sound(task, CHAN_STATIC, gSound[SND_SLIDEBACK], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+}
+
+public M1911A1_HolsterPost(Entity)
+{
+	if (task_exists(Entity))
+		remove_task(Entity);
 }

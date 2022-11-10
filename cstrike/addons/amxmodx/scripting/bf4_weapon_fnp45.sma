@@ -19,7 +19,9 @@
 // P228 Damage is 32.0
 #define FIRE1_DAMAGE	(30.0 / 32.0)
 // P228 Recoil is +50%
-#define RECOIL 			(1.19 / 1.5)
+#define RECOIL_P228		30.0
+#define RECOIL_FNP45	19.0
+#define RECOIL 			((100.0 + (RECOIL_FNP45 - RECOIL_P228)) / 100.0)
 
 #define FIRE_RATE		GetWeaponDefaultDelay(CSW_USP)
 enum _:FNP45_ANIMS
@@ -64,13 +66,11 @@ new const gModels[][] =
 	"models/p_p228.mdl",
 	"models/w_p228.mdl",
 };
-#define TASK_RELOAD 2938510
 
 new Weapon;
 public plugin_init()
 {
-	register_plugin("[BF4 Weapons] FNP-45", "0.1", "Aoi.Kagase");
-
+	register_plugin(PLUGIN, VERSION, AUTHOR);
 	RegisterHamPlayer(Ham_Spawn, "PlayerSpawn", true);
 }
 
