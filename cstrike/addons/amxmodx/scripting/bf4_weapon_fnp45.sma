@@ -1,9 +1,11 @@
 
 #include <amxmodx>
 #include <amxmodx>
+#include <reapi>
 #include <bf4const>
 #include <cswm>
 #include <cswm_const>
+#include <csx>
 #include <hamsandwich>
 #include <fakemeta>
 
@@ -66,8 +68,9 @@ new const gModels[][] =
 	"models/p_p228.mdl",
 	"models/w_p228.mdl",
 };
-
+const m_pPlayer = 41;
 new Weapon;
+new gCSXID;
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
@@ -88,11 +91,18 @@ public plugin_precache()
 	BuildWeaponPrimaryAttack(Weapon, FIRE_RATE, FIRE1_DAMAGE, RECOIL, FNP45_SHOOT1);
 	RegisterWeaponForward(Weapon, WForward_PrimaryAttackPost, 	"FNP45_PrimaryPost");
 
+	RegisterHookChain(RG_CBasePlayer_AddPlayerItem, "AddPlayerItem", .post = true);
+
 	PrecacheWeaponModelSounds(Weapon);
 	for(new i = 0; i < sizeof(gSound); i++)
 		precache_sound(gSound[i]);
 
 	PrecacheWeaponListSprites(Weapon);
+	gCSXID = custom_weapon_add("weapon_fnp45", 0, "FNP-45");
+}
+public AddPlayerItem(pPlayer, pItem)
+{
+	rg_set_iteminfo(pItem, ItemInfo_pszName, "fnp45");
 }
 
 public PlayerSpawn(id)
@@ -105,4 +115,17 @@ public FNP45_PrimaryPost(Entity)
 {
 	if (GetWeaponClip(Entity) <= 0)
 		SendWeaponAnim(Entity, FNP45_SHOOT_LAST);
+	// new Player = get_ent_data(Entity, "CBaseMonster","m_pPlayer");
+	// custom_weapon_shot(gCSXID, Player);
 }
+
+public FNP45_TakeDamage(iVictim, inflictor, iAttacker, Float:damage, damage_type)
+{
+	new classname[33];
+//	pev(iAttacker, pev_classname, classname, charsmax(classname));
+	get_weaponname(iAttacker, classname, charsmax(classname));
+	client_print(iAttacker, print_chat, "%s", classname);
+ 
+	custom_weapon_dmg(gCSXID, iAttacker, iVictim, floatround(damage), get_ent_data(iVictim, "CBaseMonster","m_LastHitGroup"));
+}
+

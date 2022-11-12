@@ -2417,8 +2417,11 @@ public RemoveMine(id)
 	// Remove!
 	mines_remove_entity(target);
 
-	// Collect for this removed lasermine.
-	cs_set_user_bpammo(uID, CSW_C4, cs_get_user_bpammo(uID, CSW_C4) + 1);
+	if (cs_get_user_bpammo(uID, CSW_C4) > 0)
+		// Collect for this removed lasermine.
+		cs_set_user_bpammo(uID, CSW_C4, cs_get_user_bpammo(uID, CSW_C4) + 1);
+	else
+		give_item(uID, "weapon_c4");
 
 	if (pev_valid(ownerID))
 	{
