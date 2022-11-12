@@ -89,6 +89,7 @@ public plugin_precache()
 	BuildWeaponFireSound(Weapon, gSound[SND_FIRE1]);
 	BuildWeaponReload(Weapon, PYTHON_RELOAD, 2.0);
 	BuildWeaponPrimaryAttack(Weapon, FIRE_RATE, FIRE1_DAMAGE, RECOIL, PYTHON_SHOOT1);
+
 	RegisterWeaponForward(Weapon, WForward_PrimaryAttackPost, 	"PYTHON_PrimaryPost");
 	RegisterWeaponForward(Weapon, WForward_ReloadPost, 			"PYTHON_ReloadPost");
 	RegisterWeaponForward(Weapon, WForward_HolsterPost, 		"PYTHON_HolsterPost");
