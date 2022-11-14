@@ -8,6 +8,8 @@
 #include <xs>
 #include <bf4natives>
 #include <bf4const>
+#include <bf4weapons>
+#include <cswm>
 
 //=====================================
 //  VERSION CHECK
@@ -193,6 +195,7 @@ new g_msg_data		[E_MESSAGES];
 new g_player_data	[MAX_PLAYERS + 1][E_PLAYER_DATA];
 new g_sync_obj;
 new gObjectItem		[MAX_PLAYERS + 1];
+new gWpnSystemId;
 
 //====================================================
 //  PLUGIN PRECACHE
@@ -212,6 +215,14 @@ public plugin_precache()
 
 	precache_generic("sprites/bf4_ranks/weapons/weapon_defibrillator.txt");
 	precache_generic("sprites/bf4_ranks/weapons/weapon_defibrillator.spr");
+
+	gWpnSystemId = BF4RegisterWeapon(BF4_TEAM_BOTH, 
+		BF4_CLASS_REQUIRE | BF4_CLASS_ASSAULT, 
+		BF4_WEAPONCLASS_MELEE, 
+		-1,
+		Ammo_None,
+		"Defibrillator",
+		"knife");
 
 	return PLUGIN_CONTINUE;
 }
@@ -283,6 +294,9 @@ public OnAddToPlayerKnife(const item, const player)
 {
     if(pev_valid(item) && is_user_alive(player)) 	// just for safety.
     {
+		if (!BF4HaveThisWeapon(player, gWpnSystemId))
+			return PLUGIN_CONTINUE;
+
         message_begin( MSG_ONE, g_msg_data[MSG_WEAPONLIST], .player = player );
         {
             write_string("bf4_ranks/weapons/weapon_defibrillator");   // WeaponName
@@ -297,6 +311,7 @@ public OnAddToPlayerKnife(const item, const player)
         }
         message_end();
     }
+	return PLUGIN_CONTINUE;
 }
 
 public SelectDefibrillator(const client) 
@@ -312,14 +327,15 @@ public OnItemSlotKnife(const item)
 
 public OnSetModels(const item)
 {
-	if(pev_valid(item) != 2)
+	if (pev_valid(item) != 2)
 		return PLUGIN_CONTINUE;
 
 	static client; client = get_pdata_cbase(item, 41, 4);
-	if(!is_user_alive(client))
+	if (!is_user_alive(client))
 		return PLUGIN_CONTINUE;
-
-	if(get_pdata_cbase(client, 373) != item)
+	if (!BF4HaveThisWeapon(client, gWpnSystemId))
+		return PLUGIN_CONTINUE;
+	if (get_pdata_cbase(client, 373) != item)
 		return PLUGIN_CONTINUE;
 
 	set_pev(client, pev_viewmodel2, ENT_MODELS[V_WPN]);
@@ -332,6 +348,8 @@ public KnifeSound(id, channel, sample[])
 {
 	if(is_user_connected(id) && is_user_alive(id))
 	{
+		if (!BF4HaveThisWeapon(id, gWpnSystemId))
+			return FMRES_IGNORED;
 		for(new i; i < sizeof REPLACE_KNIFE_SOUND; i++)
 		{
 			if(equal(sample, ORIGINAL_KNIFE_SOUND[i]))
@@ -347,15 +365,15 @@ public KnifeSound(id, channel, sample[])
 public OnPrimaryAttackPre(Weapon)
 {
 	new client = get_pdata_cbase(Weapon, 41, 4);
+
+	if (!BF4HaveThisWeapon(client, gWpnSystemId))
+		return HAM_IGNORED;
 	
 	if(get_pdata_cbase(client, 373) != Weapon)
 		return HAM_IGNORED;
 
 	if (!CheckDeadBody(client))
-	{
-
 		return HAM_HANDLED;
-	}
 
 	wait_revive(client);
 	UTIL_ScreenShake(client, 0.2, 0.2, 0.3);
@@ -366,6 +384,9 @@ public OnPrimaryAttackPre(Weapon)
 public OnSecondaryAttackPre(Weapon)
 {
 	new client = get_pdata_cbase(Weapon, 41, 4);
+
+	if (!BF4HaveThisWeapon(client, gWpnSystemId))
+		return HAM_IGNORED;
 	
 	if(get_pdata_cbase(client, 373) != Weapon)
 		return HAM_IGNORED;
@@ -379,7 +400,10 @@ public OnSecondaryAttackPre(Weapon)
 public OnPrimaryAttackPost(Weapon)
 {
 	new client = get_pdata_cbase(Weapon, 41, 4);
-	
+
+	if (!BF4HaveThisWeapon(client, gWpnSystemId))
+		return HAM_IGNORED;
+
 	if(get_pdata_cbase(client, 373) != Weapon)
 		return HAM_IGNORED;
 
@@ -392,6 +416,9 @@ public OnTakeDamage(iVictim, inflictor, iAttacker, Float:damage, damage_type)
 	// Assist Damage.
 	if (is_user_connected(iAttacker) && is_user_connected(iVictim))
 	{
+		if (!BF4HaveThisWeapon(iAttacker, gWpnSystemId))
+			return HAM_IGNORED;
+
 //		if (GetBF4PlayerClass(attacker) == BF4_CLASS_ASSAULT)
 		{
 			if (get_user_weapon(iAttacker) != CSW_KNIFE)

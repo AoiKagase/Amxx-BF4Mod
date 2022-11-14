@@ -10,6 +10,9 @@
 #include <beams>
 #include <customentdata>
 #include <bf4natives>
+#include <bf4weapons>
+#include <cswm>
+
 //=====================================
 //  VERSION CHECK
 //=====================================
@@ -354,6 +357,7 @@ new gMinesCSXID;
 new	gModelIndex				[E_MODELS];
 new gSpriteIndex			[E_SPRITES];
 
+new gWpnSystemId;
 //====================================================
 //  PLUGIN PRECACHE
 //====================================================
@@ -372,6 +376,15 @@ public plugin_precache()
 
 	precache_generic("sprites/bf4_ranks/weapons/weapon_claymore.txt");
 	LoadDecals();
+
+	gWpnSystemId = BF4RegisterWeapon(BF4_TEAM_BOTH, 
+		BF4_CLASS_SELECTABLE | BF4_CLASS_SUPPORT | BF4_CLASS_ENGINEER, 
+		BF4_WEAPONCLASS_EQUIP, 
+		-1,
+		Ammo_None,
+		"Claymore",
+		"c4");
+
 	return PLUGIN_CONTINUE;
 }
 
@@ -488,6 +501,9 @@ public OnAddToPlayerC4(const item, const player)
 {
     if(pev_valid(item) && is_user_alive(player)) 	// just for safety.
     {
+		if (!BF4HaveThisWeapon(player, gWpnSystemId))
+			return PLUGIN_CONTINUE;
+
         message_begin( MSG_ONE, gMsgData[MSG_WEAPONLIST], .player = player );
         {
             write_string("bf4_ranks/weapons/weapon_claymore");  		 // WeaponName
@@ -502,6 +518,7 @@ public OnAddToPlayerC4(const item, const player)
         }
         message_end();
     }
+	return PLUGIN_CONTINUE;
 }
 
 public SelectClaymore(const client) 
@@ -607,9 +624,12 @@ public OnTakeDamage(iVictim, inflictor, iAttacker, Float:damage, damage_type)
 
 public OnUpdateClientDataPost(Player, SendWeapons, CD_Handle)
 {
-	if(!is_user_alive(Player) || (cs_get_user_weapon(Player) != CSW_C4))
+	if (!is_user_alive(Player) || (cs_get_user_weapon(Player) != CSW_C4))
 		return FMRES_IGNORED;
 	
+	if (!BF4HaveThisWeapon(Player, gWpnSystemId))
+		return FMRES_IGNORED;
+
 	set_cd(CD_Handle, CD_flNextAttack, halflife_time () + 0.001);
 	return FMRES_HANDLED;
 }
@@ -639,6 +659,9 @@ public PlayerSpawn(id)
 
 	if (is_user_alive(id) && pev(id, pev_flags) & (FL_CLIENT))
 	{
+		if (!BF4HaveThisWeapon(id, gWpnSystemId))
+			return HAM_IGNORED;
+
 		give_item(id, "weapon_c4");
 		cs_set_user_bpammo(id, CSW_C4, 5);
 
@@ -656,10 +679,17 @@ public PlayerSpawn(id)
 
 public Message_TextMsg(iMsgId, iMsgDest, id)
 {
+	if (!is_user_alive(id))
+		return PLUGIN_CONTINUE;
+	
+	if (!BF4HaveThisWeapon(id, gWpnSystemId))
+		return PLUGIN_CONTINUE;
+
 	new szMessage[64];
 	get_msg_arg_string(2, szMessage, charsmax(szMessage));
 	if (equali(szMessage, "#C4_Plant_At_Bomb_Spot"))
 		return PLUGIN_HANDLED;
+
 	return PLUGIN_CONTINUE;
 }
 /// =======================================================================================

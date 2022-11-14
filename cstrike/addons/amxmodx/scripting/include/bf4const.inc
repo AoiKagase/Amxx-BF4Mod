@@ -3,6 +3,9 @@
 #endif
 
 #define _bf4_const_included
+
+#include <cstrike>
+
 enum _:E_BF4_RANK
 {
 	BF4_RNK_MARKSMAN 	= 0,
@@ -29,13 +32,16 @@ enum _:E_BF4_RANK
 	BF4_RNK_MAX
 };
 
-enum _:E_BF4_CLASS (<<= 1)
+enum BF4_CLASS (<<= 1)
 {
 	BF4_CLASS_NONE		= 0,
 	BF4_CLASS_ASSAULT	= 1,
 	BF4_CLASS_RECON,
 	BF4_CLASS_SUPPORT,
 	BF4_CLASS_ENGINEER,
+	// NOT SELECT
+	BF4_CLASS_SELECTABLE,
+	BF4_CLASS_REQUIRE,
 }
 
 enum BF4_WEAPONCLASS
@@ -52,7 +58,18 @@ enum BF4_WEAPONCLASS
 	BF4_WEAPONCLASS_SHOTGUNS,
 	BF4_WEAPONCLASS_MELEE,
 	BF4_WEAPONCLASS_GRENADE,
+	BF4_WEAPONCLASS_EQUIP,
+	BF4_WEAPONCLASS_EXTRA,
 };
+
+enum BF4_TEAM
+{
+	BF4_TEAM_NONE,
+	BF4_TEAM_RU,
+	BF4_TEAM_US,
+	BF4_TEAM_BOTH,
+	BF4_TEAM_MAX,
+}
 
 enum _:E_AMMO_IDS
 {
@@ -118,3 +135,15 @@ new const g_szAmmoNames[E_AMMO_IDS][] = {
 	"357sig",
 	"9mm"
 };
+
+stock BF4_TEAM:bf4_get_user_team(id)
+{
+	switch(cs_get_user_team(id))
+	{
+		case CS_TEAM_T:
+			return BF4_TEAM_RU; 
+		case CS_TEAM_CT:
+			return BF4_TEAM_US;
+	}
+	return BF4_TEAM_NONE;
+}

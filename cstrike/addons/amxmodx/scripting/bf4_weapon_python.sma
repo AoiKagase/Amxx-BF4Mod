@@ -6,6 +6,7 @@
 #include <cswm_const>
 #include <hamsandwich>
 #include <fakemeta>
+#include <bf4weapons>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -18,10 +19,7 @@
 
 // P228 Damage is 32.0
 #define FIRE1_DAMAGE	(30.0 / 32.0)
-// P228 Recoil is +50%
-#define RECOIL_P228		30.0
-#define RECOIL_PYTHON	17.0
-#define RECOIL 			((100.0 + (RECOIL_PYTHON - RECOIL_P228)) / 100.0)
+#define RECOIL 			0.17
 
 #define FIRE_RATE		GetWeaponDefaultDelay(CSW_P228)
 #define TEMP			false
@@ -73,8 +71,6 @@ new Weapon;
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
-
-	RegisterHamPlayer(Ham_Spawn, "PlayerSpawn", true);
 }
 
 public plugin_precache()
@@ -99,12 +95,14 @@ public plugin_precache()
 		precache_sound(gSound[i]);
 
 	PrecacheWeaponListSprites(Weapon);
-}
 
-public PlayerSpawn(id)
-{
-	if (is_user_alive(id))
-	    GiveWeaponByID(id, Weapon);
+	BF4RegisterWeapon(BF4_TEAM_BOTH, 
+		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER, 
+		BF4_WEAPONCLASS_PISTOLS, 
+		Weapon,
+		Ammo_357SIG,
+		"Python",
+		"python");
 }
 
 public PYTHON_PrimaryPost(Entity)

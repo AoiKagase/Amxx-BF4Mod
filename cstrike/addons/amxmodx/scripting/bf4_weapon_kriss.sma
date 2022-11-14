@@ -1,11 +1,11 @@
 
 #include <amxmodx>
 #include <amxmodx>
-#include <bf4const>
 #include <cswm>
 #include <cswm_const>
 #include <hamsandwich>
 #include <fakemeta>
+#include <bf4weapons>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -18,10 +18,7 @@
 
 // P228 Damage is 32.0
 #define FIRE1_DAMAGE	(30.0 / 36.0)
-// P228 Recoil is +50%
-#define RECOIL_AK47		21.0
-#define RECOIL_KRISS	14.0
-#define RECOIL 			((100.0 + (RECOIL_KRISS - RECOIL_AK47)) / 100.0)
+#define RECOIL 			0.14
 
 #define FIRE_RATE		GetWeaponDefaultDelay(CSW_MP5NAVY)
 
@@ -73,7 +70,7 @@ new Weapon;
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
-	RegisterHamPlayer(Ham_Spawn, "PlayerSpawn", true);
+//	RegisterHamPlayer(Ham_Spawn, "PlayerSpawn", true);
 }
 
 public plugin_precache()
@@ -96,6 +93,14 @@ public plugin_precache()
 		precache_sound(gSound[i]);
 
 	PrecacheWeaponListSprites(Weapon);
+
+	BF4RegisterWeapon(BF4_TEAM_BOTH, 
+		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_ENGINEER, 
+		BF4_WEAPONCLASS_SMGS, 
+		Weapon,
+		Ammo_45ACP,
+		"Kriss Super V",
+		"kriss");	
 }
 
 public PlayerSpawn(id)
