@@ -3,7 +3,16 @@
 
 #include <amxmodx>
 #include <cstrike>
-#include <bf4natives>
+#include <fakemeta>
+#include <bf4classes>
+#include <bf4weapons>
+#include <reapi>
+
+#define XO_PLAYER           	5
+#define m_iPlayerTeam           114
+#define m_iJoiningState         121
+#define m_bHasChangeTeamThisRound   125
+#define m_iMenu             	205
 
 // Old Style Menus
 new const FIRST_JOIN_MSG  		[] = "#Team_Select";
@@ -20,11 +29,11 @@ new const PLUGIN_VERSION		[]	= "0.01";
 new const PLUGIN_AUTHOR			[]	= "Aoi.Kagase";
 new const PLUGIN_URL			[]	= "github.com/AoiKagase";
 new const PLUGIN_DESC			[]	= "BattleField 4 Mod: Class System.";
-
-new CsTeams:gSelectTeam			[MAX_PLAYERS + 1];
-new E_BF4_CLASS:gSelectClass	[MAX_PLAYERS + 1];
-new gSelectWeaponPrimary		[MAX_PLAYERS + 1];
-new gSelectWeaponSecondary		[MAX_PLAYERS + 1];
+new BF4_CLASS:gSelectClass		[MAX_PLAYERS + 1];
+new BF4_TEAM:gSelectTeam		[MAX_PLAYERS + 1];
+new gJoined						[MAX_PLAYERS + 1];
+new fwdTeamChange;
+new fwdClassChange;
 
 // =====================================================================
 // Initialize.
@@ -34,6 +43,34 @@ public plugin_init()
 	register_plugin	(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR, PLUGIN_URL, PLUGIN_DESC);
 	register_message(get_user_msgid("ShowMenu"), "message_ShowMenu");
 	register_message(get_user_msgid("VGUIMenu"), "message_VGUIMenu");
+    register_clcmd( "chooseteam","bf4_menu_select_team" );
+
+}
+
+public plugin_natives()
+{
+	register_library("bf4_classes_natives");
+	register_native("BF4GetUserClass", "_bf4_get_user_class");
+	plugin_forward();
+}
+
+public plugin_forward()
+{
+	fwdTeamChange  = CreateMultiForward("BF4ForwardTeamChanged", 	ET_IGNORE, FP_CELL);
+	fwdClassChange = CreateMultiForward("BF4ForwardClassChanged", 	ET_IGNORE, FP_CELL);
+}
+
+public client_connect(id)
+{
+	gJoined[id] = 0;
+	gSelectClass[id] = BF4_CLASS_NONE;
+	gSelectTeam[id] = BF4_TEAM_NONE;
+}
+
+public BF4_CLASS:_bf4_get_user_class(iPlugin, iParams)
+{
+	new id = get_param(1);
+	return gSelectClass[id];
 }
 
 // =====================================================================
@@ -48,17 +85,38 @@ public message_ShowMenu(iMsgid, iDest, id)
 	if(equal(sMenuCode, FIRST_JOIN_MSG) 
 	|| equal(sMenuCode, FIRST_JOIN_MSG_SPEC))
 	{
+		set_task(0.1, "TaskJoin", id + 8731);
 		return PLUGIN_HANDLED;
 	}
 	else
 	if(equal(sMenuCode, INGAME_JOIN_MSG) 
 	|| equal(sMenuCode, INGAME_JOIN_MSG_SPEC))
 	{
+		set_task(0.1, "TaskJoin", id + 8731);
 		return PLUGIN_HANDLED;
 	}
 	return PLUGIN_CONTINUE;
 }
 
+public TaskJoin(taskid)
+{
+	new id = taskid - 8731;
+	if (gSelectTeam[id] != BF4_TEAM_NONE)
+	{
+		bf4_menu_select_team(id);
+		return PLUGIN_HANDLED;
+	}
+
+	new msgid = get_user_msgid("VGUIMenu");
+	new block = get_msg_block(msgid);
+	set_msg_block(msgid, BLOCK_SET);
+	engclient_cmd(id, "jointeam", "6");
+	set_msg_block(msgid, block);
+	set_pdata_int(id, m_bHasChangeTeamThisRound, (get_pdata_int(id, m_bHasChangeTeamThisRound, XO_PLAYER) & ~(1 << 8)), XO_PLAYER);
+
+	bf4_menu_select_team(id);
+	return PLUGIN_HANDLED;
+}
 // =====================================================================
 // Block Team select menu.
 // New VGUI Style.
@@ -67,7 +125,8 @@ public message_VGUIMenu(iMsgid, iDest, id)
 {
 	if(get_msg_arg_int(1) != VGUI_JOIN_TEAM_NUM)
 		return PLUGIN_CONTINUE;
-	
+
+	set_task(0.1, "TaskJoin", id + 8731);
 	return PLUGIN_HANDLED;
 }
 
@@ -82,7 +141,7 @@ public bf4_menu_select_team(id)
 	if (is_user_bot(id))
 		return PLUGIN_HANDLED;
 
-	new menu = menu_create("\r[BF4] Select team:", "bf4_menu_select_team_handler");
+	new menu = menu_create("\r[BF4] \ySelect team:", "bf4_menu_select_team_handler");
 
 	menu_additem(menu,  "(TR) RU / CH");
 	menu_additem(menu,  "(CT) US");
@@ -99,18 +158,19 @@ public bf4_menu_select_team(id)
 // =====================================================================
 public bf4_menu_select_team_handler(id, menu, item)
 {
+	new BF4_TEAM:team = gSelectTeam[id];
 	switch(item)
 	{
 		case 0:
-		{
-			cs_set_user_team(id, CS_TEAM_T);
-			gSelectTeam[id] = CS_TEAM_T;
-		}
+			gSelectTeam[id] = BF4_TEAM_RU;
 		case 1:
-		{
-			cs_set_user_team(id, CS_TEAM_CT);
-			gSelectTeam[id] = CS_TEAM_CT;
-		}
+			gSelectTeam[id] = BF4_TEAM_US;
+	}
+
+	if (team != gSelectTeam[id])
+	{
+		new ret;
+		ExecuteForward(fwdTeamChange, ret, id);
 	}
 
 	// Open class menu.
@@ -129,7 +189,7 @@ public bf4_menu_select_class(id)
 	if (is_user_bot(id))
 		return PLUGIN_HANDLED;
 
-	new menu = menu_create("\r[BF4] Select class:", "bf4_menu_select_class_handler");
+	new menu = menu_create("\r[BF4] \ySelect class:", "bf4_menu_select_class_handler");
 
 	menu_additem(menu,  "Assault");
 	menu_additem(menu,  "Recon");
@@ -148,132 +208,44 @@ public bf4_menu_select_class(id)
 // =====================================================================
 public bf4_menu_select_class_handler(id, menu, item)
 {
-	gSelectClass[id] = E_BF4_CLASS:item;
+	new BF4_CLASS:team = gSelectClass[id];
+	gSelectClass[id] = BF4_CLASS:(item + 1);
+
+	if (!gJoined[id])
+	{
+		rg_join_team(id, TeamName:gSelectTeam[id]);
+		gJoined[id] = 1;
+	}
+	switch(gSelectClass[id])
+	{
+		case BF4_CLASS_ASSAULT:
+			(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_TERROR) 	: cs_set_user_team(id, CS_TEAM_CT, CS_CT_URBAN);
+		case BF4_CLASS_RECON:
+			(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_LEET) 		: cs_set_user_team(id, CS_TEAM_CT, CS_CT_GSG9);
+		case BF4_CLASS_SUPPORT:
+			(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_ARCTIC) 	: cs_set_user_team(id, CS_TEAM_CT, CS_CT_GIGN);
+		case BF4_CLASS_ENGINEER:
+			(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_GUERILLA) 	: cs_set_user_team(id, CS_TEAM_CT, CS_CT_SAS);
+	}
+
+	if (team != gSelectClass[id])
+	{
+		new ret;
+		ExecuteForward(fwdClassChange, ret, id);
+	}
 
 	// Open weapon menu.
-	bf4_menu_select_weapon(id);
+	BF4SelectWeaponMenu(id);
     menu_destroy(menu);
 }
 
-// ====================================================================
-// Select Weapon menu.
-// =====================================================================
-public bf4_menu_select_weapon(id)
+public TaskTeamJoin(id)
 {
-	if (!is_user_connected(id))
-		return PLUGIN_HANDLED;
-
-	if (is_user_bot(id))
-		return PLUGIN_HANDLED;
-
-	new menu = menu_create("\r[BF4] Select Weapon:", "bf4_menu_select_weapon_handler");
-
-	menu_additem(menu,  "Primary");
-	menu_additem(menu,  "Secondary");
-
-	// NOT EXIT.
-    menu_setprop(menu, MPROP_EXIT, MEXIT_NEVER);
-	menu_display(id, menu, 0);
-
-	return PLUGIN_HANDLED;
-}
-
-// ====================================================================
-// Select Weapon menu. Handler.
-// =====================================================================
-public bf4_menu_select_weapon_handler(id, menu, item)
-{
-	switch(item)
-	{
-		case 0: // Primary.
-			bf4_menu_select_weapon_primary(id);
-		case 1: // Secondary.
-			bf4_menu_select_weapon_secondary(id);
-	}
-    menu_destroy(menu);
-}
-
-// ====================================================================
-// Select Primary Weapon menu.
-// =====================================================================
-public bf4_menu_select_weapon_primary(id)
-{
-	if (!is_user_connected(id))
-		return PLUGIN_HANDLED;
-
-	if (is_user_bot(id))
-		return PLUGIN_HANDLED;
-
-	new menu = menu_create("\r[BF4] Select Primary Weapon:", "bf4_menu_select_weapon_primary_handler");
-
-	switch(gSelectClass[id])
-	{
-		case BF4_CLASS_ASSAULT:
-		{
-			menu_additem(menu,  "Assault Rifle", 			fmt("%d", BF4_WEAPONCLASS_ASSAULTS));
-			menu_additem(menu,  "Sub Machine Gun",			fmt("%d", BF4_WEAPONCLASS_SMGS));
-			menu_additem(menu,  "Shot Gun",					fmt("%d", BF4_WEAPONCLASS_SHOTGUNS));
-		}
-		case BF4_CLASS_RECON:
-		{
-			menu_additem(menu,  "Sniper Rifle",				fmt("%d", BF4_WEAPONCLASS_SNIPERS));
-			menu_additem(menu,  "Designated Marksman Rifle",fmt("%d", BF4_WEAPONCLASS_DMRS));
-		}
-		case BF4_CLASS_SUPPORT:
-		{
-			menu_additem(menu,  "Sub Machine Gun",			fmt("%d", BF4_WEAPONCLASS_SMGS));
-			menu_additem(menu,  "Light Machine Gun",		fmt("%d", BF4_WEAPONCLASS_LMGS));
-		}
-		case BF4_CLASS_ENGINEER:
-		{
-			menu_additem(menu,  "Sub Machine Gun",			fmt("%d", BF4_WEAPONCLASS_SMGS));
-			menu_additem(menu,  "Shot Gun",					fmt("%d", BF4_WEAPONCLASS_SHOTGUNS));
-		}
-	}
-
-	// NOT EXIT.
-    menu_setprop(menu, MPROP_EXIT, MEXIT_NEVER);
-	menu_display(id, menu, 0);
-
-	return PLUGIN_HANDLED;	
-}
-
-// ====================================================================
-// Select Primary Weapon menu. Handler.
-// =====================================================================
-public bf4_menu_select_weapon_primary_handler(id, menu, item)
-{
-	switch(gSelectClass[id])
-	{
-		case BF4_CLASS_ASSAULT:
-			switch(item)
-			{
-				case BF4_WEAPONCLASS_ASSAULT:
-				case BF4_WEAPONCLASS_SMGS:
-				case BF4_WEAPONCLASS_SHOTGUNS:
-			}
-		case BF4_CLASS_RECON:
-			switch(item)
-			{
-				case BF4_WEAPONCLASS_SNIPERS:
-				case BF4_WEAPONCLASS_DMR:
-			}
-		case BF4_CLASS_SUPPORT:
-			switch(item)
-			{
-				case BF4_WEAPONCLASS_SMGS:
-				case BF4_WEAPONCLASS_LMGS:
-			}
-		case BF4_CLASS_ENGINEER:
-			switch(item)
-			{
-				case BF4_WEAPONCLASS_SMGS:
-				case BF4_WEAPONCLASS_SHOTGUNS:
-			}
-	}
-}
-
-public bf4_menu_select_weapon_secondary(id)
-{
-
+	// new msgid = get_user_msgid("VGUIMenu");
+    // new block = get_msg_block( msgid );
+	// new str[2];
+	// num_to_str(_:gSelectTeam[id], str, charsmax(str));
+    // set_msg_block( msgid, BLOCK_SET );
+    // engclient_cmd( id, "jointeam", str);
+    // set_msg_block( msgid, block );
 }

@@ -11,7 +11,7 @@
 	#pragma library bf4_ranksystem_natives
 #endif
 
-
+#include <cstrike>
 
 //native BF4BuyRivivekit(id);
 native BF4CtfCapture(id);

@@ -8,6 +8,7 @@
 #include <csx>
 #include <hamsandwich>
 #include <fakemeta>
+#include <bf4weapons>
 
 #pragma semicolon 1
 #pragma compress 1
@@ -20,10 +21,7 @@
 
 // P228 Damage is 32.0
 #define FIRE1_DAMAGE	(30.0 / 32.0)
-// P228 Recoil is +50%
-#define RECOIL_P228		30.0
-#define RECOIL_FNP45	19.0
-#define RECOIL 			((100.0 + (RECOIL_FNP45 - RECOIL_P228)) / 100.0)
+#define RECOIL 			0.19
 
 #define FIRE_RATE		GetWeaponDefaultDelay(CSW_USP)
 enum _:FNP45_ANIMS
@@ -70,11 +68,9 @@ new const gModels[][] =
 };
 const m_pPlayer = 41;
 new Weapon;
-new gCSXID;
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
-	RegisterHamPlayer(Ham_Spawn, "PlayerSpawn", true);
 }
 
 public plugin_precache()
@@ -91,24 +87,23 @@ public plugin_precache()
 	BuildWeaponPrimaryAttack(Weapon, FIRE_RATE, FIRE1_DAMAGE, RECOIL, FNP45_SHOOT1);
 	RegisterWeaponForward(Weapon, WForward_PrimaryAttackPost, 	"FNP45_PrimaryPost");
 
-	RegisterHookChain(RG_CBasePlayer_AddPlayerItem, "AddPlayerItem", .post = true);
-
 	PrecacheWeaponModelSounds(Weapon);
 	for(new i = 0; i < sizeof(gSound); i++)
 		precache_sound(gSound[i]);
 
 	PrecacheWeaponListSprites(Weapon);
-	gCSXID = custom_weapon_add("weapon_fnp45", 0, "FNP-45");
+
+	BF4RegisterWeapon(BF4_TEAM_BOTH, 
+		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER, 
+		BF4_WEAPONCLASS_PISTOLS, 
+		Weapon,
+		Ammo_45ACP,
+		"FN FNP-45",
+		"fnp45");
 }
 public AddPlayerItem(pPlayer, pItem)
 {
 	rg_set_iteminfo(pItem, ItemInfo_pszName, "fnp45");
-}
-
-public PlayerSpawn(id)
-{
-	if (is_user_alive(id))
-	    GiveWeaponByID(id, Weapon);
 }
 
 public FNP45_PrimaryPost(Entity)
@@ -118,14 +113,3 @@ public FNP45_PrimaryPost(Entity)
 	// new Player = get_ent_data(Entity, "CBaseMonster","m_pPlayer");
 	// custom_weapon_shot(gCSXID, Player);
 }
-
-public FNP45_TakeDamage(iVictim, inflictor, iAttacker, Float:damage, damage_type)
-{
-	new classname[33];
-//	pev(iAttacker, pev_classname, classname, charsmax(classname));
-	get_weaponname(iAttacker, classname, charsmax(classname));
-	client_print(iAttacker, print_chat, "%s", classname);
- 
-	custom_weapon_dmg(gCSXID, iAttacker, iVictim, floatround(damage), get_ent_data(iVictim, "CBaseMonster","m_LastHitGroup"));
-}
-

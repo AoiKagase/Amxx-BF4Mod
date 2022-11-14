@@ -11,3 +11,7 @@
 	#pragma library bf4_classes_natives
 #endif
 
+
+native BF4_CLASS:BF4GetUserClass(id);
+forward BF4ForwardTeamChanged(id);
+forward BF4ForwardClassChanged(id);
