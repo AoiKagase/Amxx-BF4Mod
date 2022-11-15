@@ -8,11 +8,11 @@
 #include <bf4weapons>
 #include <reapi>
 
-#define XO_PLAYER           	5
-#define m_iPlayerTeam           114
-#define m_iJoiningState         121
-#define m_bHasChangeTeamThisRound   125
-#define m_iMenu             	205
+#define XO_PLAYER           		5
+//#define m_iPlayerTeam          	114
+//#define m_iJoiningState         	121
+#define m_bHasChangeTeamThisRound 	125
+//#define m_iMenu             		205
 
 // Old Style Menus
 new const FIRST_JOIN_MSG  		[] = "#Team_Select";
@@ -43,6 +43,7 @@ public plugin_init()
 	register_plugin	(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR, PLUGIN_URL, PLUGIN_DESC);
 	register_message(get_user_msgid("ShowMenu"), "message_ShowMenu");
 	register_message(get_user_msgid("VGUIMenu"), "message_VGUIMenu");
+
     register_clcmd( "chooseteam","bf4_menu_select_team" );
 
 }
@@ -51,6 +52,7 @@ public plugin_natives()
 {
 	register_library("bf4_classes_natives");
 	register_native("BF4GetUserClass", "_bf4_get_user_class");
+	register_native("BF4FirstJoinTeam", "_bf4_first_jointeam");
 	plugin_forward();
 }
 
@@ -60,7 +62,17 @@ public plugin_forward()
 	fwdClassChange = CreateMultiForward("BF4ForwardClassChanged", 	ET_IGNORE, FP_CELL);
 }
 
-public client_connect(id)
+public _bf4_first_jointeam(iPlugins, iParams)
+{
+	new id = get_param(1);
+	if (!gJoined[id])
+	{
+		set_member(id, m_iJoiningState, GETINTOGAME);
+		gJoined[id] = 1;
+	}
+}
+
+public client_putinserver(id)
 {
 	gJoined[id] = 0;
 	gSelectClass[id] = BF4_CLASS_NONE;
@@ -214,7 +226,7 @@ public bf4_menu_select_class_handler(id, menu, item)
 	if (!gJoined[id])
 	{
 		rg_join_team(id, TeamName:gSelectTeam[id]);
-		gJoined[id] = 1;
+		set_member(id, m_iJoiningState, PICKINGTEAM);
 	}
 	switch(gSelectClass[id])
 	{
@@ -237,15 +249,4 @@ public bf4_menu_select_class_handler(id, menu, item)
 	// Open weapon menu.
 	BF4SelectWeaponMenu(id);
     menu_destroy(menu);
-}
-
-public TaskTeamJoin(id)
-{
-	// new msgid = get_user_msgid("VGUIMenu");
-    // new block = get_msg_block( msgid );
-	// new str[2];
-	// num_to_str(_:gSelectTeam[id], str, charsmax(str));
-    // set_msg_block( msgid, BLOCK_SET );
-    // engclient_cmd( id, "jointeam", str);
-    // set_msg_block( msgid, block );
 }

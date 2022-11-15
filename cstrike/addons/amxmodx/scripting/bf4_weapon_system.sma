@@ -439,6 +439,7 @@ public BF4WeaponMenu_Handler(id, menu, item)
 	if (item == MENU_EXIT)
 	{
 		menu_destroy(menu);
+		BF4FirstJoinTeam(id);
 		ExecuteHamB(Ham_CS_RoundRespawn,id);
 		return PLUGIN_CONTINUE;
 	}
