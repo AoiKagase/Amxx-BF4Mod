@@ -136,14 +136,3 @@ new const g_szAmmoNames[E_AMMO_IDS][] = {
 	"9mm"
 };
 
-stock BF4_TEAM:bf4_get_user_team(id)
-{
-	switch(cs_get_user_team(id))
-	{
-		case CS_TEAM_T:
-			return BF4_TEAM_RU; 
-		case CS_TEAM_CT:
-			return BF4_TEAM_US;
-	}
-	return BF4_TEAM_NONE;
-}

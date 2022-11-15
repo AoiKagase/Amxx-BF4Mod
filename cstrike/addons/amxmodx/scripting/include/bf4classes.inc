@@ -12,8 +12,9 @@
 #endif
 
 
-native BF4_CLASS:BF4GetUserClass(id);
-native BF4FirstJoinTeam(id);
+native BF4_CLASS:BF4GetUserClass(id, stack = false);
+native BF4_TEAM:BF4GetUserTeam(id, stack = false);
+native bool:BF4FirstJoinTeam(id);
 
 forward BF4ForwardTeamChanged(id);
 forward BF4ForwardClassChanged(id);
