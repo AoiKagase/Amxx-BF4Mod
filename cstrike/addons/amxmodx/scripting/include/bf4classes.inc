@@ -13,5 +13,7 @@
 
 
 native BF4_CLASS:BF4GetUserClass(id);
+native BF4FirstJoinTeam(id);
+
 forward BF4ForwardTeamChanged(id);
 forward BF4ForwardClassChanged(id);
