@@ -6,6 +6,7 @@
 #include <fakemeta>
 #include <bf4classes>
 #include <bf4weapons>
+#include <hamsandwich>
 #include <reapi>
 
 #define XO_PLAYER           		5
@@ -31,6 +32,8 @@ new const PLUGIN_URL			[]	= "github.com/AoiKagase";
 new const PLUGIN_DESC			[]	= "BattleField 4 Mod: Class System.";
 new BF4_CLASS:gSelectClass		[MAX_PLAYERS + 1];
 new BF4_TEAM:gSelectTeam		[MAX_PLAYERS + 1];
+new BF4_CLASS:gStackSelectClass	[MAX_PLAYERS + 1];
+new BF4_TEAM:gStackSelectTeam	[MAX_PLAYERS + 1];
 new gJoined						[MAX_PLAYERS + 1];
 new fwdTeamChange;
 new fwdClassChange;
@@ -41,19 +44,23 @@ new fwdClassChange;
 public plugin_init()
 {
 	register_plugin	(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR, PLUGIN_URL, PLUGIN_DESC);
+
+	RegisterHamPlayer(Ham_Spawn, "PlayerSpawnPre", false);
 	register_message(get_user_msgid("ShowMenu"), "message_ShowMenu");
 	register_message(get_user_msgid("VGUIMenu"), "message_VGUIMenu");
 
     register_clcmd( "chooseteam","bf4_menu_select_team" );
+	register_clcmd( "/bf4class", "bf4_menu_select_class");
 
+	plugin_forward();
 }
 
 public plugin_natives()
 {
 	register_library("bf4_classes_natives");
-	register_native("BF4GetUserClass", "_bf4_get_user_class");
+	register_native("BF4GetUserClass", 	"_bf4_get_user_class");
+	register_native("BF4GetUserTeam", 	"_bf4_get_user_team");
 	register_native("BF4FirstJoinTeam", "_bf4_first_jointeam");
-	plugin_forward();
 }
 
 public plugin_forward()
@@ -61,15 +68,48 @@ public plugin_forward()
 	fwdTeamChange  = CreateMultiForward("BF4ForwardTeamChanged", 	ET_IGNORE, FP_CELL);
 	fwdClassChange = CreateMultiForward("BF4ForwardClassChanged", 	ET_IGNORE, FP_CELL);
 }
+public PlayerSpawnPre(id)
+{
+	gSelectTeam[id] = gStackSelectTeam[id];
+	gSelectClass[id] = gStackSelectClass[id];
 
-public _bf4_first_jointeam(iPlugins, iParams)
+	switch(gSelectClass[id])
+	{
+		case BF4_CLASS_ASSAULT:
+			(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_TERROR) 	: cs_set_user_team(id, CS_TEAM_CT, CS_CT_URBAN);
+		case BF4_CLASS_RECON:
+			(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_LEET) 		: cs_set_user_team(id, CS_TEAM_CT, CS_CT_GSG9);
+		case BF4_CLASS_SUPPORT:
+			(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_ARCTIC) 	: cs_set_user_team(id, CS_TEAM_CT, CS_CT_GIGN);
+		case BF4_CLASS_ENGINEER:
+			(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_GUERILLA) 	: cs_set_user_team(id, CS_TEAM_CT, CS_CT_SAS);
+	}	
+}
+
+public bool:_bf4_first_jointeam(iPlugins, iParams)
 {
 	new id = get_param(1);
 	if (!gJoined[id])
 	{
-		set_member(id, m_iJoiningState, GETINTOGAME);
+		// set_member(id, m_iJoiningState, GETINTOGAME);
+		rg_join_team(id, TeamName:gStackSelectTeam[id]);
+
+		switch(gStackSelectTeam[id])
+		{
+			case BF4_CLASS_ASSAULT:
+				(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_TERROR) 	: cs_set_user_team(id, CS_TEAM_CT, CS_CT_URBAN);
+			case BF4_CLASS_RECON:
+				(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_LEET) 		: cs_set_user_team(id, CS_TEAM_CT, CS_CT_GSG9);
+			case BF4_CLASS_SUPPORT:
+				(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_ARCTIC) 	: cs_set_user_team(id, CS_TEAM_CT, CS_CT_GIGN);
+			case BF4_CLASS_ENGINEER:
+				(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_GUERILLA) 	: cs_set_user_team(id, CS_TEAM_CT, CS_CT_SAS);
+		}
+
 		gJoined[id] = 1;
+		return true;
 	}
+	return false;
 }
 
 public client_putinserver(id)
@@ -82,9 +122,22 @@ public client_putinserver(id)
 public BF4_CLASS:_bf4_get_user_class(iPlugin, iParams)
 {
 	new id = get_param(1);
-	return gSelectClass[id];
+	new stack = get_param(2);
+	if (stack)
+		return gStackSelectClass[id];
+	else
+		return gSelectClass[id];
 }
 
+public BF4_TEAM:_bf4_get_user_team(id)
+{
+	new id = get_param(1);
+	new stack = get_param(2);
+	if (stack)
+		return gStackSelectTeam[id];
+	else
+		return gSelectTeam[id];
+}
 // =====================================================================
 // Block Team select menu.
 // Old Style.
@@ -97,38 +150,40 @@ public message_ShowMenu(iMsgid, iDest, id)
 	if(equal(sMenuCode, FIRST_JOIN_MSG) 
 	|| equal(sMenuCode, FIRST_JOIN_MSG_SPEC))
 	{
-		set_task(0.1, "TaskJoin", id + 8731);
+		// set_task(0.1, "TaskJoin", id + 8731);
+		bf4_menu_select_team(id);
 		return PLUGIN_HANDLED;
 	}
 	else
 	if(equal(sMenuCode, INGAME_JOIN_MSG) 
 	|| equal(sMenuCode, INGAME_JOIN_MSG_SPEC))
 	{
-		set_task(0.1, "TaskJoin", id + 8731);
+		// set_task(0.1, "TaskJoin", id + 8731);
+		bf4_menu_select_team(id);
 		return PLUGIN_HANDLED;
 	}
 	return PLUGIN_CONTINUE;
 }
 
-public TaskJoin(taskid)
-{
-	new id = taskid - 8731;
-	if (gSelectTeam[id] != BF4_TEAM_NONE)
-	{
-		bf4_menu_select_team(id);
-		return PLUGIN_HANDLED;
-	}
+// public TaskJoin(taskid)
+// {
+// 	new id = taskid - 8731;
+// 	if (gSelectTeam[id] != BF4_TEAM_NONE)
+// 	{
+// 		bf4_menu_select_team(id);
+// 		return PLUGIN_HANDLED;
+// 	}
 
-	new msgid = get_user_msgid("VGUIMenu");
-	new block = get_msg_block(msgid);
-	set_msg_block(msgid, BLOCK_SET);
-	engclient_cmd(id, "jointeam", "6");
-	set_msg_block(msgid, block);
-	set_pdata_int(id, m_bHasChangeTeamThisRound, (get_pdata_int(id, m_bHasChangeTeamThisRound, XO_PLAYER) & ~(1 << 8)), XO_PLAYER);
+// 	new msgid = get_user_msgid("VGUIMenu");
+// 	new block = get_msg_block(msgid);
+// 	set_msg_block(msgid, BLOCK_SET);
+// 	engclient_cmd(id, "jointeam", "6");
+// 	set_msg_block(msgid, block);
+// 	set_pdata_int(id, m_bHasChangeTeamThisRound, (get_pdata_int(id, m_bHasChangeTeamThisRound, XO_PLAYER) & ~(1 << 8)), XO_PLAYER);
 
-	bf4_menu_select_team(id);
-	return PLUGIN_HANDLED;
-}
+// 	bf4_menu_select_team(id);
+// 	return PLUGIN_HANDLED;
+// }
 // =====================================================================
 // Block Team select menu.
 // New VGUI Style.
@@ -138,7 +193,8 @@ public message_VGUIMenu(iMsgid, iDest, id)
 	if(get_msg_arg_int(1) != VGUI_JOIN_TEAM_NUM)
 		return PLUGIN_CONTINUE;
 
-	set_task(0.1, "TaskJoin", id + 8731);
+	// set_task(0.1, "TaskJoin", id + 8731);
+	bf4_menu_select_team(id);
 	return PLUGIN_HANDLED;
 }
 
@@ -159,7 +215,9 @@ public bf4_menu_select_team(id)
 	menu_additem(menu,  "(CT) US");
 
 	// NOT EXIT.
-	menu_setprop(menu, MPROP_EXIT, MEXIT_NEVER);
+	if (!gSelectTeam[id])
+		menu_setprop(menu, MPROP_EXIT, MEXIT_NEVER);
+
 	menu_display(id, menu, 0);
 
 	return PLUGIN_HANDLED;
@@ -174,13 +232,14 @@ public bf4_menu_select_team_handler(id, menu, item)
 	switch(item)
 	{
 		case 0:
-			gSelectTeam[id] = BF4_TEAM_RU;
+			gStackSelectTeam[id] = BF4_TEAM_RU;
 		case 1:
-			gSelectTeam[id] = BF4_TEAM_US;
+			gStackSelectTeam[id] = BF4_TEAM_US;
 	}
 
 	if (team != gSelectTeam[id])
 	{
+		// client_print_color(id, print_team_default, "^4[BF4 DEBUG] Team Change");
 		new ret;
 		ExecuteForward(fwdTeamChange, ret, id);
 	}
@@ -209,7 +268,9 @@ public bf4_menu_select_class(id)
 	menu_additem(menu,  "Engineer");
 
 	// NOT EXIT.
-    menu_setprop(menu, MPROP_EXIT, MEXIT_NEVER);
+	if (!gSelectClass[id])
+		menu_setprop(menu, MPROP_EXIT, MEXIT_NEVER);
+
 	menu_display(id, menu, 0);
 
 	return PLUGIN_HANDLED;
@@ -221,27 +282,22 @@ public bf4_menu_select_class(id)
 public bf4_menu_select_class_handler(id, menu, item)
 {
 	new BF4_CLASS:team = gSelectClass[id];
-	gSelectClass[id] = BF4_CLASS:(item + 1);
+	gStackSelectClass[id] = BF4_CLASS:(1 << item);
 
 	if (!gJoined[id])
 	{
-		rg_join_team(id, TeamName:gSelectTeam[id]);
 		set_member(id, m_iJoiningState, PICKINGTEAM);
-	}
-	switch(gSelectClass[id])
-	{
-		case BF4_CLASS_ASSAULT:
-			(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_TERROR) 	: cs_set_user_team(id, CS_TEAM_CT, CS_CT_URBAN);
-		case BF4_CLASS_RECON:
-			(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_LEET) 		: cs_set_user_team(id, CS_TEAM_CT, CS_CT_GSG9);
-		case BF4_CLASS_SUPPORT:
-			(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_ARCTIC) 	: cs_set_user_team(id, CS_TEAM_CT, CS_CT_GIGN);
-		case BF4_CLASS_ENGINEER:
-			(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_GUERILLA) 	: cs_set_user_team(id, CS_TEAM_CT, CS_CT_SAS);
+
+		// Open weapon menu.
+		BF4SelectWeaponMenu(id);
+		menu_destroy(menu);
+
+		return;
 	}
 
-	if (team != gSelectClass[id])
+	if (team != gStackSelectClass[id])
 	{
+		// client_print_color(id, print_team_default, "^4[BF4 DEBUG] Class Change");
 		new ret;
 		ExecuteForward(fwdClassChange, ret, id);
 	}

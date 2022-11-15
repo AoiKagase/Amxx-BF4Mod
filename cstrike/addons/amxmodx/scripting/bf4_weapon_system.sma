@@ -190,7 +190,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"FN M249",
 		"m249",
-		Ammo_556Nato,
+		Ammo_556NatoBox,
 		BF4_TEAM_BOTH,
 		BF4_WEAPONCLASS_LMGS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_SUPPORT
@@ -292,24 +292,87 @@ enum _:WPN_SLOT
 new Array:gWeaponList;
 
 new gUseWeapons[MAX_PLAYERS + 1][WPN_SLOT];
+new gStackUseWeapons[MAX_PLAYERS + 1][WPN_SLOT];
+
+// used to supercede c4 icon displaying
+new g_icon_c4[] = "c4";
+new g_icon_buyzone[] = "buyzone";
+
+// bomb should't be given so creation of the given classname will be superceded
+new g_weapon_c4[] = "weapon_c4"
+
+// icon modes
+#define ICON_NONE 		0
+#define ICON_NORMAL 	(1<<0)
+#define ICON_BLINK	 	(1<<1)
 
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
-	register_clcmd("say /bf4sec", "BF4WeaponMenu");
+	register_clcmd("say /bf4sec", 		"BF4WeaponMenu");
+	register_clcmd("buy",				"BF4WeaponMenu");
+	RegisterHamPlayer(Ham_Spawn, 		"PlayerSpawnPre", false);
+	RegisterHamPlayer(Ham_Spawn, 		"PlayerSpawn", true);
+	RegisterHamPlayer(Ham_TakeDamage, 	"PlayerTakeDamagePre");
+	RegisterHamPlayer(Ham_TakeDamage, 	"PlayerTakeDamagePost", true);
 
-	RegisterHamPlayer(Ham_Spawn, "PlayerSpawn", true);
-	RegisterHamPlayer(Ham_TakeDamage, "PlayerTakeDamagePre");
-	RegisterHamPlayer(Ham_TakeDamage, "PlayerTakeDamagePost", true);
+	register_forward(FM_CreateNamedEntity, "forward_create_named_entity");
 
-	register_message(get_user_msgid("DeathMsg"), "PlayerDeath");
+	register_message(get_user_msgid("DeathMsg"), 	"PlayerDeath");
+
+	register_message(get_user_msgid("StatusIcon"), 	"message_status_icon");
 }
+
+public forward_create_named_entity(int_class) 
+{
+	static class[16];
+	engfunc(EngFunc_SzFromIndex, int_class, class, 15);
+
+	if (equal(class, g_weapon_c4))
+		return FMRES_SUPERCEDE;
+
+	return FMRES_IGNORED;
+}
+
+RemoveFromBuyzone(id) 
+{
+    // Define offsets to be used
+    const m_fClientMapZone = 235;
+    const MAPZONE_BUYZONE = (1 << 0);
+    const XO_PLAYERS = 5;
+    
+    // Remove player's buyzone bit for the map zones
+    set_pdata_int(id, m_fClientMapZone, get_pdata_int(id, m_fClientMapZone, XO_PLAYERS) & ~MAPZONE_BUYZONE, XO_PLAYERS);
+}
+
+public message_status_icon(MsgId, dest, receiver) 
+{
+	if (get_msg_arg_int(1) == ICON_NONE)
+		return PLUGIN_CONTINUE;
+
+	static arg[12];
+	get_msg_arg_string(2, arg, charsmax(arg));
+
+	if (equal(arg, g_icon_c4))
+		return PLUGIN_HANDLED;
+
+	if (equal(arg, g_icon_buyzone))
+	{
+		RemoveFromBuyzone(receiver);
+		set_msg_arg_int(1, ARG_BYTE, 0);
+	}
+	return PLUGIN_CONTINUE;
+}
+
 
 public plugin_precache()
 {
 	gWeaponList = ArrayCreate(BF4_WEAPON_DATA);
 	for(new i = 0; i < 33; i++)
+	{
 		gUseWeapons[i] = {-1,-1,-1,-1,-1,-1};
+		gStackUseWeapons[i] = {-1,-1,-1,-1,-1,-1};
+	}
 
 	RegisterClassicWeapon();
 }
@@ -392,43 +455,43 @@ public BF4WeaponMenu(id)
 	new menu = menu_create("\r[BF4] \ySelect Weapon:", "BF4WeaponMenu_Handler");
 	new weapondata[BF4_WEAPON_DATA];
 
-	if (gUseWeapons[id][PRIMARY] > -1)
+	if (gStackUseWeapons[id][PRIMARY] > -1)
 	{
-		ArrayGetArray(gWeaponList, gUseWeapons[id][PRIMARY], weapondata);
+		ArrayGetArray(gWeaponList, gStackUseWeapons[id][PRIMARY], weapondata);
 		menu_additem(menu, fmt("Primary: \r[%s]",  weapondata[NAME]));
 	} else
 	{
 		menu_additem(menu, "Primary");
 	}
 
-	if (gUseWeapons[id][SECONDARY] > -1)
+	if (gStackUseWeapons[id][SECONDARY] > -1)
 	{
-		ArrayGetArray(gWeaponList, gUseWeapons[id][SECONDARY], weapondata);
+		ArrayGetArray(gWeaponList, gStackUseWeapons[id][SECONDARY], weapondata);
 		menu_additem(menu, fmt("Secondary: \r[%s]",  weapondata[NAME]));
 	} else
 	{
 		menu_additem(menu, "Secondary");
 	}
 
-	if (gUseWeapons[id][GRENADE] > -1)
+	if (gStackUseWeapons[id][GRENADE] > -1)
 	{
-		ArrayGetArray(gWeaponList, gUseWeapons[id][GRENADE], weapondata);
+		ArrayGetArray(gWeaponList, gStackUseWeapons[id][GRENADE], weapondata);
 		menu_additem(menu, fmt("Grenade: \r[%s]", weapondata[NAME]));
 	} else
 	{
 		menu_additem(menu, "Grenade");
 	}
 
-	if (gUseWeapons[id][EQUIP] > -1)
+	if (gStackUseWeapons[id][EQUIP] > -1)
 	{
-		ArrayGetArray(gWeaponList, gUseWeapons[id][EQUIP], weapondata);
+		ArrayGetArray(gWeaponList, gStackUseWeapons[id][EQUIP], weapondata);
 		menu_additem(menu, fmt("Equipment: \r[%s]", weapondata[NAME]));
 	} else
 	{
 		menu_additem(menu, "Equipment");
 	}
 
-	if (gUseWeapons[id][PRIMARY] == -1 || gUseWeapons[id][SECONDARY] == -1)
+	if (gStackUseWeapons[id][PRIMARY] == -1 || gStackUseWeapons[id][SECONDARY] == -1)
 		menu_setprop(menu, MPROP_EXIT, MEXIT_NEVER);
 
 	menu_display(id, menu, 0);
@@ -439,8 +502,11 @@ public BF4WeaponMenu_Handler(id, menu, item)
 	if (item == MENU_EXIT)
 	{
 		menu_destroy(menu);
-		BF4FirstJoinTeam(id);
-		ExecuteHamB(Ham_CS_RoundRespawn,id);
+		if (!BF4FirstJoinTeam(id))
+		{
+			client_print_color(id, print_team_default, "^4[BF4] ^1It will be applied at the next respawn.");
+			// ExecuteHamB(Ham_CS_RoundRespawn,id);
+		}
 		return PLUGIN_CONTINUE;
 	}
 
@@ -478,8 +544,8 @@ public BF4WeaponMenuPrimary(id)
 
 	// Primary Weapon Menu.
 	new menu = menu_create("\r[BF4] \ySelect Weapon Primary:", "BF4WeaponMenuPrimary_Handler");
-	client_print(id, print_chat, "%d", BF4GetUserClass(id));
-	switch(BF4GetUserClass(id))
+
+	switch(BF4GetUserClass(id, true))
 	{
 		case BF4_CLASS_ASSAULT:
 		{
@@ -513,7 +579,7 @@ public BF4WeaponMenuPrimary(id)
 public BF4WeaponMenuPrimary_Handler(id, menu, item)
 {
 
-	new szData[64 + 6], szName[32];
+	new szData[16], szName[32];
 	new _access, item_callback;	
 	menu_item_getinfo(menu, item, _access, szData, charsmax(szData), szName, charsmax(szName), item_callback);
 
@@ -552,13 +618,18 @@ public BF4WeaponMenuWeaponClass(id, BF4_WEAPONCLASS:iWpnClass)
 	{
 		ArrayGetArray(gWeaponList, i, data, sizeof(data));
 		num_to_str(i, index, charsmax(index));
-		if (data[HASCLASS] & BF4_CLASS_SELECTABLE && data[HASCLASS] & BF4GetUserClass(id) && data[WPNCLASS] == iWpnClass)
+		if ((data[HASCLASS] & BF4_CLASS_SELECTABLE) && (data[HASCLASS] & BF4GetUserClass(id, true)) && data[WPNCLASS] == iWpnClass)
 		{
-			if (data[TEAM] == BF4_TEAM_BOTH || data[TEAM] == bf4_get_user_team(id))
+			if (data[TEAM] == BF4_TEAM_BOTH || data[TEAM] == BF4GetUserTeam(id, true))
 				menu_additem(menu, data[NAME], index);
 		}
 	}
 
+	if (menu_items(menu) <= 0)
+	{
+		// client_print(id, print_chat, "[BF4 DEBUG] TEAM: %d, CLASS: %d", BF4GetUserTeam(id), BF4GetUserClass(id));
+		menu_addtext2(menu, "There is no equipment available in this class.");
+	}
 	// NOT EXIT.
 //	menu_setprop(menu, MPROP_EXIT, MEXIT_NEVER);
 	menu_display(id, menu, 0);
@@ -579,11 +650,16 @@ public BF4WeaponMenuWeaponClass_Handler(id, menu, item)
 
 	ArrayGetArray(gWeaponList, index, data, sizeof(data));
 
-	gUseWeapons[id][GetWeaponSlot(data[WPNCLASS])] 	= index;
+	gStackUseWeapons[id][GetWeaponSlot(data[WPNCLASS])] 	= index;
 
 	menu_destroy(menu);
 	BF4WeaponMenu(id);
 	return PLUGIN_HANDLED;
+}
+
+public PlayerSpawnPre(id)
+{
+	gUseWeapons[id] = gStackUseWeapons[id];
 }
 
 public PlayerSpawn(id)
@@ -679,7 +755,7 @@ public PlayerDeath()
 				ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][PRIMARY], data, charsmax(data));
 				if (data[CSWM_ID] > -1)
 				{
-					new BF4_TEAM:team = bf4_get_user_team(iAttacker);
+					new BF4_TEAM:team = BF4GetUserTeam(iAttacker);
 					switch(data[WPNCLASS])
 					{
 						case BF4_WEAPONCLASS_ASSAULTS:
@@ -702,12 +778,17 @@ public PlayerDeath()
 
 public BF4ForwardClassChanged(id)
 {
-	gUseWeapons[id] = {-1,-1,-1,-1,-1,-1};
+	for(new i = 0; i <= EQUIP; i++)
+		gStackUseWeapons[id][i] = -1;
+
+//	client_print_color(id, print_team_default, "^4[BF4 DEBUG] ^3Class Changed");
 }
 
 public BF4ForwardTeamChanged(id)
 {
-	gUseWeapons[id] = {-1,-1,-1,-1,-1,-1};
+	for(new i = 0; i <= EQUIP; i++)
+		gStackUseWeapons[id][i] = -1;
+	// client_print_color(id, print_team_default, "^4[BF4 DEBUG] ^3Team Changed");
 }
 
 public BF4GiveWeapon(id)
@@ -716,11 +797,11 @@ public BF4GiveWeapon(id)
 	for(new i = 0; i < ArraySize(gWeaponList); i++)
 	{
 		ArrayGetArray(gWeaponList, i, data, sizeof(data));
-		if (data[TEAM] & bf4_get_user_team(id) || data[TEAM] & BF4_TEAM_BOTH)
+		if (data[TEAM] == BF4GetUserTeam(id) || data[TEAM] & BF4_TEAM_BOTH)
 		{
 			if ((data[HASCLASS] & BF4GetUserClass(id)) && (data[HASCLASS] & BF4_CLASS_REQUIRE))
 			{
-				client_print(id, print_chat, "[BF4 DEBUG] %s", data[NAME]);
+				// client_print(id, print_chat, "[BF4 DEBUG] %s", data[NAME]);
 				gUseWeapons[id][GetWeaponSlot(data[WPNCLASS])] = i;
 			}
 		}
@@ -735,12 +816,14 @@ public BF4GiveWeapon(id)
 			{
 				GiveWeaponByID(id, data[CSWM_ID]);
 			} else {
-				client_print(id, print_chat, "[BF4 DEBUG] %s", data[ITEM]);
+//				client_print(id, print_chat, "[BF4 DEBUG] %s", data[ITEM]);
 				give_item(id, fmt("weapon_%s", data[ITEM]));
 			}
 			GiveAmmo(id, _:data[AMMO_ID], 900);
 		}
-	}	
+	}
+
+	cs_set_user_armor(id, 100, CS_ARMOR_VESTHELM);
 }
 
 stock GetWeaponSlot(BF4_WEAPONCLASS:class)
