@@ -12,12 +12,31 @@
 #include <reapi>
 #include <hamsandwich>
 #include <bf4const>
+#include <cswm>
 
 #pragma semicolon	1
 
-#define PLUGIN 				"BF4 Pickup Weapons"
+#define PLUGIN 				"[BF4] Pickup Weapons"
 #define VERSION 			"0.01"
 #define AUTHOR				"Aoi.Kagase"
+
+new const g_szAmmoNames[Ammo][] = {
+	"",
+	"338magnum",
+	"762nato",
+	"556natobox",
+	"556nato",
+	"buckshot",
+	"45acp",
+	"57mm",
+	"50ae",
+	"357sig",
+	"9mm",
+	"hegrenade",
+	"flashbang",
+	"smokegrenade",
+	"c4",
+};
 
 public plugin_init()
 {
@@ -42,7 +61,8 @@ public BF4TouchWeaponBox(iWpnBox, iToucher)
 			new ammo = GetAmmoBox(iWpnBox);
 			if (ammo)
 			{
-				ExecuteHamB(Ham_GiveAmmo, iToucher, ammo, g_szAmmoNames[CSW_AMMO_ID[iDWeapon][0]], CSW_AMMO_ID[iDWeapon][1]);
+				// ExecuteHam(Ham_GiveAmmo, this, amount, "type", max);
+				ExecuteHamB(Ham_GiveAmmo, iToucher, ammo, g_szAmmoNames[CSW_AMMO_ID[iDWeapon][AmmoId]], CSW_AMMO_ID[iDWeapon][MaxAmmo]);
 				emit_sound(iToucher, CHAN_ITEM, "items/gunpickup2.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 				new flags;
 				pev(iWpnBox, pev_flags, flags);
