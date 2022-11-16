@@ -4,9 +4,6 @@
 
 #define _bf4_const_included
 
-#include <cstrike>
-#include <cswm_const>
-
 enum _:E_BF4_RANK
 {
 	BF4_RNK_MARKSMAN 	= 0,
@@ -71,47 +68,3 @@ enum BF4_TEAM
 	BF4_TEAM_BOTH,
 	BF4_TEAM_MAX,
 }
-
-enum CSW_AMMO
-{
-	Ammo:AmmoId,
-	MaxAmmo,
-}
-
-// AMMOID, MAXBPAMMO
-new const CSW_AMMO_ID[CSW_P90 + 1][CSW_AMMO] =
-{
-	{ Ammo_None, 			0},			// CSW_NONE
-	{ Ammo_357SIG, 			52},		// CSW_P228
-	{ Ammo_None, 			0},			// CSW_GLOCK Unused by game, See CSW_GLOCK18.
-	{ Ammo_762Nato, 		90},		// CSW_SCOUT
-	{ Ammo_HEGRENADE,  		1},			// CSW_HEGRENADE
-	{ Ammo_12Gauge, 		32},		// CSW_XM1014
-	{ Ammo_C4,  			1},			// CSW_C4
-	{ Ammo_45ACP,			100},		// CSW_MAC10
-	{ Ammo_556Nato, 		90},		// CSW_AUG
-	{ Ammo_SMOKEGRENADE,	1},			// CSW_SMOKEGRENADE
-	{ Ammo_9MM,				120},		// CSW_ELITE
-	{ Ammo_57MM,			100}, 		// CSW_FIVESEVEN
-	{ Ammo_45ACP,			100}, 		// CSW_UMP45
-	{ Ammo_556Nato, 		90}, 		// CSW_SG550
-	{ Ammo_556Nato, 		90}, 		// CSW_GALIL
-	{ Ammo_556Nato, 		90}, 		// CSW_FAMAS
-	{ Ammo_45ACP,			100}, 		// CSW_USP
-	{ Ammo_9MM,				120}, 		// CSW_GLOCK18
-	{ Ammo_338Magnum, 		30}, 		// CSW_AWP
-	{ Ammo_9MM,				120}, 		// CSW_MP5NAVY
-	{ Ammo_556NatoBox,		200}, 		// CSW_M249
-	{ Ammo_12Gauge, 		32}, 		// CSW_M3
-	{ Ammo_556Nato, 		90}, 		// CSW_M4A1
-	{ Ammo_9MM,				120}, 		// CSW_TMP
-	{ Ammo_762Nato, 		90}, 		// CSW_G3SG1
-	{ Ammo_FLASHBANG,  		2}, 		// CSW_FLASHBANG
-	{ Ammo_50AE, 			35}, 		// CSW_DEAGLE
-	{ Ammo_556Nato, 		90}, 		// CSW_SG552
-	{ Ammo_762Nato, 		90}, 		// CSW_AK47
-	{ Ammo_None, 			0}, 		// CSW_KNIFE
-	{ Ammo_57MM,			100} 		// CSW_P90
-};
-
-
