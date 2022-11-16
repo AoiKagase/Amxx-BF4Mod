@@ -19,7 +19,7 @@
 
 // P228 Damage is 32.0
 #define FIRE1_DAMAGE	(30.0 / 32.0)
-#define RECOIL 			0.17
+#define RECOIL 			1.17
 
 #define FIRE_RATE		GetWeaponDefaultDelay(CSW_P228)
 #define TEMP			false

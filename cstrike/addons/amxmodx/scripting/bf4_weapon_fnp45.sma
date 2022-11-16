@@ -21,7 +21,7 @@
 
 // P228 Damage is 32.0
 #define FIRE1_DAMAGE	(30.0 / 32.0)
-#define RECOIL 			0.19
+#define RECOIL 			1.19
 
 #define FIRE_RATE		GetWeaponDefaultDelay(CSW_USP)
 enum _:FNP45_ANIMS
