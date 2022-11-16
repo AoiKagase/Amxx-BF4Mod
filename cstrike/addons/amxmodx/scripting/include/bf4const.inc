@@ -5,6 +5,7 @@
 #define _bf4_const_included
 
 #include <cstrike>
+#include <cswm_const>
 
 enum _:E_BF4_RANK
 {
@@ -71,68 +72,46 @@ enum BF4_TEAM
 	BF4_TEAM_MAX,
 }
 
-enum _:E_AMMO_IDS
+enum CSW_AMMO
 {
-	ammo_none,
-	ammo_338magnum = 1,
-	ammo_762nato,
-	ammo_556natobox,
-	ammo_556nato,
-	ammo_buckshot,
-	ammo_45acp,
-	ammo_57mm,
-	ammo_50ae,
-	ammo_357sig,
-	ammo_9mm
-};
+	Ammo:AmmoId,
+	MaxAmmo,
+}
+
 // AMMOID, MAXBPAMMO
-new const CSW_AMMO_ID[CSW_P90 + 1][2] =
+new const CSW_AMMO_ID[CSW_P90 + 1][CSW_AMMO] =
 {
-	{ -1, -1},			// CSW_NONE
-	{  9, 52},			// CSW_P228
-	{ -1, -1},			// CSW_GLOCK Unused by game, See CSW_GLOCK18.
-	{  2, 90},			// CSW_SCOUT
-	{ 12,  1},			// CSW_HEGRENADE
-	{  5, 32},			// CSW_XM1014
-	{ 14,  1},			// CSW_C4
-	{  6,100},			// CSW_MAC10
-	{  4, 90},			// CSW_AUG
-	{ 13,  1},			// CSW_SMOKEGRENADE
-	{ 10,120},			// CSW_ELITE
-	{  7,100}, 			// CSW_FIVESEVEN
-	{  6,100}, 			// CSW_UMP45
-	{  4, 90}, 			// CSW_SG550
-	{  4, 90}, 			// CSW_GALIL
-	{  4, 90}, 			// CSW_FAMAS
-	{  6,100}, 			// CSW_USP
-	{ 10,120}, 			// CSW_GLOCK18
-	{  1, 30}, 			// CSW_AWP
-	{ 10,120}, 			// CSW_MP5NAVY
-	{  3,200}, 			// CSW_M249
-	{  5, 32}, 			// CSW_M3
-	{  4, 90}, 			// CSW_M4A1
-	{ 10,120}, 			// CSW_TMP
-	{  2, 90}, 			// CSW_G3SG1
-	{ 11,  2}, 			// CSW_FLASHBANG
-	{  8, 35}, 			// CSW_DEAGLE
-	{  4, 90}, 			// CSW_SG552
-	{  2, 90}, 			// CSW_AK47
-	{ -1, -1}, 			// CSW_KNIFE
-	{  7,100} 			// CSW_P90
+	{ Ammo_None, 			0},			// CSW_NONE
+	{ Ammo_357SIG, 			52},		// CSW_P228
+	{ Ammo_None, 			0},			// CSW_GLOCK Unused by game, See CSW_GLOCK18.
+	{ Ammo_762Nato, 		90},		// CSW_SCOUT
+	{ Ammo_HEGRENADE,  		1},			// CSW_HEGRENADE
+	{ Ammo_12Gauge, 		32},		// CSW_XM1014
+	{ Ammo_C4,  			1},			// CSW_C4
+	{ Ammo_45ACP,			100},		// CSW_MAC10
+	{ Ammo_556Nato, 		90},		// CSW_AUG
+	{ Ammo_SMOKEGRENADE,	1},			// CSW_SMOKEGRENADE
+	{ Ammo_9MM,				120},		// CSW_ELITE
+	{ Ammo_57MM,			100}, 		// CSW_FIVESEVEN
+	{ Ammo_45ACP,			100}, 		// CSW_UMP45
+	{ Ammo_556Nato, 		90}, 		// CSW_SG550
+	{ Ammo_556Nato, 		90}, 		// CSW_GALIL
+	{ Ammo_556Nato, 		90}, 		// CSW_FAMAS
+	{ Ammo_45ACP,			100}, 		// CSW_USP
+	{ Ammo_9MM,				120}, 		// CSW_GLOCK18
+	{ Ammo_338Magnum, 		30}, 		// CSW_AWP
+	{ Ammo_9MM,				120}, 		// CSW_MP5NAVY
+	{ Ammo_556NatoBox,		200}, 		// CSW_M249
+	{ Ammo_12Gauge, 		32}, 		// CSW_M3
+	{ Ammo_556Nato, 		90}, 		// CSW_M4A1
+	{ Ammo_9MM,				120}, 		// CSW_TMP
+	{ Ammo_762Nato, 		90}, 		// CSW_G3SG1
+	{ Ammo_FLASHBANG,  		2}, 		// CSW_FLASHBANG
+	{ Ammo_50AE, 			35}, 		// CSW_DEAGLE
+	{ Ammo_556Nato, 		90}, 		// CSW_SG552
+	{ Ammo_762Nato, 		90}, 		// CSW_AK47
+	{ Ammo_None, 			0}, 		// CSW_KNIFE
+	{ Ammo_57MM,			100} 		// CSW_P90
 };
 
-
-new const g_szAmmoNames[E_AMMO_IDS][] = {
-	"",
-	"338magnum",
-	"762nato",
-	"556natobox",
-	"556nato",
-	"buckshot",
-	"45acp",
-	"57mm",
-	"50ae",
-	"357sig",
-	"9mm"
-};
 

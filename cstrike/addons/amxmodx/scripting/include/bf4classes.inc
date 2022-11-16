@@ -12,8 +12,8 @@
 #endif
 
 
-native BF4_CLASS:BF4GetUserClass(id, stack = false);
-native BF4_TEAM:BF4GetUserTeam(id, stack = false);
+native BF4_CLASS:BF4GetUserClass(id, reserve = false);
+native BF4_TEAM:BF4GetUserTeam(id, reserve = false);
 native bool:BF4FirstJoinTeam(id);
 
 forward BF4ForwardTeamChanged(id);

@@ -99,19 +99,19 @@ enum _:E_SAVIOR
 #define ITEM_OWNER pev_iuser1
 #define ITEM_TEAM  pev_iuser2
 
-new const ENT_MODELS[E_BF4_OBJECT_MENU][] =
-{
-	"models/bf4_ranks/medkit.mdl",
-	"models/bf4_ranks/ammobox.mdl",
-	"",
-};
+// new const ENT_MODELS[E_BF4_OBJECT_MENU][] =
+// {
+// 	"models/bf4_ranks/medkit.mdl",
+// 	"models/bf4_ranks/ammobox.mdl",
+// 	"",
+// };
 
-new const ENT_CLASS[E_BF4_OBJECT_MENU][]=
-{
-	"bf4_healthkit",
-	"bf4_ammobox",
-	"",
-};
+// new const ENT_CLASS[E_BF4_OBJECT_MENU][]=
+// {
+// 	"bf4_healthkit",
+// 	"bf4_ammobox",
+// 	"",
+// };
 
 new const TASK_AWARD		= 1122100;
 new const TASK_HUD_SPR     	= 1122200;
@@ -274,8 +274,8 @@ new g_dbConfig[DB_CONFIG];
 new g_nv_handle;
 new bool:g_roundready;
 // new gEntItem;
-new const ENT_CLASS_BREAKABLE[] = "func_breakable";
-new gSubMenuCallback;
+// new const ENT_CLASS_BREAKABLE[] = "func_breakable";
+// new gSubMenuCallback;
 new gObjectItem[MAX_PLAYERS + 1];
 
 //LoadPlugin
@@ -362,8 +362,8 @@ public plugin_precache()
 {
 	check_plugin();
 
-	for(new i = 0; i <= _:E_AMMO_BOX; i++)
-		precache_model(ENT_MODELS[i]);
+	// for(new i = 0; i <= _:E_AMMO_BOX; i++)
+	// 	precache_model(ENT_MODELS[i]);
 
 	for(new i = 0; i < TYPE_MAX; i++)
 	{
@@ -382,9 +382,9 @@ public plugin_precache()
 		}
 		precache_sound(g_sound[i]);
 	}
-	precache_sound("items/gunpickup2.wav");
-	precache_sound("items/ammopickup2.wav");
-	precache_sound("items/medshot4.wav");
+	// precache_sound("items/gunpickup2.wav");
+	// precache_sound("items/ammopickup2.wav");
+	// precache_sound("items/medshot4.wav");
 }
 
 public plugin_init()
@@ -396,17 +396,17 @@ public plugin_init()
 	bind_pcvar_float	(create_cvar("bf4_ammobox_interval",	"0.5"),  g_cvars[E_CV_AMMOBOX_INTERVAL]);
 	bind_pcvar_num		(create_cvar("bf4_ammobox_amount",		"30"), 	 g_cvars[E_CV_AMMOBOX_AMOUNT]);
 
-	register_clcmd		("say /bf4", "BF4ObjectMenu");
-	register_clcmd		("bf4menu", "BF4ObjectMenu");
+	// register_clcmd		("say /bf4", "BF4ObjectMenu");
+	// register_clcmd		("bf4menu", "BF4ObjectMenu");
 
 	RegisterHamPlayer	(Ham_TakeDamage,	"BF4TakeDamage", 		0);
 	RegisterHamPlayer	(Ham_Spawn, 		"BF4PlayerSpawnPost", 	1);  
 
 	register_event_ex	("CurWeapon", 		"Event_CurWeapon", 		RegisterEvent_Single | RegisterEvent_OnlyAlive, "1=1");
 	register_event_ex	("DeathMsg",  		"BF4DeathMsg", 			RegisterEvent_Global);
-    register_event_ex	("TeamInfo", 		"BF4JoinTeam", 			RegisterEvent_Global);   
+    // register_event_ex	("TeamInfo", 		"BF4JoinTeam", 			RegisterEvent_Global);   
 
-	RegisterHam(Ham_Think, ENT_CLASS_BREAKABLE, "BF4ObjectThink");
+	// RegisterHam(Ham_Think, ENT_CLASS_BREAKABLE, "BF4ObjectThink");
 
 	g_MsgIds[MSGID_WEAPON_LIST] = get_user_msgid("WeaponList");
 	g_MsgIds[MSGID_SET_FOV] 	= get_user_msgid("SetFOV");
@@ -428,7 +428,7 @@ public plugin_init()
 	// registered func_breakable
 //	gEntItem = engfunc(EngFunc_AllocString, ENT_CLASS_BREAKABLE);
 
-	gSubMenuCallback = menu_makecallback("bf4_object_menu_callback");
+	// gSubMenuCallback = menu_makecallback("bf4_object_menu_callback");
 	RegisterHookChain( RG_RoundEnd, "RoundEnd", 0 );
 }
 
@@ -979,14 +979,14 @@ stock Show_Rank_Event(const pPlayer, const ribbon[E_RANK_PARAM])
 	new clip, ammo;
 	new weapon = cs_get_user_weapon(pPlayer, clip, ammo);
 
-	SetMessage_WeaponList(pPlayer, 2, CSW_AMMO_ID[weapon][0], CSW_AMMO_ID[weapon][1], ribbon[RBN_TYPE], ribbon[RBN_ID]);
+	SetMessage_WeaponList(pPlayer, 2, CSW_AMMO_ID[weapon][AmmoId], CSW_AMMO_ID[weapon][MaxAmmo], ribbon[RBN_TYPE], ribbon[RBN_ID]);
 
 	SetMessage_SetFOV(pPlayer, 89);
 	SetMessage_CurWeapon(pPlayer, clip);
 	SetMessage_SetFOV(pPlayer, 90);
 }
 
-stock SetMessage_WeaponList(const pPlayer,const pWpnId, const pAmmoId, const pAmmoMaxAmount, const type, const ribbon) 
+stock SetMessage_WeaponList(const pPlayer,const pWpnId, const Ammo:pAmmoId, const pAmmoMaxAmount, const type, const ribbon) 
 {
 	message_begin(MSG_ONE, g_MsgIds[MSGID_WEAPON_LIST], .player = pPlayer);
 	{
@@ -994,7 +994,7 @@ stock SetMessage_WeaponList(const pPlayer,const pWpnId, const pAmmoId, const pAm
 		write_string(fmt("bf4_ranks/ribbons/%s", g_Ribbons[ribbon][RBN_FILENAME]));
 		else
 		write_string(fmt("bf4_ranks/medals/%s", g_Medals[ribbon][RBN_FILENAME]));
-		write_byte(pAmmoId);
+		write_byte(_:pAmmoId);
 		write_byte(pAmmoMaxAmount);
 		write_byte(-1);
 		write_byte(-1);
@@ -1090,264 +1090,264 @@ stock BF4_WEAPONCLASS:bf4_get_weapon_class(weapon_id)
 	return type;
 }
 
-public BF4ObjectMenu(id)
-{
-	if (is_user_bot(id))
-		return PLUGIN_HANDLED;
+// public BF4ObjectMenu(id)
+// {
+// 	if (is_user_bot(id))
+// 		return PLUGIN_HANDLED;
 
-	if (!is_user_alive(id))
-		return PLUGIN_HANDLED;
+// 	if (!is_user_alive(id))
+// 		return PLUGIN_HANDLED;
 
-	// Create a variable to hold the menu
-	new menu = menu_create("BF4 Object Menu:", "bf4_object_menu_handler");
-	new szMenu[32], szCost[6];
+// 	// Create a variable to hold the menu
+// 	new menu = menu_create("BF4 Object Menu:", "bf4_object_menu_handler");
+// 	new szMenu[32], szCost[6];
 
-	//Add the item for this player
-	num_to_str(g_cvars[E_CV_HEALTHKIT_COST], szCost, charsmax(szCost));
-	formatex(szMenu, charsmax(szMenu), "Health Kit^t\y[$%6d]", g_cvars[E_CV_HEALTHKIT_COST]);
-	menu_additem(menu, szMenu, szCost, 0, gSubMenuCallback);
+// 	//Add the item for this player
+// 	num_to_str(g_cvars[E_CV_HEALTHKIT_COST], szCost, charsmax(szCost));
+// 	formatex(szMenu, charsmax(szMenu), "Health Kit^t\y[$%6d]", g_cvars[E_CV_HEALTHKIT_COST]);
+// 	menu_additem(menu, szMenu, szCost, 0, gSubMenuCallback);
 
-	num_to_str(g_cvars[E_CV_AMMOBOX_COST], szCost, charsmax(szCost));
-	formatex(szMenu, charsmax(szMenu), "Ammo Box^t\y[$%6d]", g_cvars[E_CV_AMMOBOX_COST]);
-	menu_additem(menu, szMenu, szCost, 0, gSubMenuCallback);
+// 	num_to_str(g_cvars[E_CV_AMMOBOX_COST], szCost, charsmax(szCost));
+// 	formatex(szMenu, charsmax(szMenu), "Ammo Box^t\y[$%6d]", g_cvars[E_CV_AMMOBOX_COST]);
+// 	menu_additem(menu, szMenu, szCost, 0, gSubMenuCallback);
 
-	// if (cvar_exists("bf4_rkit_cost"))
-	// {
-	// 	new rkitCost = get_cvar_num("bf4_rkit_cost");
-	// 	num_to_str(rkitCost, szCost, charsmax(szCost));
-	// 	formatex(szMenu, charsmax(szMenu), "Revival Kit^t\y[$%6d]", rkitCost);
-	// 	menu_additem(menu, szMenu, szCost, 0, gSubMenuCallback);
-	// }
+// 	// if (cvar_exists("bf4_rkit_cost"))
+// 	// {
+// 	// 	new rkitCost = get_cvar_num("bf4_rkit_cost");
+// 	// 	num_to_str(rkitCost, szCost, charsmax(szCost));
+// 	// 	formatex(szMenu, charsmax(szMenu), "Revival Kit^t\y[$%6d]", rkitCost);
+// 	// 	menu_additem(menu, szMenu, szCost, 0, gSubMenuCallback);
+// 	// }
 
-	//We now have all players in the menu, lets display the menu
-	menu_display( id, menu, 0 );
-	return PLUGIN_HANDLED;	
-}
+// 	//We now have all players in the menu, lets display the menu
+// 	menu_display( id, menu, 0 );
+// 	return PLUGIN_HANDLED;	
+// }
 
-public bf4_object_menu_handler(id, menu, item)
-{
-	//Do a check to see if they exited because menu_item_getinfo ( see below ) will give an error if the item is MENU_EXIT
-	if (item == MENU_EXIT)
-	{
-		menu_destroy(menu);
-		return PLUGIN_HANDLED;
-	}
-	new szData[6], szName[64];
-	new _access, item_callback;
-	//heres the function that will give us that information ( since it doesnt magicaly appear )
-	menu_item_getinfo( menu, item, _access, szData, charsmax(szData), szName, charsmax(szName), item_callback);
-	new iCost = str_to_num(szData);
-	switch(item)
-	{
-		case E_HEALTH_KIT:
-		{
-			cs_set_user_money(id, cs_get_user_money(id) - iCost, 1);
-			BF4SpawnEntity(id, E_HEALTH_KIT);
-		}
-		case E_AMMO_BOX:
-		{
-			cs_set_user_money(id, cs_get_user_money(id) - iCost, 1);
-			BF4SpawnEntity(id, E_AMMO_BOX);
-		}
-		// case E_REVIVAL_KIT:
-		// {
-		// 	BF4BuyRivivekit(id);
-		// }
-	}
-	return PLUGIN_HANDLED;
-}
+// public bf4_object_menu_handler(id, menu, item)
+// {
+// 	//Do a check to see if they exited because menu_item_getinfo ( see below ) will give an error if the item is MENU_EXIT
+// 	if (item == MENU_EXIT)
+// 	{
+// 		menu_destroy(menu);
+// 		return PLUGIN_HANDLED;
+// 	}
+// 	new szData[6], szName[64];
+// 	new _access, item_callback;
+// 	//heres the function that will give us that information ( since it doesnt magicaly appear )
+// 	menu_item_getinfo( menu, item, _access, szData, charsmax(szData), szName, charsmax(szName), item_callback);
+// 	new iCost = str_to_num(szData);
+// 	switch(item)
+// 	{
+// 		case E_HEALTH_KIT:
+// 		{
+// 			cs_set_user_money(id, cs_get_user_money(id) - iCost, 1);
+// 			BF4SpawnEntity(id, E_HEALTH_KIT);
+// 		}
+// 		case E_AMMO_BOX:
+// 		{
+// 			cs_set_user_money(id, cs_get_user_money(id) - iCost, 1);
+// 			BF4SpawnEntity(id, E_AMMO_BOX);
+// 		}
+// 		// case E_REVIVAL_KIT:
+// 		// {
+// 		// 	BF4BuyRivivekit(id);
+// 		// }
+// 	}
+// 	return PLUGIN_HANDLED;
+// }
 
-public bf4_object_menu_callback(id, menu, item)
-{
-	new szData[6], szName[64], access, callback;
-	//Get information about the menu item
-	menu_item_getinfo(menu, item, access, szData, charsmax(szData), szName, charsmax(szName), callback);
-	new cost = str_to_num(szData);
-	if (cost > cs_get_user_money(id))
-	 	return ITEM_DISABLED;
+// public bf4_object_menu_callback(id, menu, item)
+// {
+// 	new szData[6], szName[64], access, callback;
+// 	//Get information about the menu item
+// 	menu_item_getinfo(menu, item, access, szData, charsmax(szData), szName, charsmax(szName), callback);
+// 	new cost = str_to_num(szData);
+// 	if (cost > cs_get_user_money(id))
+// 	 	return ITEM_DISABLED;
 
-	return ITEM_IGNORE;
-}
+// 	return ITEM_IGNORE;
+// }
 
-BF4SpawnEntity(id, class)
-{
-	if (pev_valid(gObjectItem[id]))
-	{
-		new flags;
-		// engfunc(EngFunc_RemoveEntity, gObjectItem[id]);
-		pev(gObjectItem[id], pev_flags, flags);
-		set_pev(gObjectItem[id], pev_flags, flags | FL_KILLME);
-		dllfunc(DLLFunc_Think, gObjectItem[id]);
-	}
+// BF4SpawnEntity(id, class)
+// {
+// 	if (pev_valid(gObjectItem[id]))
+// 	{
+// 		new flags;
+// 		// engfunc(EngFunc_RemoveEntity, gObjectItem[id]);
+// 		pev(gObjectItem[id], pev_flags, flags);
+// 		set_pev(gObjectItem[id], pev_flags, flags | FL_KILLME);
+// 		dllfunc(DLLFunc_Think, gObjectItem[id]);
+// 	}
 
-	new iEnt = cs_create_entity(ENT_CLASS_BREAKABLE);
-	if (pev_valid(iEnt))
-	{
-		gObjectItem[id] = iEnt;
-		// set models.
-		engfunc(EngFunc_SetModel, iEnt, ENT_MODELS[class]);
-		// set solid.
-		set_pev(iEnt, pev_solid, 		SOLID_TRIGGER);
-		// set movetype.
-		set_pev(iEnt, pev_movetype, 	MOVETYPE_TOSS);
+// 	new iEnt = cs_create_entity(ENT_CLASS_BREAKABLE);
+// 	if (pev_valid(iEnt))
+// 	{
+// 		gObjectItem[id] = iEnt;
+// 		// set models.
+// 		engfunc(EngFunc_SetModel, iEnt, ENT_MODELS[class]);
+// 		// set solid.
+// 		set_pev(iEnt, pev_solid, 		SOLID_TRIGGER);
+// 		// set movetype.
+// 		set_pev(iEnt, pev_movetype, 	MOVETYPE_TOSS);
 
-		set_pev(iEnt, pev_renderfx,	 	kRenderFxNone);
-		set_pev(iEnt, pev_body, 		3);
+// 		set_pev(iEnt, pev_renderfx,	 	kRenderFxNone);
+// 		set_pev(iEnt, pev_body, 		3);
 
-		// set model animation.
-		set_pev(iEnt, pev_frame,		0);
-		set_pev(iEnt, pev_framerate,	0);
-		// set_pev(iEnt, pev_renderamt,	255.0);
-		// set_pev(iEnt, pev_rendercolor,	{255.0,255.0,255.0});
-		set_pev(iEnt, pev_owner,		id);
-		// Entity Setting.
-		// set class name.
-		set_pev(iEnt, pev_classname, 	ENT_CLASS[class]);
-		// set take damage.
-		set_pev(iEnt, pev_takedamage, 	DAMAGE_YES);
-		set_pev(iEnt, pev_dmg, 			100.0);
-		// set entity health.
-		set_pev(iEnt, pev_health,		50.0);
-		// Vector settings.
-		new Float:vOrigin	[3],
-			Float:vViewOfs	[3],
-			Float:vVelocity	[3];
+// 		// set model animation.
+// 		set_pev(iEnt, pev_frame,		0);
+// 		set_pev(iEnt, pev_framerate,	0);
+// 		// set_pev(iEnt, pev_renderamt,	255.0);
+// 		// set_pev(iEnt, pev_rendercolor,	{255.0,255.0,255.0});
+// 		set_pev(iEnt, pev_owner,		id);
+// 		// Entity Setting.
+// 		// set class name.
+// 		set_pev(iEnt, pev_classname, 	ENT_CLASS[class]);
+// 		// set take damage.
+// 		set_pev(iEnt, pev_takedamage, 	DAMAGE_YES);
+// 		set_pev(iEnt, pev_dmg, 			100.0);
+// 		// set entity health.
+// 		set_pev(iEnt, pev_health,		50.0);
+// 		// Vector settings.
+// 		new Float:vOrigin	[3],
+// 			Float:vViewOfs	[3],
+// 			Float:vVelocity	[3];
 
-		// get user position.
-		pev(id, pev_origin, vOrigin);
-		pev(id, pev_view_ofs, vViewOfs);
+// 		// get user position.
+// 		pev(id, pev_origin, vOrigin);
+// 		pev(id, pev_view_ofs, vViewOfs);
 
-		velocity_by_aim(id, 100, vVelocity);
-		xs_vec_add(vOrigin, vViewOfs, vOrigin);  	
+// 		velocity_by_aim(id, 100, vVelocity);
+// 		xs_vec_add(vOrigin, vViewOfs, vOrigin);  	
 
-		// set size.
-		engfunc(EngFunc_SetSize, iEnt, Float:{ -4.0, -4.0, -4.0 }, Float:{ 4.0, 4.0, 4.0 } );
-		// set entity position.
-		engfunc(EngFunc_SetOrigin, iEnt, vOrigin );
-		set_pev(iEnt, pev_velocity,		vVelocity);
+// 		// set size.
+// 		engfunc(EngFunc_SetSize, iEnt, Float:{ -4.0, -4.0, -4.0 }, Float:{ 4.0, 4.0, 4.0 } );
+// 		// set entity position.
+// 		engfunc(EngFunc_SetOrigin, iEnt, vOrigin );
+// 		set_pev(iEnt, pev_velocity,		vVelocity);
 
-		set_pev(iEnt, pev_renderfx, 	kRenderFxGlowShell);
-		if (is_user_connected(id))
-			if (cs_get_user_team(id) == CS_TEAM_CT)
-				set_pev(iEnt, pev_rendercolor, 	Float:{0.0, 0.0, 255.0});
-			else if(cs_get_user_team(id) == CS_TEAM_T)
-				set_pev(iEnt, pev_rendercolor, 	Float:{255.0, 0.0, 0.0});
-		set_pev(iEnt, pev_rendermode, 	kRenderNormal);
-		set_pev(iEnt, pev_renderamt, 	5.0);
+// 		set_pev(iEnt, pev_renderfx, 	kRenderFxGlowShell);
+// 		if (is_user_connected(id))
+// 			if (cs_get_user_team(id) == CS_TEAM_CT)
+// 				set_pev(iEnt, pev_rendercolor, 	Float:{0.0, 0.0, 255.0});
+// 			else if(cs_get_user_team(id) == CS_TEAM_T)
+// 				set_pev(iEnt, pev_rendercolor, 	Float:{255.0, 0.0, 0.0});
+// 		set_pev(iEnt, pev_rendermode, 	kRenderNormal);
+// 		set_pev(iEnt, pev_renderamt, 	5.0);
 
-		// Reset powoer on delay time.
-		new Float:fCurrTime = get_gametime();
+// 		// Reset powoer on delay time.
+// 		new Float:fCurrTime = get_gametime();
 
-		// Save results to be used later.
-		set_pev(iEnt, ITEM_TEAM,	cs_get_user_team(id));
-		// think rate. hmmm....
-		set_pev(iEnt, pev_nextthink,fCurrTime + 2.0);
+// 		// Save results to be used later.
+// 		set_pev(iEnt, ITEM_TEAM,	cs_get_user_team(id));
+// 		// think rate. hmmm....
+// 		set_pev(iEnt, pev_nextthink,fCurrTime + 2.0);
 
-		emit_sound(id, CHAN_ITEM, "items/ammopickup2.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-	}
-}
+// 		emit_sound(id, CHAN_ITEM, "items/ammopickup2.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+// 	}
+// }
 
-public BF4ObjectThink(iEnt)
-{
-	if (!pev_valid(iEnt))
-		return HAM_IGNORED;
+// public BF4ObjectThink(iEnt)
+// {
+// 	if (!pev_valid(iEnt))
+// 		return HAM_IGNORED;
 
-	new CsTeams:team = CsTeams:pev(iEnt, ITEM_TEAM);
-	new Float:vOrigin[3];
-	new Float:fCurrTime = get_gametime();
-	new weapon, ammo, entity, health;
-	new Float:radius = 128.0;
-	new classname[32];
-	new owner = pev(iEnt, pev_owner);
-	pev(iEnt, pev_origin, vOrigin);
-	pev(iEnt, pev_classname, classname, charsmax(classname));
-	for(new i = 0; i <= _:E_AMMO_BOX; i++)
-	{
-		if (equali(ENT_CLASS[i], classname))
-		{
-			switch(i)
-			{
-				case E_HEALTH_KIT:
-				{
-					entity = -1;
-					while((entity = engfunc(EngFunc_FindEntityInSphere, entity, vOrigin, radius)) != 0)
-					{
-						if (is_user_alive(entity))
-						{
-							if (cs_get_user_team(entity) == team)
-							{
-								health = get_user_health(entity);
-								if (health < 100)
-								{
-									set_user_health(entity, min(health + g_cvars[E_CV_HEALTHKIT_AMOUNT], 100));
-									emit_sound(entity, CHAN_ITEM, "items/medshot4.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-									if (owner != entity)
-									{
-										stock_bf4_trigger_ribbon(owner, BF4_RNK_MEDIKIT, "Mate Healing.");
-									}
-								}
-							}
-						}
-					}
-					set_pev(iEnt, pev_nextthink, fCurrTime + g_cvars[E_CV_HEALTHKIT_INTERVAL]);
-				}
-				case E_AMMO_BOX:
-				{
-					entity = -1;
-					while((entity = engfunc(EngFunc_FindEntityInSphere, entity, vOrigin, radius)) != 0)
-					{
-						if (is_user_alive(entity))
-						{
-							if (cs_get_user_team(entity) == team)
-							{
-								weapon = cs_get_user_weapon_entity(entity);
-								weapon = cs_get_weapon_id(weapon);
-								ammo   = cs_get_user_bpammo(entity, weapon);
-								if (CSW_AMMO_ID[weapon][1] > ammo)
-								{
-									ExecuteHamB(Ham_GiveAmmo, entity, g_cvars[E_CV_AMMOBOX_AMOUNT], g_szAmmoNames[CSW_AMMO_ID[weapon][0]], CSW_AMMO_ID[weapon][1]);
-									emit_sound(entity, CHAN_ITEM, "items/gunpickup2.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-									if (owner != entity)
-									{
-										stock_bf4_trigger_ribbon(owner, BF4_RNK_AMMOBOX, "Mate Resupplying.");
-									}
-								}
-							}
-						}
-					}
-					set_pev(iEnt, pev_nextthink, fCurrTime + g_cvars[E_CV_AMMOBOX_INTERVAL]);
-				}
-			}
-		}
-	}
-	return HAM_IGNORED;
-}
+// 	new CsTeams:team = CsTeams:pev(iEnt, ITEM_TEAM);
+// 	new Float:vOrigin[3];
+// 	new Float:fCurrTime = get_gametime();
+// 	new weapon, ammo, entity, health;
+// 	new Float:radius = 128.0;
+// 	new classname[32];
+// 	new owner = pev(iEnt, pev_owner);
+// 	pev(iEnt, pev_origin, vOrigin);
+// 	pev(iEnt, pev_classname, classname, charsmax(classname));
+// 	for(new i = 0; i <= _:E_AMMO_BOX; i++)
+// 	{
+// 		if (equali(ENT_CLASS[i], classname))
+// 		{
+// 			switch(i)
+// 			{
+// 				// case E_HEALTH_KIT:
+// 				// {
+// 				// 	entity = -1;
+// 				// 	while((entity = engfunc(EngFunc_FindEntityInSphere, entity, vOrigin, radius)) != 0)
+// 				// 	{
+// 				// 		if (is_user_alive(entity))
+// 				// 		{
+// 				// 			if (cs_get_user_team(entity) == team)
+// 				// 			{
+// 				// 				health = get_user_health(entity);
+// 				// 				if (health < 100)
+// 				// 				{
+// 				// 					set_user_health(entity, min(health + g_cvars[E_CV_HEALTHKIT_AMOUNT], 100));
+// 				// 					emit_sound(entity, CHAN_ITEM, "items/medshot4.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+// 				// 					if (owner != entity)
+// 				// 					{
+// 				// 						stock_bf4_trigger_ribbon(owner, BF4_RNK_MEDIKIT, "Mate Healing.");
+// 				// 					}
+// 				// 				}
+// 				// 			}
+// 				// 		}
+// 				// 	}
+// 				// 	set_pev(iEnt, pev_nextthink, fCurrTime + g_cvars[E_CV_HEALTHKIT_INTERVAL]);
+// 				// }
+// 				case E_AMMO_BOX:
+// 				{
+// 					entity = -1;
+// 					while((entity = engfunc(EngFunc_FindEntityInSphere, entity, vOrigin, radius)) != 0)
+// 					{
+// 						if (is_user_alive(entity))
+// 						{
+// 							if (cs_get_user_team(entity) == team)
+// 							{
+// 								weapon = cs_get_user_weapon_entity(entity);
+// 								weapon = cs_get_weapon_id(weapon);
+// 								ammo   = cs_get_user_bpammo(entity, weapon);
+// 								if (CSW_AMMO_ID[weapon][1] > ammo)
+// 								{
+// 									ExecuteHamB(Ham_GiveAmmo, entity, g_cvars[E_CV_AMMOBOX_AMOUNT], g_szAmmoNames[CSW_AMMO_ID[weapon][0]], CSW_AMMO_ID[weapon][1]);
+// 									emit_sound(entity, CHAN_ITEM, "items/gunpickup2.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+// 									if (owner != entity)
+// 									{
+// 										stock_bf4_trigger_ribbon(owner, BF4_RNK_AMMOBOX, "Mate Resupplying.");
+// 									}
+// 								}
+// 							}
+// 						}
+// 					}
+// 					set_pev(iEnt, pev_nextthink, fCurrTime + g_cvars[E_CV_AMMOBOX_INTERVAL]);
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return HAM_IGNORED;
+// }
 
-public BF4JoinTeam()
-{
-	new id = read_data(1);
-	static user_team[32];
-	read_data(2, user_team, charsmax(user_team));
+// public BF4JoinTeam()
+// {
+// 	new id = read_data(1);
+// 	static user_team[32];
+// 	read_data(2, user_team, charsmax(user_team));
     
-	if(!is_user_connected(id))
-    	return PLUGIN_CONTINUE;
+// 	if(!is_user_connected(id))
+//     	return PLUGIN_CONTINUE;
     
-	if (!is_user_alive(id))
-	{
-		switch(user_team[0])
-		{
-			case 'C':  
-				// player join to ct's        
-				ExecuteHamB(Ham_CS_RoundRespawn, id);
-			case 'T': 
-				// player join to terrorist
-				ExecuteHamB(Ham_CS_RoundRespawn, id);
-			case 'S':  
-				// player join to spectators
-				return PLUGIN_CONTINUE;
-			default:
-				return PLUGIN_CONTINUE;
-		}
-	}
-    return PLUGIN_CONTINUE;
-}
+// 	if (!is_user_alive(id))
+// 	{
+// 		switch(user_team[0])
+// 		{
+// 			case 'C':  
+// 				// player join to ct's        
+// 				ExecuteHamB(Ham_CS_RoundRespawn, id);
+// 			case 'T': 
+// 				// player join to terrorist
+// 				ExecuteHamB(Ham_CS_RoundRespawn, id);
+// 			case 'S':  
+// 				// player join to spectators
+// 				return PLUGIN_CONTINUE;
+// 			default:
+// 				return PLUGIN_CONTINUE;
+// 		}
+// 	}
+//     return PLUGIN_CONTINUE;
+// }
