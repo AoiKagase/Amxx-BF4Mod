@@ -102,6 +102,7 @@ public BF4TouchWeaponBox(iWpnBox, iToucher)
 		GetWeaponBoxInfo(iWpnBox, bWeaponId, bAmmo, bAmmoName, charsmax(bAmmoName));
 		GePlayerWeaponInfo(iPWeapon, pAmmo, pAmmoName, charsmax(pAmmoName));
 
+		client_print_color(iToucher, print_team_default, "^4[BF4 DEBUG] ^1AmmoName - WeaponBox: %s, PlayerWeapon: %s", bAmmoName, pAmmoName);
 		if (equali(bAmmoName, pAmmoName))
 		{
 //			new ammo = get_member(iBoxWeapon, m_Weapon_iClip);
@@ -127,7 +128,6 @@ GetWeaponBoxInfo(iEnt, &iWeapon, &irgAmmo, iszAmmo[], length)
         irgAmmo = get_member(iEnt, m_WeaponBox_rgAmmo, i);
 		get_member(iEnt, m_WeaponBox_rgiszAmmo, iszAmmo, length, i);
     }
-    return;
 } 
 
 GePlayerWeaponInfo(iEnt, &iMaxAmmo, szAmmo[], length)
