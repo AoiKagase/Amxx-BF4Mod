@@ -81,8 +81,7 @@ public plugin_precache()
 	BuildWeaponReload(Weapon, M1911A1_RELOAD, 2.2);
 	BuildWeaponPrimaryAttack(Weapon, FIRE_RATE, FIRE1_DAMAGE, RECOIL, M1911A1_SHOOT1);
 	RegisterWeaponForward(Weapon, WForward_PrimaryAttackPost, 	"M1911A1_PrimaryPost");
-	RegisterWeaponForward(Weapon, WForward_ReloadPost, 			"M1911A1_ReloadPost");
-	RegisterWeaponForward(Weapon, WForward_HolsterPost, 		"M1911A1_HolsterPost");
+
 	PrecacheWeaponModelSounds(Weapon);
 	for(new i = 0; i < sizeof(gSound); i++)
 		precache_sound(gSound[i]);
@@ -103,24 +102,4 @@ public M1911A1_PrimaryPost(Entity)
 {
 	if (GetWeaponClip(Entity) <= 0)
 		SendWeaponAnim(Entity, M1911A1_SHOOT_LAST);
-}
-public M1911A1_ReloadPost(Entity)
-{
-	set_task(1.0, "ReloadSound1", Entity);
-}
-
-public ReloadSound1(task)
-{
-	emit_sound(task, CHAN_STATIC, gSound[SND_CLIPIN], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-	set_task(0.7, "ReloadSound2", task);
-}
-public ReloadSound2(task)
-{
-	emit_sound(task, CHAN_STATIC, gSound[SND_SLIDEBACK], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-}
-
-public M1911A1_HolsterPost(Entity)
-{
-	if (task_exists(Entity))
-		remove_task(Entity);
 }

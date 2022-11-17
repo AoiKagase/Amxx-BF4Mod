@@ -77,7 +77,8 @@ new Weapon;
 new bool:gSilencer[MAX_PLAYERS + 1];
 new gSilModel;
 new gNonSilModel;
-new gWpnSystemId;
+
+#define TASK_SECONDARY 22102
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
@@ -89,6 +90,8 @@ public plugin_init()
 public client_putinserver(id)
 {
 	gSilencer[id] = false;
+	SetWeaponEntityData(Weapon, WED_A2, false);
+	ModelChange(id + TASK_SECONDARY);
 }
 
 public plugin_precache()
@@ -124,15 +127,15 @@ public plugin_precache()
 */
 	// BuildWeaponSecondaryAttack(Weapon, A2_InstaSwitch, KRISS_SHOOT1, FIRE_RATE, FIRE1_DAMAGE - 0.2, RECOIL, "", "");
 	BuildWeaponSecondaryAttack(Weapon, A2_Switch, 
-		KRISS_SILENCER_ADD, 3.0, 
-		KRISS_SILENCER_ADD, 3.0, 
+		KRISS_SILENCER_ADD, 2.5, 
+		KRISS_SILENCER_ADD, 2.0,
 		KRISS_IDLE, 
-		KRISS_IDLE, 0.0, 
+		KRISS_DRAW, 0.0, 
 		KRISS_SHOOT1, FIRE_RATE, 
 		KRISS_RELOAD, 3.7, 
 		FIRE_RATE,
 		FIRE1_DAMAGE - 0.2, 
-		RECOIL, 
+		RECOIL + 0.1, 
 		gSound[SND_SIL_FIRE1]
 	);
 	BuildWeaponFlags(Weapon, WFlag_SwitchMode_NoText);
@@ -142,9 +145,12 @@ public plugin_precache()
 	precache_sound(gSound[SND_SIL_FIRE1]);
 
 	RegisterWeaponForward(Weapon, WForward_PrimaryAttackPre, "PrimaryAttack");
-	RegisterWeaponForward(Weapon, WForward_SecondaryAttackPre, "SecondaryAttack");
+	RegisterWeaponForward(Weapon, WForward_SecondaryAttackPost, "SecondaryAttack");
+	// RegisterWeaponForward(Weapon, WForward_HolsterPost, "ModelChangeDeploy");
+	// RegisterWeaponForward(Weapon, WForward_SpawnPost, 	"ModelChangeDeploy");
+	RegisterWeaponForward(Weapon, WForward_DeployPost, 	"ModelChangeDeploy");
 
-	gWpnSystemId = BF4RegisterWeapon(BF4_TEAM_BOTH, 
+	BF4RegisterWeapon(BF4_TEAM_BOTH, 
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_ENGINEER, 
 		BF4_WEAPONCLASS_SMGS, 
 		Weapon,
@@ -157,44 +163,43 @@ public PlayerSpawn(id)
 {
 	if (is_user_alive(id))
 	{
-		new weaponname1[33];
-		pev(id, pev_viewmodel2, weaponname1, charsmax(weaponname1));
-		if (equali(weaponname1, "models/bf4_ranks/weapons/v_kriss") || equali(weaponname1, "models/bf4_ranks/weapons/v_kriss_2"))
-		{
-			if (gSilencer[id])
-				SetPlayerViewModel(id, gSilModel);
-			else
-				SetPlayerViewModel(id, gNonSilModel);
-		}
+		gSilencer[id] = false;
+		ModelChange(id + TASK_SECONDARY);
 	}
 }
 
 public SecondaryAttack(Entity)
 {
-	new Player = get_member(Entity, m_pPlayer);
-	SendWeaponAnim(Entity, KRISS_SILENCER_ADD);
-	gSilencer[Player] = !gSilencer[Player];
-	if (gSilencer[Player])
+	new id        = get_member(Entity, m_pPlayer);
+	gSilencer[id] = !gSilencer[id];
+
+	if (gSilencer[id])
 	{
-		set_task(2.5, "ModelChange", Player + 22102);
-		// SetNextAttack(Entity, 2.5, true);
+		set_task(2.5, "ModelChange", id + TASK_SECONDARY);
+		SetNextAttack(Entity, 2.5, true);
 	}
 	else
 	{
-		set_task(2.0, "ModelChange", Player + 22102);
-		// SetNextAttack(Entity, 2.0, true);
+		set_task(2.0, "ModelChange", id + TASK_SECONDARY);
+		SetNextAttack(Entity, 2.0, true);
 	}
+}
 
+public ModelChangeDeploy(Entity)
+{
+	new id = get_member(Entity, m_pPlayer);
+	ModelChange(id + TASK_SECONDARY);
 }
 
 public ModelChange(id)
 {
-	id -= 22102;
+	id -= TASK_SECONDARY;
 	if (is_user_alive(id))
 	{
 		new weaponname1[33];
 		pev(id, pev_viewmodel2, weaponname1, charsmax(weaponname1));
-		if (equali(weaponname1, "models/bf4_ranks/weapons/v_kriss") || equali(weaponname1, "models/bf4_ranks/weapons/v_kriss_2"))
+		if (equali(weaponname1, "models/bf4_ranks/weapons/v_kriss")
+		 || equali(weaponname1, "models/bf4_ranks/weapons/v_kriss_2"))
 		{
 			if (gSilencer[id])
 				SetPlayerViewModel(id, gSilModel);
@@ -203,4 +208,3 @@ public ModelChange(id)
 		}
 	}
 }
-
