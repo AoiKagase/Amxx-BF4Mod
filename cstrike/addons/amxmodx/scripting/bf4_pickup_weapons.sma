@@ -16,7 +16,7 @@
 
 #pragma semicolon	1
 
-#define PLUGIN 				"[BF4] Pickup Weapons"
+#define PLUGIN 				"[BF4] Pickup Ammo"
 #define VERSION 			"0.01"
 #define AUTHOR				"Aoi.Kagase"
 
@@ -82,10 +82,10 @@ new const CSW_AMMO_ID[CSW_P90 + 1][CSW_AMMO] =
 
 public plugin_init()
 {
-	register_plugin		(PLUGIN, VERSION, AUTHOR, "github.com/AoiKagase", "BF4 Ribbon");
+	register_plugin		(PLUGIN, VERSION, AUTHOR, "github.com/AoiKagase", "BF4 Pickup Ammo");
 	create_cvar			(PLUGIN, VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 
- 	RegisterHam			(Ham_Touch,			"weaponbox",			"BF4TouchWeaponBox", 0);
+ 	RegisterHam			(Ham_Touch,	"weaponbox", "BF4TouchWeaponBox", 0);
 }
 
 
@@ -94,17 +94,22 @@ public BF4TouchWeaponBox(iWpnBox, iToucher)
 {
 	if (is_user_alive(iToucher))
 	{
-		new iPWeapon = cs_get_weapon_id(cs_get_user_weapon_entity(iToucher));
-		new iDWeapon = cs_get_weapon_id(GetWeaponBoxWeaponType(iWpnBox));
+		new iPWeapon = cs_get_user_weapon_entity(iToucher);
+		// new iDWeapon = cs_get_weapon_id(GetWeaponBoxWeaponType(iWpnBox));
+		new bWeaponId;
+		new bAmmoName[33], pAmmoName[33];
+		new bAmmo, pAmmo;
+		GetWeaponBoxInfo(iWpnBox, bWeaponId, bAmmo, bAmmoName, charsmax(bAmmoName));
+		GePlayerWeaponInfo(iPWeapon, pAmmo, pAmmoName, charsmax(pAmmoName));
 
-		if (iPWeapon == iDWeapon)
+		if (equali(bAmmoName, pAmmoName))
 		{
 //			new ammo = get_member(iBoxWeapon, m_Weapon_iClip);
-			new ammo = GetAmmoBox(iWpnBox);
-			if (ammo)
+			// new ammo = GetAmmoBox(iWpnBox);
+			if (bAmmo)
 			{
 				// ExecuteHam(Ham_GiveAmmo, this, amount, "type", max);
-				ExecuteHamB(Ham_GiveAmmo, iToucher, ammo, g_szAmmoNames[CSW_AMMO_ID[iDWeapon][AmmoId]], CSW_AMMO_ID[iDWeapon][MaxAmmo]);
+				ExecuteHamB(Ham_GiveAmmo, iToucher, bAmmo, bAmmoName, pAmmo);
 				emit_sound(iToucher, CHAN_ITEM, "items/gunpickup2.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 				new flags;
 				pev(iWpnBox, pev_flags, flags);
@@ -114,24 +119,19 @@ public BF4TouchWeaponBox(iWpnBox, iToucher)
 	}
 }
 
-GetWeaponBoxWeaponType(iEnt) 
+GetWeaponBoxInfo(iEnt, &iWeapon, &irgAmmo, iszAmmo[], length) 
 { 
-    for(new i, iWeapon; i < MAX_ITEM_TYPES; i++)
+    for(new i = 0; i < MAX_ITEM_TYPES; i++)
     {
         iWeapon = get_member(iEnt, m_WeaponBox_rgpPlayerItems, i);
-        if(!is_nullent(iWeapon))
-            return iWeapon;
+        irgAmmo = get_member(iEnt, m_WeaponBox_rgAmmo, i);
+		get_member(iEnt, m_WeaponBox_rgiszAmmo, iszAmmo, length, i);
     }
-    return NULLENT;
+    return;
 } 
 
-GetAmmoBox(iEnt)
+GePlayerWeaponInfo(iEnt, &iMaxAmmo, szAmmo[], length)
 {
-    for(new i, iAmmo; i < MAX_ITEM_TYPES; i++)
-    {
-        iAmmo = get_member(iEnt, m_WeaponBox_rgAmmo, i);
-        if(!is_nullent(iAmmo))
-            return iAmmo;
-    }
-    return NULLENT;
+	rg_get_iteminfo(iEnt, ItemInfo_pszAmmo1, szAmmo, length);
+	iMaxAmmo = rg_get_iteminfo(iEnt, ItemInfo_iMaxAmmo1);
 }
