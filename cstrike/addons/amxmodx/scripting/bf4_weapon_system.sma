@@ -358,6 +358,8 @@ public message_status_icon(MsgId, dest, receiver)
 
 	if (equal(arg, g_icon_buyzone))
 	{
+		if (is_user_bot(receiver))
+			return PLUGIN_CONTINUE;
 		RemoveFromBuyzone(receiver);
 		set_msg_arg_int(1, ARG_BYTE, 0);
 	}
@@ -666,6 +668,9 @@ public PlayerSpawn(id)
 {
 	if (!is_user_alive(id))
 		return HAM_IGNORED;
+
+	if (is_user_bot(id))
+		return HAM_IGNORED;
 	strip_user_weapons(id);
 
 	BF4GiveWeapon(id);
@@ -726,15 +731,34 @@ public PlayerDeath()
 
 	if (!is_user_connected(iAttacker) || !is_user_alive(iAttacker))
 		return PLUGIN_CONTINUE;
+	
+	new killweapon[33];
 	new data[BF4_WEAPON_DATA];
-	new weapon		= cs_get_user_weapon(iAttacker);
-	switch(weapon)
+	new BF4_TEAM:team = BF4GetUserTeam(iAttacker);
+	get_msg_arg_string(4, killweapon, charsmax(killweapon));
+
+	for(new i = 0; i <= EQUIP; i++)
 	{
-		case CSW_P228:
-			if (gUseWeapons[iAttacker][SECONDARY] > -1)
+		if (gUseWeapons[iAttacker][i] <= -1)
+			continue;
+
+		ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][i], data, charsmax(data));
+		if (equali(data[ITEM], killweapon))
+		{
+			switch(data[WPNCLASS])
 			{
-				ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][SECONDARY], data, charsmax(data));
-				if (data[CSWM_ID] > -1)
+				case BF4_WEAPONCLASS_ASSAULTS:
+					(team == BF4_TEAM_US) ? set_msg_arg_string(4, "m4a1") :	set_msg_arg_string(4, "ak47");
+				case BF4_WEAPONCLASS_SNIPERS:
+					set_msg_arg_string(4, "awp");
+				case BF4_WEAPONCLASS_SMGS:
+					set_msg_arg_string(4, "mp5navy");
+				case BF4_WEAPONCLASS_LMGS:
+					set_msg_arg_string(4, "m249");
+				case BF4_WEAPONCLASS_DMRS:
+					(team == BF4_TEAM_US) ? set_msg_arg_string(4, "sg550") : set_msg_arg_string(4, "g3sg1");
+				default:
+				{
 					switch(data[AMMO_ID])
 					{
 						case Ammo_9MM:
@@ -747,32 +771,14 @@ public PlayerDeath()
 							set_msg_arg_string(4, "deagle");
 						case Ammo_57MM:
 							set_msg_arg_string(4, "fiveseven");
-					}
-			}
-		case CSW_AK47, CSW_XM1014, CSW_AWP:
-			if (gUseWeapons[iAttacker][PRIMARY] > -1)
-			{
-				ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][PRIMARY], data, charsmax(data));
-				if (data[CSWM_ID] > -1)
-				{
-					new BF4_TEAM:team = BF4GetUserTeam(iAttacker);
-					switch(data[WPNCLASS])
-					{
-						case BF4_WEAPONCLASS_ASSAULTS:
-							(team == BF4_TEAM_US) ? set_msg_arg_string(4, "m4a1") :	set_msg_arg_string(4, "ak47");
-						case BF4_WEAPONCLASS_SNIPERS:
-							set_msg_arg_string(4, "awp");
-						case BF4_WEAPONCLASS_SMGS:
-							set_msg_arg_string(4, "mp5navy");
-						case BF4_WEAPONCLASS_LMGS:
-							set_msg_arg_string(4, "m249");
-						case BF4_WEAPONCLASS_DMRS:
-							(team == BF4_TEAM_US) ? set_msg_arg_string(4, "sg550") : set_msg_arg_string(4, "g3sg1");
+						case Ammo_C4:
+							set_msg_arg_string(4, "c4");
 					}
 				}
 			}
+			break;
+		}
 	}
-
 	return PLUGIN_CONTINUE;
 }
 
