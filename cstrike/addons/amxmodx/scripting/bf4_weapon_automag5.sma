@@ -85,7 +85,6 @@ public plugin_precache()
 	BuildWeaponReload(Weapon, AUTOMAG5_RELOAD, 2.2);
 	BuildWeaponPrimaryAttack(Weapon, FIRE_RATE, FIRE1_DAMAGE, RECOIL, AUTOMAG5_SHOOT1);
 	RegisterWeaponForward(Weapon, WForward_PrimaryAttackPost, 	"AUTOMAG5_PrimaryPost");
-	RegisterWeaponForward(Weapon, WForward_ReloadPost, 			"AUTOMAG5_ReloadPost");
 
 	PrecacheWeaponModelSounds(Weapon);
 	for(new i = 0; i < sizeof(gSound); i++)
@@ -114,12 +113,3 @@ public AUTOMAG5_PrimaryPost(Entity)
 		SendWeaponAnim(Entity, AUTOMAG5_SHOOT_LAST);
 }
 
-public AUTOMAG5_ReloadPost(Entity)
-{
-	set_task(1.0, "ReloadSound", Entity);
-}
-
-public ReloadSound(task)
-{
-	emit_sound(task, CHAN_STATIC, gSound[SND_CLIPIN2], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-}

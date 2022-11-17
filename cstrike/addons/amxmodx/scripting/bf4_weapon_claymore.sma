@@ -548,7 +548,7 @@ public OnSetModels(const item)
 	set_pev(client, pev_weaponmodel2, 	ENT_MODELS[P_WPN]);
 
 	UTIL_PlayWeaponAnimation(client, SEQ_DRAW);
-	emit_sound(client, CHAN_WEAPON, ENT_SOUNDS[SND_CM_DRAW], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+	// emit_sound(client, CHAN_WEAPON, ENT_SOUNDS[SND_CM_DRAW], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 
 	return HAM_HANDLED;
 }
@@ -2506,7 +2506,7 @@ public PlayerCmdStart(id, handle, random_seed)
 		if (CheckDeploy(id))
 		{
 			UTIL_PlayWeaponAnimation(id, SEQ_SHOOT);
-			emit_sound(id, CHAN_WEAPON, ENT_SOUNDS[SND_CM_ATTACK], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			// emit_sound(id, CHAN_WEAPON, ENT_SOUNDS[SND_CM_ATTACK], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 
 			mines_progress_deploy(id);
 			mines_deploy_status(id);
@@ -2516,7 +2516,7 @@ public PlayerCmdStart(id, handle, random_seed)
 	} else if (buttonReleased & IN_ATTACK) 
 	{
 		UTIL_PlayWeaponAnimation(id, SEQ_DRAW);
-		emit_sound(id, CHAN_WEAPON, ENT_SOUNDS[SND_CM_DRAW], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		// emit_sound(id, CHAN_WEAPON, ENT_SOUNDS[SND_CM_DRAW], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 		mines_progress_stop(id);
 		mines_deploy_status(id);
 

@@ -87,8 +87,6 @@ public plugin_precache()
 	BuildWeaponPrimaryAttack(Weapon, FIRE_RATE, FIRE1_DAMAGE, RECOIL, PYTHON_SHOOT1);
 
 	RegisterWeaponForward(Weapon, WForward_PrimaryAttackPost, 	"PYTHON_PrimaryPost");
-	RegisterWeaponForward(Weapon, WForward_ReloadPost, 			"PYTHON_ReloadPost");
-	RegisterWeaponForward(Weapon, WForward_HolsterPost, 		"PYTHON_HolsterPost");
 
 	PrecacheWeaponModelSounds(Weapon);
 	for(new i = 0; i < sizeof(gSound); i++)
@@ -111,18 +109,3 @@ public PYTHON_PrimaryPost(Entity)
 		SendWeaponAnim(Entity, PYTHON_SHOOT_LAST);
 }
 
-public PYTHON_ReloadPost(Entity)
-{
-	set_task(1.1, "ReloadSound", Entity);
-}
-
-public ReloadSound(task)
-{
-	emit_sound(task, CHAN_STATIC, gSound[SND_CLIPIN1], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-}
-
-public PYTHON_HolsterPost(Entity)
-{
-	if (task_exists(Entity))
-		remove_task(Entity);
-}

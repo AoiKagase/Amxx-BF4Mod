@@ -23,6 +23,31 @@ enum WPN_CLASSIC_DATA
 	BF4_CLASS:CSC_HASCLASS,
 };
 
+
+enum AMMO_LIST
+{
+	AmmoName[33],
+	MaxAmmo,
+}
+
+new const gAmmoList[Ammo][AMMO_LIST] = {
+	{"", 			0},
+	{"338magnum",	30},
+	{"762nato",		90},
+	{"556natobox",	200},
+	{"556nato",		90},
+	{"buckshot",	32},
+	{"45acp",		100},
+	{"57mm",		100},
+	{"50ae",		35},
+	{"357sig",		52},
+	{"9mm",			120},
+	{"hegrenade",	1},
+	{"flashbang",	2},
+	{"smokegrenade",1},
+	{"c4",			1},
+};
+
 // Classic Weapon Data.
 // FullName, ItemName, AmmoId, Team, WeaponClass, Has Class
 new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
@@ -315,6 +340,8 @@ public plugin_init()
 	RegisterHamPlayer(Ham_Spawn, 		"PlayerSpawn", true);
 	RegisterHamPlayer(Ham_TakeDamage, 	"PlayerTakeDamagePre");
 	RegisterHamPlayer(Ham_TakeDamage, 	"PlayerTakeDamagePost", true);
+
+ 	RegisterHam(Ham_Touch,	"weaponbox", "BF4TouchWeaponBox", 0);
 
 	register_forward(FM_CreateNamedEntity, "forward_create_named_entity");
 
@@ -637,7 +664,6 @@ public BF4WeaponMenuWeaponClass(id, BF4_WEAPONCLASS:iWpnClass)
 	menu_display(id, menu, 0);
 }
 
-
 // ====================================================================
 // Select Primary Weapon menu. Handler.
 // =====================================================================
@@ -851,4 +877,88 @@ stock GetWeaponSlot(BF4_WEAPONCLASS:class)
 		case BF4_WEAPONCLASS_EXTRA:		return EXTRAITEM;
 	}
 	return EXTRAITEM;
+}
+
+// =====================================================================
+// Weapon box pick up
+// =====================================================================
+public BF4TouchWeaponBox(iWpnBox, iToucher)
+{
+	// Player Check
+	if (is_user_alive(iToucher))
+	{
+		// Get Weapon Box information.
+		new bWeaponId, bAmmoName[33], bAmmo;
+		GetWeaponBoxInfo(iWpnBox, bWeaponId, bAmmo, bAmmoName, charsmax(bAmmoName));
+
+		new data[BF4_WEAPON_DATA];
+		new pMaxAmmo, pAmmoName[33];
+
+		// All Slot weapon.
+		for(new i = 0; i <= EQUIP; i++)
+		{
+			if (gUseWeapons[iToucher][i] <= -1)
+				continue;
+			// Search for the weapon you currently have.
+			ArrayGetArray(gWeaponList, gUseWeapons[iToucher][i], data, sizeof(data));
+
+			// Is Custom Weapon.
+			if (data[CSWM_ID])
+			{
+				// Get AmmoId, AmmoName, MaxAmmo
+				// Use CS Weapon Mod Function.
+				new Ammo:ammoid 	= GetWeaponData(data[CSWM_ID], WD_AmmoID);
+				formatex(pAmmoName, charsmax(pAmmoName), gAmmoList[ammoid][AmmoName]);
+				pMaxAmmo	= gAmmoList[ammoid][MaxAmmo];
+			}
+			else
+			{
+				// Is Default Weapon.
+				// Use ReAPI Function.
+				// AmmoName, MaxAmmo
+				new iPWeapon = cs_get_user_weapon_entity(iToucher);
+				GePlayerDefaultWeaponInfo(iPWeapon, pMaxAmmo, pAmmoName, charsmax(pAmmoName));
+			}
+
+			// WeaponBox AmmoName == PlayerWeapon AmmoName
+			if (equali(bAmmoName, pAmmoName))
+			{
+//				client_print_color(iToucher, print_team_default, "^4[BF4 DEBUG] ^1AmmoName - WeaponBox: %s, PlayerWeapon: %s", bAmmoName, pAmmoName);
+
+				// Pick up Ammo.
+				// ExecuteHam(Ham_GiveAmmo, this, amount, "type", max);
+				ExecuteHamB(Ham_GiveAmmo, iToucher, bAmmo, bAmmoName, pMaxAmmo);
+				emit_sound(iToucher, CHAN_ITEM, "items/gunpickup2.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+
+				// Remove Ammobox Entity.
+				set_pev(iWpnBox, pev_flags, pev(iWpnBox, pev_flags) | FL_KILLME);
+				return;
+			}
+		}
+	}
+}
+
+// =====================================================================
+// ReAPI: Get Weapon box Info
+// =====================================================================
+GetWeaponBoxInfo(iEnt, &iWeapon, &irgAmmo, iszAmmo[], length) 
+{ 
+    for(new i = 0; i < MAX_ITEM_TYPES; i++)
+    {
+		iWeapon 	= get_member(iEnt, m_WeaponBox_rgpPlayerItems, i);
+		irgAmmo 	= get_member(iEnt, m_WeaponBox_rgAmmo, i);
+		get_member(iEnt, m_WeaponBox_rgiszAmmo, iszAmmo, length, i);
+		if (!is_nullent(iWeapon))
+			return;
+    }
+} 
+
+// =====================================================================
+// ReAPI: Get Default Weapon Info
+// =====================================================================
+GePlayerDefaultWeaponInfo(iEnt, &iMaxAmmo, szAmmo[], length)
+{
+	rg_get_iteminfo(iEnt, ItemInfo_pszAmmo1, szAmmo, length);
+	iMaxAmmo = rg_get_iteminfo(iEnt, ItemInfo_iMaxAmmo1);
+	return;
 }
