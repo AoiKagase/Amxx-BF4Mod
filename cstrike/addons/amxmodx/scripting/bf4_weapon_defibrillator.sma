@@ -220,9 +220,11 @@ public plugin_precache()
 		BF4_CLASS_REQUIRE | BF4_CLASS_ASSAULT, 
 		BF4_WEAPONCLASS_MELEE, 
 		-1,
-		Ammo_None,
 		"Defibrillator",
-		"knife");
+		"knife",
+		_:Ammo_None,
+		""
+	);
 
 	return PLUGIN_CONTINUE;
 }

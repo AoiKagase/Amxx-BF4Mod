@@ -381,9 +381,11 @@ public plugin_precache()
 		BF4_CLASS_SELECTABLE | BF4_CLASS_SUPPORT | BF4_CLASS_ENGINEER, 
 		BF4_WEAPONCLASS_EQUIP, 
 		-1,
-		Ammo_C4,
 		"Claymore",
-		"c4");
+		"c4",
+		_:Ammo_C4,
+		"claymore"
+	);
 
 	return PLUGIN_CONTINUE;
 }

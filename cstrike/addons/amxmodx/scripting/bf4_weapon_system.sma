@@ -17,36 +17,17 @@ enum WPN_CLASSIC_DATA
 {
 	CSC_NAME[64],
 	CSC_ITEM[33],
-	Ammo:CSC_AMMOID,
+	CSC_AMMOID,
 	BF4_TEAM:CSC_TEAM,
 	BF4_WEAPONCLASS:CSC_WPNCLASS,
 	BF4_CLASS:CSC_HASCLASS,
 };
-
 
 enum AMMO_LIST
 {
 	AmmoName[33],
 	MaxAmmo,
 }
-
-new const gAmmoList[Ammo][AMMO_LIST] = {
-	{"", 			0},
-	{"338magnum",	30},
-	{"762nato",		90},
-	{"556natobox",	200},
-	{"556nato",		90},
-	{"buckshot",	32},
-	{"45acp",		100},
-	{"57mm",		100},
-	{"50ae",		35},
-	{"357sig",		52},
-	{"9mm",			120},
-	{"hegrenade",	1},
-	{"flashbang",	2},
-	{"smokegrenade",1},
-	{"c4",			1},
-};
 
 // Classic Weapon Data.
 // FullName, ItemName, AmmoId, Team, WeaponClass, Has Class
@@ -55,7 +36,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"",
 		"",
-		Ammo_None,
+		_:Ammo_None,
 		BF4_TEAM_NONE,	
 		BF4_WEAPONCLASS_NONE,		
 		BF4_CLASS_NONE,
@@ -63,7 +44,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"SIG SAUER P228",
 		"p228",
-		Ammo_357SIG,	
+		_:Ammo_357SIG,	
 		BF4_TEAM_BOTH,
 		BF4_WEAPONCLASS_PISTOLS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER
@@ -71,7 +52,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"",
 		"",
-		Ammo_None,
+		_:Ammo_None,
 		BF4_TEAM_BOTH,
 		BF4_WEAPONCLASS_NONE,
 		BF4_CLASS_NONE,
@@ -79,7 +60,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"Steyr Scout",
 		"scout",
-		Ammo_762Nato,
+		_:Ammo_762Nato,
 		BF4_TEAM_BOTH,
 		BF4_WEAPONCLASS_SNIPERS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_RECON
@@ -87,7 +68,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"HE Grenade",
 		"hegrenade",
-		Ammo_HEGRENADE,
+		_:Ammo_HEGRENADE,
 		BF4_TEAM_BOTH,
 		BF4_WEAPONCLASS_GRENADE,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER
@@ -95,7 +76,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"Benelli M4 Super 90", 	
 		"xm1014",
-		Ammo_12Gauge,
+		_:Ammo_12Gauge,
 		BF4_TEAM_BOTH,
 		BF4_WEAPONCLASS_SHOTGUNS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_ENGINEER
@@ -103,7 +84,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"C4",
 		"c4",
-		Ammo_C4,
+		_:Ammo_C4,
 		BF4_TEAM_BOTH,
 		BF4_WEAPONCLASS_EQUIP,
 		BF4_CLASS_NONE,
@@ -111,7 +92,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"Ingram Model 10",
 		"mac10",
-		Ammo_45ACP,
+		_:Ammo_45ACP,
 		BF4_TEAM_RU,
 		BF4_WEAPONCLASS_SMGS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_ENGINEER
@@ -119,7 +100,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"Steyr AUG",
 		"aug",
-		Ammo_556Nato,
+		_:Ammo_556Nato,
 		BF4_TEAM_US,
 		BF4_WEAPONCLASS_ASSAULTS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT
@@ -127,7 +108,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"Smoke Grenade",
 		"smokegrenade",
-		Ammo_SMOKEGRENADE,
+		_:Ammo_SMOKEGRENADE,
 		BF4_TEAM_BOTH,
 		BF4_WEAPONCLASS_GRENADE,
 		BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER
@@ -135,7 +116,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"Dual 96G Elite Berettas", 
 		"elite",
-		Ammo_9MM,
+		_:Ammo_9MM,
 		BF4_TEAM_RU,
 		BF4_WEAPONCLASS_PISTOLS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER
@@ -143,7 +124,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"FN Five-seveN",
 		"fiveseven",
-		Ammo_57MM,
+		_:Ammo_57MM,
 		BF4_TEAM_US,
 		BF4_WEAPONCLASS_PISTOLS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER
@@ -151,7 +132,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"H&K UMP45",
 		"ump45",
-		Ammo_45ACP,
+		_:Ammo_45ACP,
 		BF4_TEAM_BOTH,
 		BF4_WEAPONCLASS_SMGS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_ENGINEER
@@ -159,7 +140,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"SIG SG550",
 		"sg550",
-		Ammo_556Nato,
+		_:Ammo_556Nato,
 		BF4_TEAM_US,
 		BF4_WEAPONCLASS_DMRS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_RECON
@@ -167,7 +148,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"IMI Galil",
 		"galil",
-		Ammo_556Nato,
+		_:Ammo_556Nato,
 		BF4_TEAM_RU,
 		BF4_WEAPONCLASS_ASSAULTS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT
@@ -175,7 +156,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"NEXTER FA-MAS",
 		"famas",
-		Ammo_556Nato,
+		_:Ammo_556Nato,
 		BF4_TEAM_US,
 		BF4_WEAPONCLASS_ASSAULTS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT
@@ -183,7 +164,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"H&K USP",
 		"usp",
-		Ammo_45ACP,
+		_:Ammo_45ACP,
 		BF4_TEAM_US,
 		BF4_WEAPONCLASS_PISTOLS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER
@@ -191,7 +172,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"GLOCK 18",
 		"glock18",
-		Ammo_9MM,
+		_:Ammo_9MM,
 		BF4_TEAM_RU,
 		BF4_WEAPONCLASS_PISTOLS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER
@@ -199,7 +180,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"AI L96A1 AWP",
 		"awp",
-		Ammo_338Magnum,
+		_:Ammo_338Magnum,
 		BF4_TEAM_BOTH,
 		BF4_WEAPONCLASS_SNIPERS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_RECON 
@@ -207,7 +188,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"H&K MP5N",
 		"mp5navy",
-		Ammo_9MM,
+		_:Ammo_9MM,
 		BF4_TEAM_BOTH,
 		BF4_WEAPONCLASS_SMGS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_ENGINEER
@@ -215,7 +196,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"FN M249",
 		"m249",
-		Ammo_556NatoBox,
+		_:Ammo_556NatoBox,
 		BF4_TEAM_BOTH,
 		BF4_WEAPONCLASS_LMGS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_SUPPORT
@@ -223,7 +204,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"Benelli M3",
 		"m3",
-		Ammo_12Gauge,
+		_:Ammo_12Gauge,
 		BF4_TEAM_BOTH,
 		BF4_WEAPONCLASS_SHOTGUNS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_ENGINEER
@@ -231,7 +212,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"Colt M4A1",
 		"m4a1",
-		Ammo_556Nato,
+		_:Ammo_556Nato,
 		BF4_TEAM_US,
 		BF4_WEAPONCLASS_ASSAULTS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT
@@ -239,7 +220,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"Steyr TMP",
 		"tmp",
-		Ammo_9MM,
+		_:Ammo_9MM,
 		BF4_TEAM_US,
 		BF4_WEAPONCLASS_SMGS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_ENGINEER
@@ -247,7 +228,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"H&K G3SG/1",
 		"g3sg1",
-		Ammo_762Nato,
+		_:Ammo_762Nato,
 		BF4_TEAM_RU,
 		BF4_WEAPONCLASS_DMRS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_RECON
@@ -255,7 +236,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"FLASHBANG",
 		"flashbang",
-		Ammo_FLASHBANG,
+		_:Ammo_FLASHBANG,
 		BF4_TEAM_BOTH,
 		BF4_WEAPONCLASS_GRENADE,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER
@@ -263,7 +244,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"IWI Deset Eagle .50AE",
 		"deagle",
-		Ammo_50AE,
+		_:Ammo_50AE,
 		BF4_TEAM_BOTH,
 		BF4_WEAPONCLASS_PISTOLS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER
@@ -271,7 +252,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"SIG SG552",
 		"sg552",
-		Ammo_556Nato,
+		_:Ammo_556Nato,
 		BF4_TEAM_RU,
 		BF4_WEAPONCLASS_ASSAULTS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT
@@ -279,7 +260,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"Izhmash AK-47",
 		"ak47",
-		Ammo_762Nato,
+		_:Ammo_762Nato,
 		BF4_TEAM_RU,
 		BF4_WEAPONCLASS_ASSAULTS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT
@@ -287,7 +268,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"KNIFE",
 		"knife",
-		Ammo_None,
+		_:Ammo_None,
 		BF4_TEAM_BOTH,
 		BF4_WEAPONCLASS_MELEE,
 		BF4_CLASS_NONE,
@@ -295,7 +276,7 @@ new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
 	{
 		"FN P90",
 		"p90",
-		Ammo_57MM,
+		_:Ammo_57MM,
 		BF4_TEAM_BOTH,
 		BF4_WEAPONCLASS_SMGS,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_ENGINEER
@@ -336,6 +317,7 @@ public plugin_init()
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 	register_clcmd("say /bf4sec", 		"BF4WeaponMenu");
 	register_clcmd("buy",				"BF4WeaponMenu");
+	register_clcmd("drop",				"InvalidDrop");
 	RegisterHamPlayer(Ham_Spawn, 		"PlayerSpawnPre", false);
 	RegisterHamPlayer(Ham_Spawn, 		"PlayerSpawn", true);
 	RegisterHamPlayer(Ham_TakeDamage, 	"PlayerTakeDamagePre");
@@ -360,7 +342,10 @@ public forward_create_named_entity(int_class)
 
 	return FMRES_IGNORED;
 }
-
+public InvalidDrop(id)
+{
+	return PLUGIN_HANDLED;
+}
 RemoveFromBuyzone(id) 
 {
     // Define offsets to be used
@@ -440,11 +425,12 @@ public plugin_end()
 public _native_register_weapon(iPlugin, iParams)
 {
 
-	new name[33], item[33];
-	get_string(6, name, charsmax(name));
-	get_string(7, item, charsmax(item));
+	new name[33], item[33], ammo[33];
+	get_string(5, name, charsmax(name));
+	get_string(6, item, charsmax(item));
+	get_string(8, ammo, charsmax(ammo));
 
-	return RegisterWeapon(BF4_TEAM:get_param(1), BF4_CLASS:get_param(2), BF4_WEAPONCLASS:get_param(3), get_param(4), Ammo:get_param(5), name, item);
+	return RegisterWeapon(BF4_TEAM:get_param(1), BF4_CLASS:get_param(2), BF4_WEAPONCLASS:get_param(3), get_param(4), name, item, get_param(7), ammo);
 }
 
 public _native_select_weapon_menu(iPlugin, iParams)
@@ -453,7 +439,7 @@ public _native_select_weapon_menu(iPlugin, iParams)
 	BF4WeaponMenu(id);
 }
 
-RegisterWeapon(BF4_TEAM:team, BF4_CLASS:has_class, BF4_WEAPONCLASS:wpn_class, cswm_id, Ammo:ammo_id, name[33], item[33])
+RegisterWeapon(BF4_TEAM:team, BF4_CLASS:has_class, BF4_WEAPONCLASS:wpn_class, cswm_id, name[33], item[33], ammo_id, ammoname[33])
 {
 	new weapon[BF4_WEAPON_DATA];
 	weapon[TEAM] 			= team;
@@ -463,6 +449,7 @@ RegisterWeapon(BF4_TEAM:team, BF4_CLASS:has_class, BF4_WEAPONCLASS:wpn_class, cs
 	weapon[AMMO_ID]			= ammo_id;
 	weapon[NAME]			= name;
 	weapon[ITEM]			= item;
+	copy(weapon[AMMONAME], charsmax(weapon[AMMONAME]), ammoname);
 
 	return ArrayPushArray(gWeaponList, weapon, sizeof(weapon));
 }
@@ -851,7 +838,8 @@ public BF4GiveWeapon(id)
 //				client_print(id, print_chat, "[BF4 DEBUG] %s", data[ITEM]);
 				give_item(id, fmt("weapon_%s", data[ITEM]));
 			}
-			GiveAmmo(id, _:data[AMMO_ID], 900);
+			client_print(id, print_chat, "AmmoId: %d %s", data[AMMO_ID], data[AMMONAME]);
+			GiveAmmo(id, data[AMMO_ID], 900);
 		}
 	}
 
@@ -888,8 +876,8 @@ public BF4TouchWeaponBox(iWpnBox, iToucher)
 	if (is_user_alive(iToucher))
 	{
 		// Get Weapon Box information.
-		new bWeaponId, bAmmoName[33], bAmmo;
-		GetWeaponBoxInfo(iWpnBox, bWeaponId, bAmmo, bAmmoName, charsmax(bAmmoName));
+		new bWeaponId, bAmmoName[33], bAmmo, bAmmoId;
+		GetWeaponBoxInfo(iWpnBox, bWeaponId, bAmmo, bAmmoId, bAmmoName, charsmax(bAmmoName));
 
 		new data[BF4_WEAPON_DATA];
 		new pMaxAmmo, pAmmoName[33];
@@ -903,13 +891,11 @@ public BF4TouchWeaponBox(iWpnBox, iToucher)
 			ArrayGetArray(gWeaponList, gUseWeapons[iToucher][i], data, sizeof(data));
 
 			// Is Custom Weapon.
-			if (data[CSWM_ID])
+			if (data[CSWM_ID] && bAmmoId > _:Ammo_C4)
 			{
 				// Get AmmoId, AmmoName, MaxAmmo
 				// Use CS Weapon Mod Function.
-				new Ammo:ammoid 	= GetWeaponData(data[CSWM_ID], WD_AmmoID);
-				formatex(pAmmoName, charsmax(pAmmoName), gAmmoList[ammoid][AmmoName]);
-				pMaxAmmo	= gAmmoList[ammoid][MaxAmmo];
+				pAmmoName = data[AMMONAME];
 			}
 			else
 			{
@@ -927,7 +913,13 @@ public BF4TouchWeaponBox(iWpnBox, iToucher)
 
 				// Pick up Ammo.
 				// ExecuteHam(Ham_GiveAmmo, this, amount, "type", max);
-				ExecuteHamB(Ham_GiveAmmo, iToucher, bAmmo, bAmmoName, pMaxAmmo);
+				if (data[CSWM_ID])
+				{
+					ExecuteHamB(Ham_GiveAmmo, iToucher, data[AMMO_ID], bAmmoName, pMaxAmmo);
+					GiveAmmo(iToucher, data[AMMO_ID], bAmmo);
+				}
+				else
+					ExecuteHamB(Ham_GiveAmmo, iToucher, bAmmo, bAmmoName, pMaxAmmo);
 				emit_sound(iToucher, CHAN_ITEM, "items/gunpickup2.wav", VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 
 				// Remove Ammobox Entity.
@@ -941,12 +933,13 @@ public BF4TouchWeaponBox(iWpnBox, iToucher)
 // =====================================================================
 // ReAPI: Get Weapon box Info
 // =====================================================================
-GetWeaponBoxInfo(iEnt, &iWeapon, &irgAmmo, iszAmmo[], length) 
+GetWeaponBoxInfo(iEnt, &iWeapon, &irgAmmo, &iAmmoId, iszAmmo[], length) 
 { 
     for(new i = 0; i < MAX_ITEM_TYPES; i++)
     {
 		iWeapon 	= get_member(iEnt, m_WeaponBox_rgpPlayerItems, i);
 		irgAmmo 	= get_member(iEnt, m_WeaponBox_rgAmmo, i);
+		iAmmoId		= get_member(iEnt, m_WeaponBox_cAmmoTypes, i);
 		get_member(iEnt, m_WeaponBox_rgiszAmmo, iszAmmo, length, i);
 		if (!is_nullent(iWeapon))
 			return;

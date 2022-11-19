@@ -98,9 +98,11 @@ public plugin_precache()
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER, 
 		BF4_WEAPONCLASS_PISTOLS, 
 		Weapon,
-		Ammo_357SIG,
 		"Python",
-		"python");
+		"python",
+		_:Ammo_357SIG,
+		"357sig"
+	);
 }
 
 public PYTHON_PrimaryPost(Entity)
