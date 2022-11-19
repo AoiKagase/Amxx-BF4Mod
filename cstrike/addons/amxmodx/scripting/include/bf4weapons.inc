@@ -18,11 +18,12 @@ enum _:BF4_WEAPON_DATA
 	BF4_CLASS:HASCLASS,
 	BF4_WEAPONCLASS:WPNCLASS,
 	CSWM_ID,
-	Ammo:AMMO_ID,
 	NAME[64],
 	ITEM[33],
+	AMMO_ID,
+	AMMONAME[33],
 }
 
-native BF4RegisterWeapon(const BF4_TEAM:team, const BF4_CLASS:has_class, const BF4_WEAPONCLASS:wpn_class, const CSWM_id, const Ammo:AMMO_id, const name[33], const item[33]);
+native BF4RegisterWeapon(const BF4_TEAM:team, const BF4_CLASS:has_class, const BF4_WEAPONCLASS:wpn_class, const CSWM_id, const name[33], const item[33], const AMMO_id, const ammoname[33] );
 native BF4HaveThisWeapon(id, wpnindex);
 native BF4SelectWeaponMenu(id);

@@ -96,9 +96,11 @@ public plugin_precache()
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER, 
 		BF4_WEAPONCLASS_PISTOLS, 
 		Weapon,
-		Ammo_50AE,
 		"AUTOMAG V",
-		"automag5");		
+		"automag5",
+		_:Ammo_50AE,
+		"50ae"
+	);		
 }
 
 public PlayerSpawn(id)

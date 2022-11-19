@@ -97,9 +97,11 @@ public plugin_precache()
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER, 
 		BF4_WEAPONCLASS_PISTOLS, 
 		Weapon,
-		Ammo_45ACP,
 		"FN FNP-45",
-		"fnp45");
+		"fnp45",
+		_:Ammo_45ACP,
+		"45acp"
+	);
 }
 public AddPlayerItem(pPlayer, pItem)
 {

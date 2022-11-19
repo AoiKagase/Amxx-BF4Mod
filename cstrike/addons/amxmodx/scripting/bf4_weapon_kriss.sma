@@ -154,9 +154,11 @@ public plugin_precache()
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_ENGINEER, 
 		BF4_WEAPONCLASS_SMGS, 
 		Weapon,
-		Ammo_45ACP,
 		"Kriss Super V",
-		"kriss");	
+		"kriss",
+		_:Ammo_45ACP,
+		"45acp"
+	);	
 }
 
 public PlayerSpawn(id)

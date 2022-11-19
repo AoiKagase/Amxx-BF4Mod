@@ -93,9 +93,11 @@ public plugin_precache()
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER, 
 		BF4_WEAPONCLASS_PISTOLS, 
 		Weapon,
-		Ammo_45ACP,
 		"Colt M1911A1",
-		"coltm1911a1");
+		"coltm1911a1",
+		_:Ammo_45ACP,
+		"45acp"
+	);
 }
 
 public M1911A1_PrimaryPost(Entity)
