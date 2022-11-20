@@ -838,7 +838,7 @@ public BF4GiveWeapon(id)
 //				client_print(id, print_chat, "[BF4 DEBUG] %s", data[ITEM]);
 				give_item(id, fmt("weapon_%s", data[ITEM]));
 			}
-			client_print(id, print_chat, "AmmoId: %d %s", data[AMMO_ID], data[AMMONAME]);
+//			client_print(id, print_chat, "AmmoId: %d %s", data[AMMO_ID], data[AMMONAME]);
 			GiveAmmo(id, data[AMMO_ID], 900);
 		}
 	}
