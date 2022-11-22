@@ -38,6 +38,8 @@
 #include <csflags>
 #include <bf4const>
 #include <bf4natives>
+#include <bf4weapons>
+#include <cswm>
 
 #define UnitsToMeters(%1)	(%1*0.0254)
 #define BF4_VAULT			"BF4Ranks"
@@ -804,11 +806,10 @@ public BF4DeathMsg()
 	new iAttacker = read_data(1);
 	new iVictim	  = read_data(2);
 	new isHeadshot= read_data(3);
-	new wpntemp[MAX_NAME_LENGTH];
 	new wpnname[MAX_NAME_LENGTH];
-	read_data(4, wpntemp, charsmax(wpntemp));
-	formatex(wpnname, charsmax(wpnname), "weapon_%s", wpntemp);
-	new iWeaponId = get_weaponid(wpnname);
+
+	read_data(4, wpnname, charsmax(wpnname));
+	new BF4_WEAPONCLASS:iWpnClass = BF4WeaponNameToClass(iAttacker, wpnname);
 
 	if (cs_get_user_team(iAttacker) != cs_get_user_team(iVictim))
 	{
@@ -819,13 +820,13 @@ public BF4DeathMsg()
 		RibbonCheckSavior(iAttacker, iVictim, get_gametime());
 
 		// HEADSHOT/MARKSMAN RIBBON
-		RibbonCheckHeadshot(iAttacker, iVictim, isHeadshot, iWeaponId);
+		RibbonCheckHeadshot(iAttacker, iVictim, isHeadshot, iWpnClass);
 
 		// KILL ASSIST RIBBON
 		RibbonCheckAssist(iAttacker, iVictim);
 
 		// WEAPON CLASS RIBBON
-		RibbonCheckWeaponClass(iAttacker, iWeaponId);
+		RibbonCheckWeaponClass(iAttacker, iWpnClass);
 	}
 	return PLUGIN_CONTINUE;
 }
@@ -853,12 +854,11 @@ stock RibbonCheckSavior(const iAttacker, const iVictim, const Float:time)
 	}	
 }
 
-stock RibbonCheckWeaponClass(const iAttacker, const iWeaponId)
+stock RibbonCheckWeaponClass(const iAttacker, const BF4_WEAPONCLASS:iWpnClass)
 {
 	// WEAPON CHECK
-	new BF4_WEAPONCLASS:wpnclass = bf4_get_weapon_class(iWeaponId);
 	new ranks;
-	switch (wpnclass)
+	switch (iWpnClass)
 	{
 		case BF4_WEAPONCLASS_PISTOLS:
 			ranks = BF4_RNK_PISTOL;
@@ -891,14 +891,14 @@ stock RibbonCheckWeaponClass(const iAttacker, const iWeaponId)
 	return;
 }
 
-stock RibbonCheckHeadshot(const iAttacker, const iVictim, const isHeadshot, const iWeaponId)
+stock RibbonCheckHeadshot(const iAttacker, const iVictim, const isHeadshot, const BF4_WEAPONCLASS:iWpnClass)
 {
 	// HEADSHOT RIBBON
 	if (isHeadshot)
 	{
 		stock_bf4_trigger_ribbon(iAttacker, BF4_RNK_HEADSHOT, "Headshot points.");
 
-		if (bf4_get_weapon_class(iWeaponId) == BF4_WEAPONCLASS_SNIPERS)
+		if (iWpnClass == BF4_WEAPONCLASS_SNIPERS)
 		{
 			new Float:vAttacker	[3];
 			new Float:vVictim	[3];
@@ -974,21 +974,53 @@ stock get_dec_string(const a[])
 	return r;
 }
 
-stock Show_Rank_Event(const pPlayer, const ribbon[E_RANK_PARAM]) 
+stock Show_Rank_Event(const id, const ribbon[E_RANK_PARAM]) 
 {
 	new clip, ammo;
-	new weapon = cs_get_user_weapon(pPlayer, clip, ammo);
+	new weapon = cs_get_user_weapon(id, clip, ammo);
 
-	SetMessage_WeaponList(pPlayer, 2, CSW_AMMO_ID[weapon][AmmoId], CSW_AMMO_ID[weapon][MaxAmmo], ribbon[RBN_TYPE], ribbon[RBN_ID]);
+	switch(weapon) 
+	{
+		case CSW_P228: 			SetMessage_WeaponList(id, 2, Ammo_357SIG, 		52, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_SCOUT:			SetMessage_WeaponList(id, 2, Ammo_762Nato, 		90, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_HEGRENADE: 	SetMessage_WeaponList(id, 2, Ammo_HEGRENADE,	1, 		ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_XM1014: 		SetMessage_WeaponList(id, 2, Ammo_12Gauge, 		32, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_C4: 			SetMessage_WeaponList(id, 2, Ammo_C4, 			1, 		ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_MAC10: 		SetMessage_WeaponList(id, 2, Ammo_45ACP, 		100, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_AUG: 			SetMessage_WeaponList(id, 2, Ammo_556Nato, 		90, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_SMOKEGRENADE: 	SetMessage_WeaponList(id, 2, Ammo_SMOKEGRENADE, 1, 		ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_ELITE: 		SetMessage_WeaponList(id, 2, Ammo_9MM, 			120, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_FIVESEVEN: 	SetMessage_WeaponList(id, 2, Ammo_57MM, 		100, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_UMP45: 		SetMessage_WeaponList(id, 2, Ammo_45ACP, 		100, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_SG550:			SetMessage_WeaponList(id, 2, Ammo_556Nato, 		90, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_GALIL: 		SetMessage_WeaponList(id, 2, Ammo_556Nato, 		90, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_FAMAS: 		SetMessage_WeaponList(id, 2, Ammo_556Nato, 		90, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_USP: 			SetMessage_WeaponList(id, 2, Ammo_45ACP, 		100, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_GLOCK18: 		SetMessage_WeaponList(id, 2, Ammo_9MM, 			120, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_AWP:			SetMessage_WeaponList(id, 2, Ammo_338Magnum, 	30, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_MP5NAVY: 		SetMessage_WeaponList(id, 2, Ammo_9MM, 			120, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_M249: 			SetMessage_WeaponList(id, 2, Ammo_556NatoBox, 	200, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_M3: 			SetMessage_WeaponList(id, 2, Ammo_12Gauge, 		32, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_M4A1: 			SetMessage_WeaponList(id, 2, Ammo_556Nato, 		90, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_TMP: 			SetMessage_WeaponList(id, 2, Ammo_9MM, 			120, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_G3SG1:			SetMessage_WeaponList(id, 2, Ammo_762Nato, 		90, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_FLASHBANG: 	SetMessage_WeaponList(id, 2, Ammo_FLASHBANG,	2, 		ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_DEAGLE: 		SetMessage_WeaponList(id, 2, Ammo_50AE, 		35, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_SG552: 		SetMessage_WeaponList(id, 2, Ammo_556Nato, 		90, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_AK47: 			SetMessage_WeaponList(id, 2, Ammo_762Nato, 		90, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_KNIFE: 		SetMessage_WeaponList(id, 2, Ammo_None, 		-1,		ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		case CSW_P90: 			SetMessage_WeaponList(id, 2, Ammo_57MM, 		100, 	ribbon[RBN_TYPE], ribbon[RBN_ID]);
+		default: return;
+	}
 
-	SetMessage_SetFOV(pPlayer, 89);
-	SetMessage_CurWeapon(pPlayer, clip);
-	SetMessage_SetFOV(pPlayer, 90);
+	SetMessage_SetFOV(id, 89);
+	SetMessage_CurWeapon(id, clip);
+	SetMessage_SetFOV(id, 90);
 }
 
-stock SetMessage_WeaponList(const pPlayer,const pWpnId, const Ammo:pAmmoId, const pAmmoMaxAmount, const type, const ribbon) 
+stock SetMessage_WeaponList(const id,const pWpnId, const Ammo:pAmmoId, const pAmmoMaxAmount, const type, const ribbon) 
 {
-	message_begin(MSG_ONE, g_MsgIds[MSGID_WEAPON_LIST], .player = pPlayer);
+	message_begin(MSG_ONE, g_MsgIds[MSGID_WEAPON_LIST], .player = id);
 	{
 		if (type == TYPE_RIBBON)
 		write_string(fmt("bf4_ranks/ribbons/%s", g_Ribbons[ribbon][RBN_FILENAME]));
@@ -1006,42 +1038,42 @@ stock SetMessage_WeaponList(const pPlayer,const pWpnId, const Ammo:pAmmoId, cons
 	message_end();
 }
 
-stock SetMessage_SetFOV(const pPlayer, const FOV) 
+stock SetMessage_SetFOV(const id, const FOV) 
 {
-	message_begin(MSG_ONE, g_MsgIds[MSGID_SET_FOV], .player = pPlayer); 
+	message_begin(MSG_ONE, g_MsgIds[MSGID_SET_FOV], .player = id); 
 	write_byte(FOV);
 	message_end();
 }
 
-stock SetMessage_CurWeapon(const pPlayer, const ammo) 
+stock SetMessage_CurWeapon(const id, const ammo) 
 {
-	message_begin(MSG_ONE, g_MsgIds[MSGID_CUR_WEAPON], .player = pPlayer); 
+	message_begin(MSG_ONE, g_MsgIds[MSGID_CUR_WEAPON], .player = id); 
 	write_byte(1);
 	write_byte(2);
 	write_byte(ammo);
 	message_end();
 }
 
-stock SetMessage_HideWeapon(const pPlayer) 
+stock SetMessage_HideWeapon(const id) 
 {
-	message_begin(MSG_ONE, g_MsgIds[MSGID_HIDE_WEAPON], .player = pPlayer);
+	message_begin(MSG_ONE, g_MsgIds[MSGID_HIDE_WEAPON], .player = id);
 	write_byte(0);
 	message_end();
 }
 
 public Clear_Rank_Event(TaskId) 
 {
-	new pPlayer = TaskId - TASK_HUD_SPR;
-	g_get_ribbon[pPlayer] = false;
-	SetMessage_HideWeapon(pPlayer);
+	new id = TaskId - TASK_HUD_SPR;
+	g_get_ribbon[id] = false;
+	SetMessage_HideWeapon(id);
 }
 
-public Event_CurWeapon(const pPlayer) 
+public Event_CurWeapon(const id) 
 {
-	if(!g_get_ribbon[pPlayer] || get_ent_data(pPlayer, "CBasePlayer", "m_iFOV") != 90)
+	if(!g_get_ribbon[id] || get_ent_data(id, "CBasePlayer", "m_iFOV") != 90)
 		return;
 
-	Show_Rank_Event(pPlayer, g_get_ribbon_id[pPlayer]);
+	Show_Rank_Event(id, g_get_ribbon_id[id]);
 }
 
 stock BF4_WEAPONCLASS:bf4_get_weapon_class(weapon_id)

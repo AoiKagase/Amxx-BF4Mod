@@ -415,6 +415,7 @@ public plugin_natives()
 	register_native("BF4RegisterWeapon", "_native_register_weapon");
 	register_native("BF4HaveThisWeapon", "_native_have_this_weapon");
 	register_native("BF4SelectWeaponMenu", "_native_select_weapon_menu");
+	register_native("BF4WeaponNameToClass", "_native_weapon_name_to_class");
 }
 
 public plugin_end()
@@ -464,6 +465,28 @@ public _native_have_this_weapon(iPlugin, iParams)
 			return true;
 	}
 	return false;
+}
+
+public BF4_WEAPONCLASS:_native_weapon_name_to_class(iPlugin, iParams)
+{
+	new id = get_param(1);
+	new weaponname[33];
+	new data[BF4_WEAPON_DATA];
+
+	get_string(2, weaponname, charsmax(weaponname));
+
+	for(new i = 0; i <= EQUIP; i++)
+	{
+		if (gUseWeapons[id][i] <= -1)
+			continue;
+
+		ArrayGetArray(gWeaponList, gUseWeapons[id][i], data, charsmax(data));
+		if (equali(data[ITEM], weaponname))
+		{
+			return data[WPNCLASS];
+		}
+	}
+	return BF4_WEAPONCLASS_NONE;
 }
 
 public BF4WeaponMenu(id)
