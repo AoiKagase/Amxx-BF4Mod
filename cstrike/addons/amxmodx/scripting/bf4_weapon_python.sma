@@ -58,7 +58,7 @@ public plugin_init()
 
 public plugin_precache()
 {
-	Weapon = CreateWeapon("PYTHON", Pistol, "Python");
+	Weapon = CreateWeapon("python", Pistol, "Python");
 
 	BuildWeaponModels			(Weapon, gModels[V_MODEL], gModels[P_MODEL], gModels[W_MODEL]);
 	BuildWeaponList				(Weapon, "bf4_ranks/weapons/weapon_python");
@@ -66,7 +66,7 @@ public plugin_precache()
 	BuildWeaponReload			(Weapon, PYTHON_RELOAD, 2.0);
 	BuildWeaponAmmunition		(Weapon, 6, Ammo_357SIG);
 	BuildWeaponFireSound		(Weapon, gSound[SND_FIRE1]);
-	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, PYTHON_SHOOT1);
+	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, PYTHON_SHOOT1, PYTHON_SHOOT2);
 	BuildWeaponSecondaryAttack	(Weapon, A2_None);
 
 	PrecacheWeaponModelSounds	(Weapon);

@@ -8,6 +8,7 @@
 #include <hamsandwich>
 #include <fakemeta>
 #include <cswm>
+#include <csx>
 
 #define PLUGIN 	"[BF4] Weapon System"
 #define VERSION "0.1"
@@ -22,6 +23,19 @@ enum WPN_CLASSIC_DATA
 	BF4_WEAPONCLASS:CSC_WPNCLASS,
 	BF4_CLASS:CSC_HASCLASS,
 };
+
+enum _:BF4_WEAPON_DATA
+{
+	BF4_TEAM:TEAM,
+	BF4_CLASS:HASCLASS,
+	BF4_WEAPONCLASS:WPNCLASS,
+	CSWM_ID,
+	CSX_WPNID,
+	AMMO_ID,
+	NAME[64],
+	ITEM[33],
+	AMMONAME[33],
+}
 
 enum AMMO_LIST
 {
@@ -324,6 +338,10 @@ public plugin_init()
 	RegisterHamPlayer(Ham_TakeDamage, 	"PlayerTakeDamagePost", true);
 
  	RegisterHam(Ham_Touch,	"weaponbox", "BF4TouchWeaponBox", 0);
+	RegisterHam(Ham_Weapon_PrimaryAttack, "weapon_p228", 	"CustomPrimaryAttack");
+	RegisterHam(Ham_Weapon_PrimaryAttack, "weapon_ak47", 	"CustomPrimaryAttack");
+	RegisterHam(Ham_Weapon_PrimaryAttack, "weapon_awp", 	"CustomPrimaryAttack");
+	RegisterHam(Ham_Weapon_PrimaryAttack, "weapon_xm1014", 	"CustomPrimaryAttack");
 
 	register_forward(FM_CreateNamedEntity, "forward_create_named_entity");
 
@@ -401,6 +419,7 @@ RegisterClassicWeapon()
 		weapon[WPNCLASS] = gWpnClassicItem[i][CSC_WPNCLASS];
 		weapon[CSWM_ID]	 = -1;
 		weapon[AMMO_ID]  = gWpnClassicItem[i][CSC_AMMOID];
+		weapon[CSX_WPNID]= -1;
 
 		copy(weapon[NAME],charsmax(weapon[NAME]), gWpnClassicItem[i][CSC_NAME]);
 		copy(weapon[ITEM],charsmax(weapon[ITEM]), gWpnClassicItem[i][CSC_ITEM]);
@@ -450,8 +469,14 @@ RegisterWeapon(BF4_TEAM:team, BF4_CLASS:has_class, BF4_WEAPONCLASS:wpn_class, cs
 	weapon[AMMO_ID]			= ammo_id;
 	weapon[NAME]			= name;
 	weapon[ITEM]			= item;
-	copy(weapon[AMMONAME], charsmax(weapon[AMMONAME]), ammoname);
+	if (cswm_id > 0)
+	{
+		weapon[CSX_WPNID] 	= custom_weapon_add(weapon[NAME], 0, weapon[ITEM]);
+		console_print(0, "[BF4 DEBUG] REGISTER %d CSXID %d %s", cswm_id, weapon[CSX_WPNID], weapon[NAME]);
+	}
 
+	copy(weapon[AMMONAME], charsmax(weapon[AMMONAME]), ammoname);
+	
 	return ArrayPushArray(gWeaponList, weapon, sizeof(weapon));
 }
 public _native_have_this_weapon(iPlugin, iParams)
@@ -726,14 +751,14 @@ public PlayerTakeDamagePre(iVictim, inflictor, iAttacker, Float:damage, damage_t
 			case CSW_P228:
 				if (gUseWeapons[iAttacker][SECONDARY] > -1)
 				{
-					ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][SECONDARY], data, charsmax(data));
+					ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][SECONDARY], data, sizeof(data));
 					if (data[CSWM_ID] > -1)
 						rg_set_iteminfo(weapon, ItemInfo_pszName, data[ITEM]);
 				}
 			case CSW_AK47, CSW_XM1014, CSW_AWP:
 				if (gUseWeapons[iAttacker][PRIMARY] > -1)
 				{
-					ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][PRIMARY], data, charsmax(data));
+					ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][PRIMARY], data, sizeof(data));
 					if (data[CSWM_ID] > -1)
 						rg_set_iteminfo(weapon, ItemInfo_pszName, data[ITEM]);
 				}
@@ -747,16 +772,45 @@ public PlayerTakeDamagePost(iVictim, inflictor, iAttacker, Float:damage, damage_
 	{
 		new weapon = cs_get_user_weapon_entity(iAttacker);
 		new cswid = cs_get_weapon_id(weapon);
+		new data[BF4_WEAPON_DATA];
 		switch(cswid)
 		{
 			case CSW_P228:
-				rg_set_iteminfo(weapon, ItemInfo_pszName, "p228");
+			{
+				ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][SECONDARY], data, sizeof(data));
+				if (data[CSWM_ID])
+				{
+					custom_weapon_dmg(data[CSX_WPNID], iAttacker, iVictim, floatround(damage), 0);
+					rg_set_iteminfo(weapon, ItemInfo_pszName, "p228");
+				}
+			}
 			case CSW_AK47:
-				rg_set_iteminfo(weapon, ItemInfo_pszName, "ak47");
+			{
+				ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][PRIMARY], data, sizeof(data));
+				if (data[CSWM_ID])
+				{
+					custom_weapon_dmg(data[CSX_WPNID], iAttacker, iVictim, floatround(damage), 0);
+					rg_set_iteminfo(weapon, ItemInfo_pszName, "ak47");
+				}
+			}
 			case CSW_XM1014:
-				rg_set_iteminfo(weapon, ItemInfo_pszName, "xm1014");
+			{
+				ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][PRIMARY], data, sizeof(data));
+				if (data[CSWM_ID])
+				{
+					custom_weapon_dmg(data[CSX_WPNID], iAttacker, iVictim, floatround(damage), 0);
+					rg_set_iteminfo(weapon, ItemInfo_pszName, "xm1014");
+				}
+			}
 			case CSW_AWP:
-				rg_set_iteminfo(weapon, ItemInfo_pszName, "awp");
+			{
+				ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][PRIMARY], data, sizeof(data));
+				if (data[CSWM_ID])
+				{
+					custom_weapon_dmg(data[CSX_WPNID], iAttacker, iVictim, floatround(damage), 0);
+					rg_set_iteminfo(weapon, ItemInfo_pszName, "awp");
+				}
+			}
 		}
 	}
 }
@@ -930,9 +984,9 @@ public BF4TouchWeaponBox(iWpnBox, iToucher)
 			}
 
 			// WeaponBox AmmoName == PlayerWeapon AmmoName
+			client_print_color(iToucher, print_team_default, "^4[BF4 DEBUG] ^1AmmoName - WeaponBox: %s, PlayerWeapon: %s", bAmmoName, pAmmoName);
 			if (equali(bAmmoName, pAmmoName))
 			{
-//				client_print_color(iToucher, print_team_default, "^4[BF4 DEBUG] ^1AmmoName - WeaponBox: %s, PlayerWeapon: %s", bAmmoName, pAmmoName);
 
 				// Pick up Ammo.
 				// ExecuteHam(Ham_GiveAmmo, this, amount, "type", max);
@@ -977,4 +1031,24 @@ GePlayerDefaultWeaponInfo(iEnt, &iMaxAmmo, szAmmo[], length)
 	rg_get_iteminfo(iEnt, ItemInfo_pszAmmo1, szAmmo, length);
 	iMaxAmmo = rg_get_iteminfo(iEnt, ItemInfo_iMaxAmmo1);
 	return;
+}
+
+public CustomPrimaryAttack(iWpnId)
+{
+	new id = get_member(iWpnId, m_pPlayer);
+	new wpnname[33];
+	rg_get_iteminfo(iWpnId, ItemInfo_pszName, wpnname, charsmax(wpnname));
+	if (is_user_alive(id))
+	{
+		new data[BF4_WEAPON_DATA];
+		if (equali(wpnname, "p228"))
+			ArrayGetArray(gWeaponList, gUseWeapons[id][SECONDARY], data, sizeof(data));
+		else
+			ArrayGetArray(gWeaponList, gUseWeapons[id][PRIMARY], data, sizeof(data));
+		if (data[CSWM_ID])
+		{
+//			client_print_color(id, print_team_default, "^3[BF4 DEBUG] ^1SHOT %s", wpnname);
+			custom_weapon_shot(data[CSX_WPNID], id);
+		}
+	}
 }

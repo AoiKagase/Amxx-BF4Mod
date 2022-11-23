@@ -58,7 +58,7 @@ public plugin_init()
 
 public plugin_precache()
 {
-	Weapon = CreateWeapon("AUTOMAG5", Pistol, "AUTOMAG V");
+	Weapon = CreateWeapon("automag5", Pistol, "AUTOMAG V");
 
 	BuildWeaponModels			(Weapon, gModels[V_MODEL], gModels[P_MODEL], gModels[W_MODEL]);
 	BuildWeaponDeploy			(Weapon, AUTOMAG5_DRAW, 0.0);
@@ -66,7 +66,7 @@ public plugin_precache()
 	BuildWeaponAmmunition		(Weapon, 7, Ammo_50AE);
 	BuildWeaponList				(Weapon, "bf4_ranks/weapons/weapon_automag5");
 	BuildWeaponFireSound		(Weapon, gSound[SND_FIRE1]);
-	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, AUTOMAG5_SHOOT1);
+	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, AUTOMAG5_SHOOT1, AUTOMAG5_SHOOT2);
 	BuildWeaponSecondaryAttack	(Weapon, A2_None);
 	RegisterWeaponForward		(Weapon, WForward_PrimaryAttackPost, 	"AUTOMAG5_PrimaryPost");
 
