@@ -1,28 +1,23 @@
 
 #include <amxmodx>
-#include <amxmodx>
 #include <hamsandwich>
-#include <fakemeta>
 #include <bf4weapons>
+#include <fakemeta>
 #include <reapi>
-#include <cstrike>
 #include <cswm>
-#include <cswm_const>
 
 #pragma semicolon 1
 #pragma compress 1
 
-#define CANNON_NEXTATTACK EV_FL_fuser4
-
-#define PLUGIN		"[BF4 Weapons] Kriss Super V"
-#define VERSION		"0.1"
-#define AUTHOR		"Aoi.Kagase"
+#define PLUGIN			"[BF4 Weapons] Kriss Super V"
+#define VERSION			"0.1"
+#define AUTHOR			"Aoi.Kagase"
 
 // P228 Damage is 32.0
+#define FIRE1_RATE		GetWeaponDefaultDelay(CSW_MP5NAVY)
 #define FIRE1_DAMAGE	(30.0 / 36.0)
-#define RECOIL 			1.14
+#define FIRE1_RECOIL 	1.14
 
-#define FIRE_RATE		GetWeaponDefaultDelay(CSW_MP5NAVY)
 
 enum _:KRISS_ANIMS
 {
@@ -37,23 +32,11 @@ enum _:KRISS_ANIMS
 
 enum _:KRISS_SOUNDS
 {
-	SND_CLIPIN,
-	SND_CLIPON,
-	SND_CLIPOUT,
-	SND_DRAW,
-	SND_FOLEY1,
-	SND_FOLEY2,
 	SND_FIRE1,
 	SND_SIL_FIRE1,
 };
 new const gSound[][] =
 {
-	"bf4_ranks/weapons/kriss_clipin.wav",
-	"bf4_ranks/weapons/kriss_clipon.wav",
-	"bf4_ranks/weapons/kriss_clipout.wav",
-	"bf4_ranks/weapons/kriss_draw.wav",
-	"bf4_ranks/weapons/kriss_foley1.wav",
-	"bf4_ranks/weapons/kriss_foley2.wav",
 	"bf4_ranks/weapons/kriss-1.wav",
 	"bf4_ranks/weapons/kriss_sil-1.wav"
 };
@@ -65,6 +48,7 @@ enum _:KRISS_MODELS
 	P_MODEL,
 	W_MODEL,
 };
+
 new const gModels[][] =
 {
 	"models/bf4_ranks/weapons/v_kriss.mdl",
@@ -83,72 +67,48 @@ public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 	RegisterHamPlayer(Ham_Spawn, "PlayerSpawn", true);
-
-	register_forward	(FM_EmitSound, 				"FireSound");
 }
 
 public client_putinserver(id)
 {
 	gSilencer[id] = false;
-	SetWeaponEntityData(Weapon, WED_A2, false);
 	ModelChange(id + TASK_SECONDARY);
 }
 
 public plugin_precache()
 {
-	Weapon    = CreateWeapon("kriss", Rifle, "Kriss Super V");
+	Weapon = CreateWeapon("kriss", Rifle, "Kriss Super V");
 
 	gNonSilModel = PrecacheWeaponModelEx("models/bf4_ranks/weapons/v_kriss.mdl");
 	gSilModel 	 = PrecacheWeaponModelEx("models/bf4_ranks/weapons/v_kriss_2.mdl");
 
-	BuildWeaponModels(Weapon, gModels[V_MODEL], gModels[P_MODEL], gModels[W_MODEL]);
-	BuildWeaponDeploy(Weapon, KRISS_DRAW, 0.0);
-	BuildWeaponAmmunition(Weapon, 30, Ammo_45ACP);
-	BuildWeaponList(Weapon, "bf4_ranks/weapons/weapon_kriss");
-	BuildWeaponFireSound(Weapon, gSound[SND_FIRE1]);
-	BuildWeaponReload(Weapon, KRISS_RELOAD, 3.7);
-	BuildWeaponPrimaryAttack(Weapon, FIRE_RATE, FIRE1_DAMAGE, RECOIL, KRISS_SHOOT1);
-/*
- SwitchAnim
- SwitchAnimDuration
- ReturnAnim
- ReturnAnimDuration
- IdleAnim
- DrawAnim
- DrawAnimDuration
- ShootAnim
- ShootAnimDuration,
- ReloadAnim
- ReloadAnimDuration
- Delay,
- Damage,
- Recoil
- FireSound
-*/
-	// BuildWeaponSecondaryAttack(Weapon, A2_InstaSwitch, KRISS_SHOOT1, FIRE_RATE, FIRE1_DAMAGE - 0.2, RECOIL, "", "");
-	BuildWeaponSecondaryAttack(Weapon, A2_Switch, 
-		KRISS_SILENCER_ADD, 2.5, 
-		KRISS_SILENCER_ADD, 2.0,
-		KRISS_IDLE, 
-		KRISS_DRAW, 0.0, 
-		KRISS_SHOOT1, FIRE_RATE, 
-		KRISS_RELOAD, 3.7, 
-		FIRE_RATE,
-		FIRE1_DAMAGE - 0.2, 
-		RECOIL + 0.1, 
-		gSound[SND_SIL_FIRE1]
-	);
-	BuildWeaponFlags(Weapon, WFlag_SwitchMode_NoText);
-	PrecacheWeaponModelSounds(Weapon);
-	PrecacheWeaponListSprites(Weapon);
-	precache_sound(gSound[SND_FIRE1]);
-	precache_sound(gSound[SND_SIL_FIRE1]);
+	BuildWeaponModels			(Weapon, gModels[V_MODEL], gModels[P_MODEL], gModels[W_MODEL]);
+	BuildWeaponDeploy			(Weapon, KRISS_DRAW, 0.0);
+	BuildWeaponAmmunition		(Weapon, 30, Ammo_45ACP);
+	BuildWeaponList				(Weapon, "bf4_ranks/weapons/weapon_kriss");
+	BuildWeaponFireSound		(Weapon, gSound[SND_FIRE1]);
+	BuildWeaponReload			(Weapon, KRISS_RELOAD, 3.7);
+	BuildWeaponFlags			(Weapon, WFlag_SwitchMode_NoText);
 
-	RegisterWeaponForward(Weapon, WForward_PrimaryAttackPre, "PrimaryAttack");
-	RegisterWeaponForward(Weapon, WForward_SecondaryAttackPost, "SecondaryAttack");
-	// RegisterWeaponForward(Weapon, WForward_HolsterPost, "ModelChangeDeploy");
-	// RegisterWeaponForward(Weapon, WForward_SpawnPost, 	"ModelChangeDeploy");
-	RegisterWeaponForward(Weapon, WForward_DeployPost, 	"ModelChangeDeploy");
+	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, KRISS_SHOOT1);
+	BuildWeaponSecondaryAttack	(Weapon, A2_Switch, 
+		KRISS_SILENCER_ADD, 2.5, 	// SwitchAnim, SwitchAnimDuration
+		KRISS_SILENCER_ADD, 2.0,	// ReturnAnim, ReturnAnimDuration
+		KRISS_IDLE, 				// IdleAnim
+		KRISS_DRAW, 0.0, 			// DrawAnim, DrawAnimDuration
+		KRISS_SHOOT1, FIRE1_RATE, 	// ShootAnim, ShootAnimDuration
+		KRISS_RELOAD, 3.7, 			// ReloadAnim, ReloadAnimDuration
+		FIRE1_RATE,					// Delay
+		FIRE1_DAMAGE - 0.2, 		// Damage
+		FIRE1_RECOIL + 0.1, 		// Recoil
+		gSound[SND_SIL_FIRE1]		// FireSound
+	);
+	PrecacheWeaponModelSounds	(Weapon);
+	PrecacheWeaponListSprites	(Weapon);
+
+	RegisterWeaponForward		(Weapon, WForward_PrimaryAttackPre, 	"PrimaryAttack");
+	RegisterWeaponForward		(Weapon, WForward_SecondaryAttackPost, 	"SecondaryAttack");
+	RegisterWeaponForward		(Weapon, WForward_DeployPost, 			"ModelChangeDeploy");
 
 	BF4RegisterWeapon(BF4_TEAM_BOTH, 
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_ENGINEER, 
@@ -172,7 +132,7 @@ public PlayerSpawn(id)
 
 public SecondaryAttack(Entity)
 {
-	new id        = get_member(Entity, m_pPlayer);
+	new id = get_member(Entity, m_pPlayer);
 	gSilencer[id] = !gSilencer[id];
 
 	if (gSilencer[id])
