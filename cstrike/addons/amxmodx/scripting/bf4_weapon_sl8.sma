@@ -54,7 +54,7 @@ public plugin_init()
 
 public plugin_precache()
 {
-	Weapon = CreateWeapon("SL8", Rifle, "SL8");
+	Weapon = CreateWeapon("sl8", Rifle, "SL8");
 
 	BuildWeaponModels			(Weapon, gModels[V_MODEL], gModels[P_MODEL], gModels[W_MODEL]);
 	BuildWeaponList				(Weapon, "bf4_ranks/weapons/weapon_sl8");
@@ -62,7 +62,7 @@ public plugin_precache()
 	BuildWeaponReload			(Weapon, SL8_RELOAD, 3.4);
 	BuildWeaponAmmunition		(Weapon, 20, Ammo_556Nato);
 	BuildWeaponFireSound		(Weapon, gSound[SND_FIRE1]);
-	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, SL8_SHOOT1);
+	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, SL8_SHOOT1, SL8_SHOOT2);
 	BuildWeaponSecondaryAttack	(Weapon, A2_Zoom, Zoom_SniperB);
 	BuildWeaponFlags			(Weapon, WFlag_AutoSniper);
 	PrecacheWeaponModelSounds	(Weapon);

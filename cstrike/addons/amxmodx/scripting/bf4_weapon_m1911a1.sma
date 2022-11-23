@@ -65,7 +65,7 @@ public plugin_precache()
 	BuildWeaponReload			(Weapon, M1911A1_RELOAD, 2.2);
 	BuildWeaponAmmunition		(Weapon, 8, Ammo_45ACP);
 	BuildWeaponFireSound		(Weapon, gSound[SND_FIRE1]);
-	BuildWeaponPrimaryAttack	(Weapon, FIRE_RATE, FIRE1_DAMAGE, RECOIL, M1911A1_SHOOT1);
+	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, M1911A1_SHOOT1, M1911A1_SHOOT2, M1911A1_SHOOT3);
 	BuildWeaponSecondaryAttack	(Weapon, A2_None);
 	RegisterWeaponForward		(Weapon, WForward_PrimaryAttackPost, 	"M1911A1_PrimaryPost");
 

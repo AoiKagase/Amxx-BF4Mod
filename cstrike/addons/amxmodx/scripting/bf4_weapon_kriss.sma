@@ -90,7 +90,7 @@ public plugin_precache()
 	BuildWeaponReload			(Weapon, KRISS_RELOAD, 3.7);
 	BuildWeaponFlags			(Weapon, WFlag_SwitchMode_NoText);
 
-	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, KRISS_SHOOT1);
+	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, KRISS_SHOOT1, KRISS_SHOOT2, KRISS_SHOOT3);
 	BuildWeaponSecondaryAttack	(Weapon, A2_Switch, 
 		KRISS_SILENCER_ADD, 2.5, 	// SwitchAnim, SwitchAnimDuration
 		KRISS_SILENCER_ADD, 2.0,	// ReturnAnim, ReturnAnimDuration

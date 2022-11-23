@@ -75,11 +75,8 @@ public client_putinserver(id)
 
 public plugin_precache()
 {
-	Weapon 		= CreateWeapon("kriss", Rifle, "Kriss Super V");
+	Weapon 		= CreateWeapon("mp7a1", Rifle, "MP7A1");
 	CAmmo 		= CreateAmmo(75, 20, 80);
-
-	gNonSilModel= PrecacheWeaponModelEx("models/bf4_ranks/weapons/v_mp7a1.mdl");
-	gSilModel 	= PrecacheWeaponModelEx("models/bf4_ranks/weapons/v_mp7a1_2.mdl");
 
 	SetAmmoName					(CAmmo, "4.6x30mm");
 
@@ -90,7 +87,7 @@ public plugin_precache()
 	BuildWeaponAmmunition		(Weapon, 20, CAmmo);
 	BuildWeaponFireSound		(Weapon, gSound[SND_FIRE1]);
 	BuildWeaponFlags			(Weapon, WFlag_SwitchMode_NoText);
-	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, MP7A1_SHOOT1);
+	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, MP7A1_SHOOT1, MP7A1_SHOOT2, MP7A1_SHOOT3);
 	BuildWeaponSecondaryAttack	(Weapon, A2_Switch, 
 		MP7A1_CHANGE, 5.0, 			// SwitchAnim, SwitchAnimDuration
 		MP7A1_CHANGE, 5.0,			// ReturnAnim, ReturnAnimDuration
@@ -106,6 +103,9 @@ public plugin_precache()
 
 	PrecacheWeaponModelSounds	(Weapon);
 	PrecacheWeaponListSprites	(Weapon);
+
+	gNonSilModel= PrecacheWeaponModelEx("models/bf4_ranks/weapons/v_mp7a1.mdl");
+	gSilModel 	= PrecacheWeaponModelEx("models/bf4_ranks/weapons/v_mp7a1_2.mdl");
 
 	RegisterWeaponForward		(Weapon, WForward_PrimaryAttackPre, 	"PrimaryAttack");
 	RegisterWeaponForward		(Weapon, WForward_SecondaryAttackPost, 	"SecondaryAttack");

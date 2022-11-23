@@ -68,7 +68,7 @@ public plugin_precache()
 	BuildWeaponAmmunition		(Weapon, 50, CAmmo);
 	BuildWeaponList				(Weapon, "bf4_ranks/weapons/weapon_g11");
 	BuildWeaponFireSound		(Weapon, gSound[SND_FIRE1]);
-	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, G11_SHOOT1);
+	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, G11_SHOOT1, G11_SHOOT2, G11_SHOOT3);
 	BuildWeaponSecondaryAttack	(Weapon, A2_Burst, 3);
 
 	PrecacheWeaponModelSounds	(Weapon);

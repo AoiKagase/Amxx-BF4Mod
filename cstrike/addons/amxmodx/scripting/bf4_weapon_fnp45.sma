@@ -67,7 +67,7 @@ public plugin_precache()
 	BuildWeaponSecondaryAttack	(Weapon, A2_None);
 	BuildWeaponFireSound		(Weapon, gSound[SND_FIRE1]);
 	BuildWeaponReload			(Weapon, FNP45_RELOAD, 2.5);
-	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, FNP45_SHOOT1);
+	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, FNP45_SHOOT1, FNP45_SHOOT2, FNP45_SHOOT3);
 	RegisterWeaponForward		(Weapon, WForward_PrimaryAttackPost, 	"FNP45_PrimaryPost");
 
 	PrecacheWeaponModelSounds	(Weapon);
