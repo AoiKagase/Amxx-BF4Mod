@@ -1,28 +1,19 @@
 
 #include <amxmodx>
-#include <amxmodx>
-#include <bf4const>
 #include <cswm>
-#include <cswm_const>
-#include <hamsandwich>
-#include <fakemeta>
 #include <bf4weapons>
 
 #pragma semicolon 1
 #pragma compress 1
 
-#define CANNON_NEXTATTACK EV_FL_fuser4
-
-#define PLUGIN		"[BF4 Weapons] Python"
-#define VERSION		"0.1"
-#define AUTHOR		"Aoi.Kagase"
+#define PLUGIN			"[BF4 Weapons] Python"
+#define VERSION			"0.1"
+#define AUTHOR			"Aoi.Kagase"
 
 // P228 Damage is 32.0
+#define FIRE1_RATE		GetWeaponDefaultDelay(CSW_P228)
 #define FIRE1_DAMAGE	(30.0 / 32.0)
-#define RECOIL 			1.17
-
-#define FIRE_RATE		GetWeaponDefaultDelay(CSW_P228)
-#define TEMP			false
+#define FIRE1_RECOIL 	1.17
 
 enum _:PYTHON_ANIMS
 {
@@ -36,20 +27,12 @@ enum _:PYTHON_ANIMS
 
 enum _:PYTHON_SOUNDS
 {
-	SND_CLIPIN1,
-	SND_CLIPOUT,
-	SND_DRAW,
-	SND_EMPTY,
 	SND_FIRE1,
 	SND_FIRE2,
 };
 
 new const gSound[][] =
 {
-	"bf4_ranks/weapons/python_clipin.wav",
-	"bf4_ranks/weapons/python_clipout.wav",
-	"bf4_ranks/weapons/python_draw.wav",
-	"bf4_ranks/weapons/python_empty.wav",
 	"bf4_ranks/weapons/python-1.wav",
 	"bf4_ranks/weapons/python-2.wav",
 };
@@ -75,24 +58,21 @@ public plugin_init()
 
 public plugin_precache()
 {
-	Weapon      = CreateWeapon("PYTHON", Pistol, "Python");
+	Weapon = CreateWeapon("PYTHON", Pistol, "Python");
 
-	BuildWeaponModels(Weapon, gModels[V_MODEL], gModels[P_MODEL], gModels[W_MODEL]);
-	BuildWeaponDeploy(Weapon, PYTHON_DRAW, 0.0);
-	BuildWeaponAmmunition(Weapon, 6, Ammo_357SIG);
-	BuildWeaponList(Weapon, "bf4_ranks/weapons/weapon_python");
-	BuildWeaponSecondaryAttack(Weapon, A2_None);
-	BuildWeaponFireSound(Weapon, gSound[SND_FIRE1]);
-	BuildWeaponReload(Weapon, PYTHON_RELOAD, 2.0);
-	BuildWeaponPrimaryAttack(Weapon, FIRE_RATE, FIRE1_DAMAGE, RECOIL, PYTHON_SHOOT1);
+	BuildWeaponModels			(Weapon, gModels[V_MODEL], gModels[P_MODEL], gModels[W_MODEL]);
+	BuildWeaponList				(Weapon, "bf4_ranks/weapons/weapon_python");
+	BuildWeaponDeploy			(Weapon, PYTHON_DRAW, 0.0);
+	BuildWeaponReload			(Weapon, PYTHON_RELOAD, 2.0);
+	BuildWeaponAmmunition		(Weapon, 6, Ammo_357SIG);
+	BuildWeaponFireSound		(Weapon, gSound[SND_FIRE1]);
+	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, PYTHON_SHOOT1);
+	BuildWeaponSecondaryAttack	(Weapon, A2_None);
 
-	RegisterWeaponForward(Weapon, WForward_PrimaryAttackPost, 	"PYTHON_PrimaryPost");
+	PrecacheWeaponModelSounds	(Weapon);
+	PrecacheWeaponListSprites	(Weapon);
 
-	PrecacheWeaponModelSounds(Weapon);
-	for(new i = 0; i < sizeof(gSound); i++)
-		precache_sound(gSound[i]);
-
-	PrecacheWeaponListSprites(Weapon);
+	RegisterWeaponForward		(Weapon, WForward_PrimaryAttackPost, 	"PYTHON_PrimaryPost");
 
 	BF4RegisterWeapon(BF4_TEAM_BOTH, 
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER, 
