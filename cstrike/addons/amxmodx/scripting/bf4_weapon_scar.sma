@@ -129,14 +129,17 @@ public PrimaryAttackPost(Entity)
 		new Float:push[3];
 		if((pev(id, pev_flags) & FL_ONGROUND))
 		{
-			new a2 = GetWeaponEntityData(Entity, WED_INA2);
-			client_print(id, print_chat, "ATTACK MODE = %d", a2);
-			if (a2)
+			if (GetWeaponClip(Entity) > 0)
 			{
-				pev(id, pev_punchangle, push);
-				push[1] = push[1] * 2.0;
-				push[0] = push[0] / 2.0;
-				set_pev(id, pev_punchangle, push);
+				new a2 = GetWeaponEntityData(Entity, WED_INA2);
+				client_print(id, print_chat, "ATTACK MODE = %d", a2);
+				if (a2)
+				{
+					pev(id, pev_punchangle, push);
+					push[1] = push[1] * 2.0;
+					push[0] = push[0] / 2.0;
+					set_pev(id, pev_punchangle, push);
+				}
 			}
 		}
 	}
