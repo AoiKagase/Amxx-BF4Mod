@@ -27,6 +27,13 @@ enum _:MP7A1_ANIMS
 	MP7A1_SHOOT2,
 	MP7A1_SHOOT3,
 	MP7A1_CHANGE,
+	MP7A1_CARBIN_IDLE,
+	MP7A1_CARBIN_RELOAD,
+	MP7A1_CARBIN_DRAW,
+	MP7A1_CARBIN_SHOOT1,
+	MP7A1_CARBIN_SHOOT2,
+	MP7A1_CARBIN_SHOOT3,
+	MP7A1_CARBIN_CHANGE,
 };
 
 enum _:MP7A1_SOUNDS
@@ -42,35 +49,22 @@ new const gSound[][] =
 enum _:MP7A1_MODELS
 {
 	V_MODEL,
-	V_MODEL_STOCK,
 	P_MODEL,
 	W_MODEL,
 };
 new const gModels[][] =
 {
 	"models/bf4_ranks/weapons/v_mp7a1.mdl",
-	"models/bf4_ranks/weapons/v_mp7a1_2.mdl",
 	"models/bf4_ranks/weapons/p_mp7a1.mdl",
 	"models/bf4_ranks/weapons/w_mp7a1.mdl",
 };
 
 new Weapon;
 new CAmmo;
-new gSilModel;
-new gNonSilModel;
-new bool:gSilencer[MAX_PLAYERS + 1];
 
-#define TASK_SECONDARY 22102
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
-	RegisterHamPlayer(Ham_Spawn, "PlayerSpawn", true);
-}
-
-public client_putinserver(id)
-{
-	gSilencer[id] = false;
-	ModelChange(id + TASK_SECONDARY);
 }
 
 public plugin_precache()
@@ -89,27 +83,20 @@ public plugin_precache()
 	BuildWeaponFlags			(Weapon, WFlag_SwitchMode_NoText);
 	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, MP7A1_SHOOT1, MP7A1_SHOOT2, MP7A1_SHOOT3);
 	BuildWeaponSecondaryAttack	(Weapon, A2_Switch, 
-		MP7A1_CHANGE, 5.0, 			// SwitchAnim, SwitchAnimDuration
-		MP7A1_CHANGE, 5.0,			// ReturnAnim, ReturnAnimDuration
-		MP7A1_IDLE, 				// IdleAnim
-		MP7A1_DRAW, 0.0, 			// DrawAnim, DrawAnimDuration
-		MP7A1_SHOOT1, FIRE1_RATE, 	// ShootAnim, ShootAnimDuration,
-		MP7A1_RELOAD, 3.7, 			// ReloadAnim, ReloadAnimDuration
-		FIRE1_RATE + 0.2,			// Delay,
-		FIRE1_DAMAGE - 0.2, 		// Damage,
-		FIRE1_RECOIL - 0.3,			// Recoil
-		gSound[SND_FIRE1]			// FireSound
+		MP7A1_CHANGE, 5.0, 					// SwitchAnim, SwitchAnimDuration
+		MP7A1_CARBIN_CHANGE, 5.0,			// ReturnAnim, ReturnAnimDuration
+		MP7A1_CARBIN_IDLE, 					// IdleAnim
+		MP7A1_CARBIN_DRAW, 0.0, 			// DrawAnim, DrawAnimDuration
+		MP7A1_CARBIN_SHOOT1, FIRE1_RATE, 	// ShootAnim, ShootAnimDuration,
+		MP7A1_CARBIN_RELOAD, 3.7, 			// ReloadAnim, ReloadAnimDuration
+		FIRE1_RATE + 0.2,					// Delay,
+		FIRE1_DAMAGE - 0.2, 				// Damage,
+		FIRE1_RECOIL - 0.3,					// Recoil
+		gSound[SND_FIRE1]					// FireSound
 	);
 
 	PrecacheWeaponModelSounds	(Weapon);
 	PrecacheWeaponListSprites	(Weapon);
-
-	gNonSilModel= PrecacheWeaponModelEx("models/bf4_ranks/weapons/v_mp7a1.mdl");
-	gSilModel 	= PrecacheWeaponModelEx("models/bf4_ranks/weapons/v_mp7a1_2.mdl");
-
-	RegisterWeaponForward		(Weapon, WForward_PrimaryAttackPre, 	"PrimaryAttack");
-	RegisterWeaponForward		(Weapon, WForward_SecondaryAttackPost, 	"SecondaryAttack");
-	RegisterWeaponForward		(Weapon, WForward_DeployPost, 			"ModelChangeDeploy");
 
 	BF4RegisterWeapon(BF4_TEAM_BOTH, 
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_ENGINEER, 
@@ -120,46 +107,4 @@ public plugin_precache()
 		CAmmo,
 		"4.6x30mm"
 	);	
-}
-
-public PlayerSpawn(id)
-{
-	if (is_user_alive(id))
-	{
-		gSilencer[id] = false;
-		ModelChange(id + TASK_SECONDARY);
-	}
-}
-
-public SecondaryAttack(Entity)
-{
-	new id        = get_member(Entity, m_pPlayer);
-	gSilencer[id] = !gSilencer[id];
-
-	set_task(5.0, "ModelChange", id + TASK_SECONDARY);
-	SetNextAttack(Entity, 5.0, true);
-}
-
-public ModelChangeDeploy(Entity)
-{
-	new id = get_member(Entity, m_pPlayer);
-	ModelChange(id + TASK_SECONDARY);
-}
-
-public ModelChange(id)
-{
-	id -= TASK_SECONDARY;
-	if (is_user_alive(id))
-	{
-		new weaponname1[33];
-		pev(id, pev_viewmodel2, weaponname1, charsmax(weaponname1));
-		if (equali(weaponname1, "models/bf4_ranks/weapons/v_mp7a1")
-		 || equali(weaponname1, "models/bf4_ranks/weapons/v_mp7a1_2"))
-		{
-			if (gSilencer[id])
-				SetPlayerViewModel(id, gSilModel);
-			else
-				SetPlayerViewModel(id, gNonSilModel);
-		}
-	}
 }
