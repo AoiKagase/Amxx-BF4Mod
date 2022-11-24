@@ -472,7 +472,7 @@ RegisterWeapon(BF4_TEAM:team, BF4_CLASS:has_class, BF4_WEAPONCLASS:wpn_class, cs
 	if (cswm_id > 0)
 	{
 		weapon[CSX_WPNID] 	= custom_weapon_add(weapon[NAME], 0, weapon[ITEM]);
-		console_print(0, "[BF4 DEBUG] REGISTER %d CSXID %d %s", cswm_id, weapon[CSX_WPNID], weapon[NAME]);
+		// console_print(0, "[BF4 DEBUG] REGISTER %d CSXID %d %s", cswm_id, weapon[CSX_WPNID], weapon[NAME]);
 	}
 
 	copy(weapon[AMMONAME], charsmax(weapon[AMMONAME]), ammoname);
@@ -1045,7 +1045,7 @@ public CustomPrimaryAttack(iWpnId)
 			ArrayGetArray(gWeaponList, gUseWeapons[id][SECONDARY], data, sizeof(data));
 		else
 			ArrayGetArray(gWeaponList, gUseWeapons[id][PRIMARY], data, sizeof(data));
-		if (data[CSWM_ID])
+		if (data[CSWM_ID] > -1 && data[CSX_WPNID] > -1)
 		{
 //			client_print_color(id, print_team_default, "^3[BF4 DEBUG] ^1SHOT %s", wpnname);
 			custom_weapon_shot(data[CSX_WPNID], id);
