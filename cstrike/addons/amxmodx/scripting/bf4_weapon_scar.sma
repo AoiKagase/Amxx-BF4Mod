@@ -67,8 +67,6 @@ new gWpnIdx;
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
-
-	RegisterHam(Ham_Weapon_PrimaryAttack, "weapon_ak47", "PrimaryAttackPost",	1);
 }
 
 public plugin_precache()
@@ -94,6 +92,7 @@ public plugin_precache()
 		FIRE1_RECOIL / 1.3,				// Recoil
 		gSound[SND_FIRE_H]				// FireSound
 	);
+	RegisterWeaponForward		(Weapon, WForward_PrimaryAttackPost, "PrimaryAttackPost");
 
 	PrecacheWeaponModelSounds	(Weapon);
 	PrecacheWeaponListSprites	(Weapon);
@@ -124,22 +123,19 @@ public PrimaryAttackPre(Entity)
 public PrimaryAttackPost(Entity)
 {
 	new id = get_member(Entity, m_pPlayer);
-	if (BF4HaveThisWeapon(id, gWpnIdx))
+	new Float:push[3];
+	if((pev(id, pev_flags) & FL_ONGROUND))
 	{
-		new Float:push[3];
-		if((pev(id, pev_flags) & FL_ONGROUND))
+		if (GetWeaponClip(Entity) > 0)
 		{
-			if (GetWeaponClip(Entity) > 0)
+			new a2 = GetWeaponEntityData(Entity, WED_INA2);
+			// client_print(id, print_chat, "ATTACK MODE = %d", a2);
+			if (a2)
 			{
-				new a2 = GetWeaponEntityData(Entity, WED_INA2);
-				client_print(id, print_chat, "ATTACK MODE = %d", a2);
-				if (a2)
-				{
-					pev(id, pev_punchangle, push);
-					push[1] = push[1] * 2.0;
-					push[0] = push[0] / 2.0;
-					set_pev(id, pev_punchangle, push);
-				}
+				pev(id, pev_punchangle, push);
+				push[1] = push[1] * 2.0;
+				push[0] = push[0] / 2.0;
+				set_pev(id, pev_punchangle, push);
 			}
 		}
 	}
