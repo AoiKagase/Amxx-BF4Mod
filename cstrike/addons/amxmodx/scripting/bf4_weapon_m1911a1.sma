@@ -57,7 +57,7 @@ public plugin_init()
 
 public plugin_precache()
 {
-	Weapon = CreateWeapon("coltm1911a1", Pistol, "M1911A1");
+	Weapon = CreateWeapon("coltm1911a1", Pistol, "Colt M1911A1");
 
 	BuildWeaponModels			(Weapon, gModels[V_MODEL], gModels[P_MODEL], gModels[W_MODEL]);
 	BuildWeaponList				(Weapon, "bf4_ranks/weapons/weapon_coltm1911a1");

@@ -58,7 +58,7 @@ public plugin_init()
 
 public plugin_precache()
 {
-	Weapon = CreateWeapon("python", Pistol, "Python");
+	Weapon = CreateWeapon("python", Pistol, "Colt Python");
 
 	BuildWeaponModels			(Weapon, gModels[V_MODEL], gModels[P_MODEL], gModels[W_MODEL]);
 	BuildWeaponList				(Weapon, "bf4_ranks/weapons/weapon_python");
@@ -78,7 +78,7 @@ public plugin_precache()
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER, 
 		BF4_WEAPONCLASS_PISTOLS, 
 		Weapon,
-		"Python",
+		"Colt Python",
 		"python",
 		_:Ammo_357SIG,
 		"357sig"

@@ -69,7 +69,7 @@ public plugin_init()
 
 public plugin_precache()
 {
-	Weapon 		= CreateWeapon("mp7a1", Rifle, "MP7A1");
+	Weapon 		= CreateWeapon("mp7a1", Rifle, "H&K MP7A1");
 	CAmmo 		= CreateAmmo(75, 20, 80);
 
 	SetAmmoName					(CAmmo, "4.6x30mm");

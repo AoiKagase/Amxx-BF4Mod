@@ -71,7 +71,7 @@ public plugin_init()
 
 public plugin_precache()
 {
-	Weapon = CreateWeapon("kriss", Rifle, "Kriss Super V");
+	Weapon = CreateWeapon("kriss", Rifle, "Kriss Vector/Super V");
 
 	BuildWeaponModels			(Weapon, gModels[V_MODEL], gModels[P_MODEL], gModels[W_MODEL]);
 	BuildWeaponDeploy			(Weapon, KRISS_DRAW, 0.0);
@@ -101,7 +101,7 @@ public plugin_precache()
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_ENGINEER, 
 		BF4_WEAPONCLASS_SMGS, 
 		Weapon,
-		"Kriss Super V",
+		"Kriss Vector/Super V",
 		"kriss",
 		_:Ammo_45ACP,
 		"45acp"
