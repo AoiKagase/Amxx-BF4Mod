@@ -15,7 +15,7 @@
 
 // P228 Damage is 32.0
 #define FIRE1_RATE		GetWeaponDefaultDelay(CSW_MP5NAVY)
-#define FIRE1_DAMAGE	(30.0 / 36.0)
+#define FIRE1_DAMAGE	(MP5N_DAMAGE / AK47_DAMAGE)
 #define FIRE1_RECOIL 	1.14
 
 enum _:MP7A1_ANIMS

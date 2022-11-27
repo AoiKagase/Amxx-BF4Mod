@@ -39,6 +39,7 @@
 #include <bf4const>
 #include <bf4natives>
 #include <bf4weapons>
+#include <bf4classes>
 #include <cswm>
 
 #define UnitsToMeters(%1)	(%1*0.0254)
@@ -811,7 +812,7 @@ public BF4DeathMsg()
 	read_data(4, wpnname, charsmax(wpnname));
 	new BF4_WEAPONCLASS:iWpnClass = BF4WeaponNameToClass(iAttacker, wpnname);
 
-	if (cs_get_user_team(iAttacker) != cs_get_user_team(iVictim))
+	if (BF4GetUserTeam(iAttacker) != BF4GetUserTeam(iVictim))
 	{
 		// AVENGER RIBBON
 		RibbonCheckAvenger(iAttacker, iVictim);

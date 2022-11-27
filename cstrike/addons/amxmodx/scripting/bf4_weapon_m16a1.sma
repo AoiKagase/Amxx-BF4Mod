@@ -57,7 +57,10 @@ new gWpnIdx;
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
-	RegisterHam(Ham_Item_PostFrame, "weapon_ak47", "PrimaryAttack");
+
+	// Secondary Semi-auto logic.
+	RegisterHam(Ham_Item_PostFrame, "weapon_ak47", "PrimaryAttackPre",  0);
+	RegisterHam(Ham_Item_PostFrame, "weapon_ak47", "PrimaryAttackPost", 1);
 }
 
 public plugin_precache()
@@ -87,35 +90,64 @@ public plugin_precache()
 		"556nato"
 	);
 }
-stock const m_iShotsFired =	64;
-stock const m_bIsPrimaryFireAllowed = 219;
-stock const m_flNextPrimaryAttack = 46;	// soonest time ItemPostFrame will call PrimaryAttack
-stock const m_iClip = 51;	// number of shots left in the primary weapon clip, -1 it not used
-stock const m_fInReload = 54;	// Are we in the middle of a reload;
-public PrimaryAttack(Entity)
+
+public PrimaryAttackPre(Entity)
 {
+	// Safety.
+	if (!pev_valid(Entity))
+		return HAM_IGNORED;
+
+	// Get Owner ID.
 	new id = pev(Entity, pev_owner);
+
+	// This Weapon?
 	if (BF4HaveThisWeapon(id, gWpnIdx))
 	{
-		if (GetWeaponClip(Entity) > 0)
+		// Secondary Mode On.
+		new a2 = GetWeaponEntityData(Entity, WED_INA2);
+		if (a2)
 		{
-			new a2 = GetWeaponEntityData(Entity, WED_INA2);
-			if (a2)
+			// Already First shot?
+			if (get_ent_data(Entity, "CBasePlayerWeapon", "m_iShotsFired")) 
 			{
-				if (get_pdata_int(Entity, m_iShotsFired, 4))
-				{
-					if ( pev( id, pev_button ) & IN_ATTACK )
-					{
-						set_pdata_int( id, m_bIsPrimaryFireAllowed, 0, 5 );
-//						SetNextAttack(Entity, 0.1, false);
-						set_pdata_int(Entity, m_iShotsFired, -1, 4);
-						set_pdata_float(Entity, m_flNextPrimaryAttack, 0.1, 4 );
-					} else {
-						set_pdata_int(Entity, m_iShotsFired, 0, 4);
-					}
-				}
-	//			SetNextAttack(Entity, 0.01, false);
+				// Blocked next shot.
+				set_ent_data(id, "CBasePlayer", "m_bCanShoot", 0);
+
+				// Next Attack time.
+				set_ent_data_float(Entity, "CBasePlayerWeapon", "m_flNextPrimaryAttack", 0.1);
 			}
 		}
 	}
+
+	return HAM_IGNORED;
+}
+
+public PrimaryAttackPost(Entity)
+{
+	// Safety.
+	if (!pev_valid(Entity))
+		return HAM_IGNORED;
+
+	// Get Owner ID.
+	new id = pev(Entity, pev_owner);
+
+	// This Weapon?
+	if (BF4HaveThisWeapon(id, gWpnIdx))
+	{
+		// Secondary Mode On.
+		new a2 = GetWeaponEntityData(Entity, WED_INA2);
+		if (a2)
+		{
+			// Attack key Released?
+			if (!(pev(id, pev_button) & IN_ATTACK))
+			{
+				// Unblocking shot.
+				set_ent_data(id, "CBasePlayer", "m_bCanShoot", 1);
+				// Reset Shot count.
+				set_ent_data(Entity, "CBasePlayerWeapon", "m_iShotsFired", 0);
+			}
+		}
+	}
+
+	return HAM_IGNORED;
 }

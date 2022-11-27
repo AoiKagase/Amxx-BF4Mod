@@ -37,12 +37,6 @@ enum _:BF4_WEAPON_DATA
 	AMMONAME[33],
 }
 
-enum AMMO_LIST
-{
-	AmmoName[33],
-	MaxAmmo,
-}
-
 // Classic Weapon Data.
 // FullName, ItemName, AmmoId, Team, WeaponClass, Has Class
 new const gWpnClassicItem[CSW_LAST_WEAPON + 1][WPN_CLASSIC_DATA] =
@@ -459,7 +453,7 @@ public _native_select_weapon_menu(iPlugin, iParams)
 	BF4WeaponMenu(id);
 }
 
-RegisterWeapon(BF4_TEAM:team, BF4_CLASS:has_class, BF4_WEAPONCLASS:wpn_class, cswm_id, name[33], item[33], ammo_id, ammoname[33])
+RegisterWeapon(const BF4_TEAM:team, const BF4_CLASS:has_class, const BF4_WEAPONCLASS:wpn_class, const cswm_id, const name[], const item[], const ammo_id, const ammoname[])
 {
 	new weapon[BF4_WEAPON_DATA];
 	weapon[TEAM] 			= team;
@@ -467,16 +461,15 @@ RegisterWeapon(BF4_TEAM:team, BF4_CLASS:has_class, BF4_WEAPONCLASS:wpn_class, cs
 	weapon[WPNCLASS]		= wpn_class;
 	weapon[CSWM_ID] 		= cswm_id;
 	weapon[AMMO_ID]			= ammo_id;
-	weapon[NAME]			= name;
-	weapon[ITEM]			= item;
-	if (cswm_id > 0)
+	if (cswm_id > -1)
 	{
 		weapon[CSX_WPNID] 	= custom_weapon_add(weapon[NAME], 0, weapon[ITEM]);
 		// console_print(0, "[BF4 DEBUG] REGISTER %d CSXID %d %s", cswm_id, weapon[CSX_WPNID], weapon[NAME]);
 	}
+	copy(weapon[NAME], 		32,	name);
+	copy(weapon[ITEM], 		32,	item);
+	copy(weapon[AMMONAME], 	32, ammoname);
 
-	copy(weapon[AMMONAME], charsmax(weapon[AMMONAME]), ammoname);
-	
 	return ArrayPushArray(gWeaponList, weapon, sizeof(weapon));
 }
 public _native_have_this_weapon(iPlugin, iParams)
@@ -968,11 +961,13 @@ public BF4TouchWeaponBox(iWpnBox, iToucher)
 			ArrayGetArray(gWeaponList, gUseWeapons[iToucher][i], data, sizeof(data));
 
 			// Is Custom Weapon.
-			if (data[CSWM_ID] && bAmmoId > _:Ammo_C4)
+			if (data[CSWM_ID] > -1)
 			{
 				// Get AmmoId, AmmoName, MaxAmmo
 				// Use CS Weapon Mod Function.
-				pAmmoName = data[AMMONAME];
+				copy(pAmmoName, charsmax(pAmmoName), data[AMMONAME]);
+				// client_print_color(iToucher, print_team_default, "^4[BF4 DEBUG] ^1Current: %s, %s", data[NAME], data[AMMONAME]);
+				// client_print_color(iToucher, print_team_default, "^4[BF4 DEBUG] ^1AmmoName - WeaponBox: %s, PlayerWeapon: %s", bAmmoName, pAmmoName);
 			}
 			else
 			{
@@ -982,9 +977,10 @@ public BF4TouchWeaponBox(iWpnBox, iToucher)
 				new iPWeapon = cs_get_user_weapon_entity(iToucher);
 				GePlayerDefaultWeaponInfo(iPWeapon, pMaxAmmo, pAmmoName, charsmax(pAmmoName));
 			}
+			if (equali("", pAmmoName))
+				continue;
 
 			// WeaponBox AmmoName == PlayerWeapon AmmoName
-			client_print_color(iToucher, print_team_default, "^4[BF4 DEBUG] ^1AmmoName - WeaponBox: %s, PlayerWeapon: %s", bAmmoName, pAmmoName);
 			if (equali(bAmmoName, pAmmoName))
 			{
 
@@ -1042,9 +1038,19 @@ public CustomPrimaryAttack(iWpnId)
 	{
 		new data[BF4_WEAPON_DATA];
 		if (equali(wpnname, "p228"))
-			ArrayGetArray(gWeaponList, gUseWeapons[id][SECONDARY], data, sizeof(data));
+		{
+			if (gUseWeapons[id][SECONDARY] > -1)
+				ArrayGetArray(gWeaponList, gUseWeapons[id][SECONDARY], data, sizeof(data));
+			else
+				return;
+		}
 		else
-			ArrayGetArray(gWeaponList, gUseWeapons[id][PRIMARY], data, sizeof(data));
+		{
+			if (gUseWeapons[id][PRIMARY] > -1)
+				ArrayGetArray(gWeaponList, gUseWeapons[id][PRIMARY], data, sizeof(data));
+			else
+				return;
+		}
 		if (data[CSWM_ID] > -1 && data[CSX_WPNID] > -1)
 		{
 //			client_print_color(id, print_team_default, "^3[BF4 DEBUG] ^1SHOT %s", wpnname);

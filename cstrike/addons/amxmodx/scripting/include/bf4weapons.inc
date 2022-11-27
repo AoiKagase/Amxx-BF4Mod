@@ -152,7 +152,7 @@
 #define FAMAS_RANGE_MODIFER			0.96
 #define FAMAS_ACCURACY_DIVISOR		215.0
 
-native BF4RegisterWeapon	(const BF4_TEAM:team, const BF4_CLASS:has_class, const BF4_WEAPONCLASS:wpn_class, const CSWM_id, const name[33], const item[33], const AMMO_id, const ammoname[33] );
+native BF4RegisterWeapon	(const BF4_TEAM:team, const BF4_CLASS:has_class, const BF4_WEAPONCLASS:wpn_class, const CSWM_id, const name[], const item[], const AMMO_id, const ammoname[] );
 native BF4HaveThisWeapon	(const id, const wpnindex);
 native BF4SelectWeaponMenu	(const id);
 native BF4_WEAPONCLASS:BF4WeaponNameToClass(const id, const weaponname[]);
