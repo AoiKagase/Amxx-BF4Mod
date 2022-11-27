@@ -1,54 +1,56 @@
 
 #include <amxmodx>
-#include <cswm>
-#include <bf4weapons>
-#include <fakemeta>
 #include <hamsandwich>
+#include <fakemeta>
+#include <reapi>
+#include <bf4weapons>
+#include <cswm>
 
 #pragma semicolon 1
 #pragma compress 1
 
-#define PLUGIN			"[BF4 Weapons] COLT M16A1"
+#define PLUGIN			"[BF4 Weapons] Uzi"
 #define VERSION			"0.1"
 #define AUTHOR			"Aoi.Kagase"
 
 // P228 Damage is 32.0
-#define FIRE1_RATE		GetWeaponDefaultDelay(CSW_M4A1)
-#define FIRE1_DAMAGE	(M4A1_DAMAGE / AK47_DAMAGE)
-#define FIRE1_RECOIL 	0.80
+#define FIRE1_RATE		GetWeaponDefaultDelay(CSW_M3)
+#define FIRE1_DAMAGE	(M3_DAMAGE / XM1014_DAMAGE)
+#define FIRE1_RECOIL 	1.0
 
-enum _:M16A1_ANIMS
+enum _:SPAS12_ANIMS
 {
-	M16A1_IDLE,
-	M16A1_RELOAD,
-	M16A1_DRAW,
-	M16A1_SHOOT1,
-	M16A1_SHOOT2,
-	M16A1_SHOOT3,
+	SPAS12_IDLE,
+	SPAS12_SHOOT1,
+	SPAS12_SHOOT2,
+	SPAS12_INSERT,
+	SPAS12_AFTER_RELOAD,
+	SPAS12_START_RELOAD,
+	SPAS12_DRAW,
+	SPAS12_SHOOT3,
 };
 
-enum _:M16A1_SOUNDS
+enum _:SPAS12_SOUNDS
 {
 	SND_FIRE1,
 };
 
 new const gSound[][] =
 {
-	"bf4_ranks/weapons/m16a1-1.wav",
+	"bf4_ranks/weapons/spas12-1.wav",
 };
 
-enum _:M16A1_MODELS
+enum _:SPAS12_MODELS
 {
 	V_MODEL,
 	P_MODEL,
 	W_MODEL,
 };
-
 new const gModels[][] =
 {
-	"models/bf4_ranks/weapons/v_m16a1.mdl",
-	"models/p_m4a1.mdl",
-	"models/w_m4a1.mdl",
+	"models/bf4_ranks/weapons/v_spas12.mdl",
+	"models/p_m3.mdl",
+	"models/w_m3.mdl",
 };
 
 new Weapon;
@@ -59,36 +61,35 @@ public plugin_init()
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 
 	// Secondary Semi-auto logic.
-	RegisterHam(Ham_Item_PostFrame, "weapon_ak47", "PrimaryAttackPre",  0);
-	RegisterHam(Ham_Item_PostFrame, "weapon_ak47", "PrimaryAttackPost", 1);
+	RegisterHam(Ham_Item_PostFrame, "weapon_xm1014", "PrimaryAttackPre",  0);
+	RegisterHam(Ham_Item_PostFrame, "weapon_xm1014", "PrimaryAttackPost", 1);	
 }
 
 public plugin_precache()
 {
-	Weapon 	= CreateWeapon("m16a1", Rifle, "COLT M16A1");
+	Weapon 		= CreateWeapon("uzi", Shotgun, "SPAS-12");
 
 	BuildWeaponModels			(Weapon, gModels[V_MODEL], gModels[P_MODEL], gModels[W_MODEL]);
-	BuildWeaponDeploy			(Weapon, M16A1_DRAW, 0.0);
-	BuildWeaponReload			(Weapon, M16A1_RELOAD, 3.8);
-	BuildWeaponAmmunition		(Weapon, 30, Ammo_556Nato);
-	BuildWeaponList				(Weapon, "bf4_ranks/weapons/weapon_m16a1");
+	BuildWeaponList				(Weapon, "bf4_ranks/weapons/weapon_spas12");
+	BuildWeaponDeploy			(Weapon, SPAS12_DRAW, 0.0);
+	BuildWeaponReload			(Weapon, SPAS12_INSERT, 0.53);
+	BuildWeaponAmmunition		(Weapon, 9, Ammo_12Gauge);
 	BuildWeaponFireSound		(Weapon, gSound[SND_FIRE1]);
-	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, M16A1_SHOOT1, M16A1_SHOOT2, M16A1_SHOOT3);
-	BuildWeaponSecondaryAttack	(Weapon, A2_InstaSwitch, M16A1_SHOOT1, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, "Semi-auto mode.", "Automatic mode.");
-	// RegisterWeaponForward		(Weapon, WForward_PrimaryAttackPost, "PrimaryAttack");
-
+	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, SPAS12_SHOOT1, SPAS12_SHOOT2);
+	BuildWeaponSecondaryAttack	(Weapon, A2_InstaSwitch, SPAS12_SHOOT1, GetWeaponDefaultDelay(CSW_XM1014), 0.85, 1.1, "Semi-auto mode.", "Manual mode.");
+	BuildWeaponReloadShotgun	(Weapon, 0.53, WShotgunReload_TypeM3Style);
 	PrecacheWeaponModelSounds	(Weapon);
 	PrecacheWeaponListSprites	(Weapon);
 
-	gWpnIdx = BF4RegisterWeapon(BF4_TEAM_US, 
-		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT, 
-		BF4_WEAPONCLASS_ASSAULTS, 
+	gWpnIdx = BF4RegisterWeapon(BF4_TEAM_BOTH,
+		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_ENGINEER, 
+		BF4_WEAPONCLASS_SHOTGUNS,
 		Weapon,
-		"COLT M16A1",
-		"m16a1",
-		_:Ammo_556Nato,
-		"556nato"
-	);
+		"SPAS-12",
+		"spas12",
+		_:Ammo_12Gauge,
+		"backshot"
+	);	
 }
 
 public PrimaryAttackPre(Entity)
