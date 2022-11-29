@@ -1,0 +1,4 @@
+3
+weapon			640 bf4_ranks/weapons/cso_640hud26	0	0	170	45
+weapon_s		640 bf4_ranks/weapons/cso_640hud26	0	45	170	45
+ammo			640 bf4_ranks/weapons/cso_640hud7	0	72	24	24
