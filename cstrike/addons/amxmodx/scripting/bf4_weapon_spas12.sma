@@ -9,7 +9,7 @@
 #pragma semicolon 1
 #pragma compress 1
 
-#define PLUGIN			"[BF4 Weapons] Uzi"
+#define PLUGIN			"[BF4 Weapons] SPAS-12"
 #define VERSION			"0.1"
 #define AUTHOR			"Aoi.Kagase"
 
@@ -63,6 +63,8 @@ public plugin_init()
 	// Secondary Semi-auto logic.
 	RegisterHam(Ham_Item_PostFrame, "weapon_xm1014", "PrimaryAttackPre",  0);
 	RegisterHam(Ham_Item_PostFrame, "weapon_xm1014", "PrimaryAttackPost", 1);	
+
+	// RegisterHam(Ham_Weapon_Reload, "weapon_xm1014", "Reload", 1);	
 }
 
 public plugin_precache()
@@ -77,7 +79,8 @@ public plugin_precache()
 	BuildWeaponFireSound		(Weapon, gSound[SND_FIRE1]);
 	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, SPAS12_SHOOT1, SPAS12_SHOOT2);
 	BuildWeaponSecondaryAttack	(Weapon, A2_InstaSwitch, SPAS12_SHOOT1, GetWeaponDefaultDelay(CSW_XM1014), 0.85, 1.1, "Semi-auto mode.", "Manual mode.");
-	BuildWeaponReloadShotgun	(Weapon, 0.53, WShotgunReload_TypeM3Style);
+	BuildWeaponReloadShotgun	(Weapon, 0.53, WShotgunReload_TypeXM1014Style);
+	// BuildWeaponFlags			(Weapon, WFlag_DisableReload);
 	PrecacheWeaponModelSounds	(Weapon);
 	PrecacheWeaponListSprites	(Weapon);
 
@@ -150,5 +153,16 @@ public PrimaryAttackPost(Entity)
 		}
 	}
 
+	return HAM_IGNORED;
+}
+public Reload(Entity)
+{
+	// Safety.
+	if (!pev_valid(Entity))
+		return HAM_IGNORED;
+
+	// Get Owner ID.
+	new id = pev(Entity, pev_owner);
+	client_print(id, print_chat, "[BF4 DEBUG] RELOAD.");
 	return HAM_IGNORED;
 }
