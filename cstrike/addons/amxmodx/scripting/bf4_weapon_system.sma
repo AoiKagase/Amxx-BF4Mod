@@ -10,6 +10,8 @@
 #include <cswm>
 #include <csx>
 
+#define DEBUG
+
 #define PLUGIN 	"[BF4] Weapon System"
 #define VERSION "0.1"
 #define AUTHOR	"Aoi.Kagase"
@@ -464,7 +466,9 @@ RegisterWeapon(const BF4_TEAM:team, const BF4_CLASS:has_class, const BF4_WEAPONC
 	if (cswm_id > -1)
 	{
 		weapon[CSX_WPNID] 	= custom_weapon_add(weapon[NAME], 0, weapon[ITEM]);
-		// console_print(0, "[BF4 DEBUG] REGISTER %d CSXID %d %s", cswm_id, weapon[CSX_WPNID], weapon[NAME]);
+		#if defined DEBUG
+		console_print(0, "[BF4 DEBUG] REGISTER %d CSXID %d %s", cswm_id, weapon[CSX_WPNID], weapon[NAME]);
+		#endif
 	}
 	copy(weapon[NAME], 		32,	name);
 	copy(weapon[ITEM], 		32,	item);
@@ -684,7 +688,9 @@ public BF4WeaponMenuWeaponClass(id, BF4_WEAPONCLASS:iWpnClass)
 
 	if (menu_items(menu) <= 0)
 	{
-		// client_print(id, print_chat, "[BF4 DEBUG] TEAM: %d, CLASS: %d", BF4GetUserTeam(id), BF4GetUserClass(id));
+		#if defined DEBUG
+		client_print(id, print_chat, "[BF4 DEBUG] TEAM: %d, CLASS: %d", BF4GetUserTeam(id), BF4GetUserClass(id));
+		#endif
 		menu_addtext2(menu, "There is no equipment available in this class.");
 	}
 	// NOT EXIT.
@@ -792,7 +798,7 @@ public PlayerTakeDamagePost(iVictim, inflictor, iAttacker, Float:damage, damage_
 				if (data[CSWM_ID])
 				{
 					custom_weapon_dmg(data[CSX_WPNID], iAttacker, iVictim, floatround(damage), 0);
-					rg_set_iteminfo(weapon, ItemInfo_pszName, "xm1014");
+					rg_set_iteminfo(weapon, ItemInfo_pszName, "m3");
 				}
 			}
 			case CSW_AWP:
@@ -840,6 +846,8 @@ public PlayerDeath()
 					set_msg_arg_string(4, "m249");
 				case BF4_WEAPONCLASS_DMRS:
 					(team == BF4_TEAM_US) ? set_msg_arg_string(4, "sg550") : set_msg_arg_string(4, "g3sg1");
+				case BF4_WEAPONCLASS_SHOTGUNS:
+					set_msg_arg_string(4, "m3");
 				default:
 				{
 					switch(data[AMMO_ID])
@@ -870,14 +878,19 @@ public BF4ForwardClassChanged(id)
 	for(new i = 0; i <= EQUIP; i++)
 		gStackUseWeapons[id][i] = -1;
 
-//	client_print_color(id, print_team_default, "^4[BF4 DEBUG] ^3Class Changed");
+	#if defined DEBUG
+	client_print_color(id, print_team_default, "^4[BF4 DEBUG] ^3Class Changed");
+	#endif
 }
 
 public BF4ForwardTeamChanged(id)
 {
 	for(new i = 0; i <= EQUIP; i++)
 		gStackUseWeapons[id][i] = -1;
-	// client_print_color(id, print_team_default, "^4[BF4 DEBUG] ^3Team Changed");
+
+	#if defined DEBUG
+	client_print_color(id, print_team_default, "^4[BF4 DEBUG] ^3Team Changed");
+	#endif
 }
 
 public BF4GiveWeapon(id)
@@ -890,7 +903,9 @@ public BF4GiveWeapon(id)
 		{
 			if ((data[HASCLASS] & BF4GetUserClass(id)) && (data[HASCLASS] & BF4_CLASS_REQUIRE))
 			{
-				// client_print(id, print_chat, "[BF4 DEBUG] %s", data[NAME]);
+				#if defined DEBUG
+				client_print(id, print_chat, "[BF4 DEBUG] %s", data[NAME]);
+				#endif
 				gUseWeapons[id][GetWeaponSlot(data[WPNCLASS])] = i;
 			}
 		}
@@ -905,10 +920,14 @@ public BF4GiveWeapon(id)
 			{
 				GiveWeaponByID(id, data[CSWM_ID]);
 			} else {
-//				client_print(id, print_chat, "[BF4 DEBUG] %s", data[ITEM]);
+				#if defined DEBUG
+				client_print(id, print_chat, "[BF4 DEBUG] %s", data[ITEM]);
+				#endif
 				give_item(id, fmt("weapon_%s", data[ITEM]));
 			}
-//			client_print(id, print_chat, "AmmoId: %d %s", data[AMMO_ID], data[AMMONAME]);
+			#if defined DEBUG
+			client_print(id, print_chat, "AmmoId: %d %s", data[AMMO_ID], data[AMMONAME]);
+			#endif
 			GiveAmmo(id, data[AMMO_ID], 900);
 		}
 	}
@@ -966,8 +985,10 @@ public BF4TouchWeaponBox(iWpnBox, iToucher)
 				// Get AmmoId, AmmoName, MaxAmmo
 				// Use CS Weapon Mod Function.
 				copy(pAmmoName, charsmax(pAmmoName), data[AMMONAME]);
+				#if defined DEBUG
 				// client_print_color(iToucher, print_team_default, "^4[BF4 DEBUG] ^1Current: %s, %s", data[NAME], data[AMMONAME]);
-				// client_print_color(iToucher, print_team_default, "^4[BF4 DEBUG] ^1AmmoName - WeaponBox: %s, PlayerWeapon: %s", bAmmoName, pAmmoName);
+				client_print_color(iToucher, print_team_default, "^4[BF4 DEBUG] ^1AmmoName - WeaponBox: %s, PlayerWeapon: %s", bAmmoName, pAmmoName);
+				#endif
 			}
 			else
 			{
@@ -1053,7 +1074,9 @@ public CustomPrimaryAttack(iWpnId)
 		}
 		if (data[CSWM_ID] > -1 && data[CSX_WPNID] > -1)
 		{
+			#if defined DEBUG
 //			client_print_color(id, print_team_default, "^3[BF4 DEBUG] ^1SHOT %s", wpnname);
+			#endif
 			custom_weapon_shot(data[CSX_WPNID], id);
 		}
 	}

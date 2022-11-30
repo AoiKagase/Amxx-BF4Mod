@@ -9,7 +9,7 @@
 #pragma semicolon 1
 #pragma compress 1
 
-#define PLUGIN			"[BF4 Weapons] Uzi"
+#define PLUGIN			"[BF4 Weapons] USAS-12"
 #define VERSION			"0.1"
 #define AUTHOR			"Aoi.Kagase"
 
@@ -62,7 +62,7 @@ public plugin_init()
 
 public plugin_precache()
 {
-	Weapon 		= CreateWeapon("uzi", Shotgun, "SPAS-12");
+	Weapon 		= CreateWeapon("usas", Shotgun, "USAS-12");
 
 	BuildWeaponModels			(Weapon, gModels[V_MODEL], gModels[P_MODEL], gModels[W_MODEL]);
 	BuildWeaponList				(Weapon, "bf4_ranks/weapons/weapon_usas12");
@@ -83,6 +83,6 @@ public plugin_precache()
 		"USAS-12",
 		"usas12",
 		_:Ammo_12Gauge,
-		"backshot"
+		"buckshot"
 	);	
 }
