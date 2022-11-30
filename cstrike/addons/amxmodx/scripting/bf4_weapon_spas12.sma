@@ -69,7 +69,7 @@ public plugin_init()
 
 public plugin_precache()
 {
-	Weapon 		= CreateWeapon("uzi", Shotgun, "SPAS-12");
+	Weapon 		= CreateWeapon("spas12", Shotgun, "SPAS-12");
 
 	BuildWeaponModels			(Weapon, gModels[V_MODEL], gModels[P_MODEL], gModels[W_MODEL]);
 	BuildWeaponList				(Weapon, "bf4_ranks/weapons/weapon_spas12");
@@ -91,7 +91,7 @@ public plugin_precache()
 		"SPAS-12",
 		"spas12",
 		_:Ammo_12Gauge,
-		"backshot"
+		"buckshot"
 	);	
 }
 
