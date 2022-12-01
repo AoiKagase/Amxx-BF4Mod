@@ -79,7 +79,7 @@ public plugin_precache()
 	BuildWeaponFireSound		(Weapon, gSound[SND_FIRE1]);
 	BuildWeaponPrimaryAttack	(Weapon, FIRE1_RATE, FIRE1_DAMAGE, FIRE1_RECOIL, SPAS12_SHOOT1, SPAS12_SHOOT2);
 	BuildWeaponSecondaryAttack	(Weapon, A2_InstaSwitch, SPAS12_SHOOT1, GetWeaponDefaultDelay(CSW_XM1014), 0.85, 1.1, "Semi-auto mode.", "Manual mode.");
-	BuildWeaponReloadShotgun	(Weapon, 0.53, WShotgunReload_TypeXM1014Style);
+	BuildWeaponReloadShotgun	(Weapon, 0.53, WShotgunReload_TypeM3Style);
 	// BuildWeaponFlags			(Weapon, WFlag_DisableReload);
 	PrecacheWeaponModelSounds	(Weapon);
 	PrecacheWeaponListSprites	(Weapon);
