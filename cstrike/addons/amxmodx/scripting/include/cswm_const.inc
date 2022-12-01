@@ -211,11 +211,17 @@ enum WFlag
 	WFlag_DisableReload = BIT(9),
 	// Keep FOV on reload, do not reset
 	ReloadKeepFOV = BIT(10),
-	
+
+	WFlag_Zoom_NoSound = BIT(10),
+	WFlag_ZoomCustom_NoSound = BIT(10),
+
 	// Switch Attack2 Flag: Show progress bar when switching
 	WFlag_SwitchMode_BarTime = BIT(10),
 	// Switch Attack2 Flag: Do not show show text while switching
 	WFlag_SwitchMode_NoText = BIT(11),
+
+	AutoPistol_NoSceenShake = BIT(10),
+
 	// KnifeAttack Flag: Shake screen when perfromed.
 	WFlag_KnifeAttack_ScreenShake = BIT(10),
 	// KnfieAttack Flag: Penetrate (Damage through wall)
@@ -224,6 +230,8 @@ enum WFlag
 	WFlag_KnifeAttack_Accurate = BIT(12),
 	// KnifeAttack Flag: Knockback unit when damaged
 	WFlag_KnifeAttack_Knockback = BIT(13),
+
+	KnifeAttack_NoSound = BIT(14),
 };
 
 enum RDFlag
