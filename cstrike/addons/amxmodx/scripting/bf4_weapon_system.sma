@@ -325,7 +325,7 @@ new g_weapon_c4[] = "weapon_c4"
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
-	register_clcmd("say /bf4sec", 		"BF4WeaponMenu");
+	register_clcmd("say /bf4wpn", 		"BF4WeaponMenu");
 	register_clcmd("buy",				"BF4WeaponMenu");
 	register_clcmd("drop",				"InvalidDrop");
 	RegisterHamPlayer(Ham_Spawn, 		"PlayerSpawnPre", false);
@@ -721,7 +721,12 @@ public BF4WeaponMenuWeaponClass_Handler(id, menu, item)
 
 public PlayerSpawnPre(id)
 {
-	gUseWeapons[id] = gStackUseWeapons[id];
+	if (gStackUseWeapons[id][PRIMARY] > -1 && gStackUseWeapons[id][SECONDARY] > -1)
+		gUseWeapons[id] = gStackUseWeapons[id];
+	else
+		return HAM_SUPERCEDE;
+
+	return HAM_IGNORED;
 }
 
 public PlayerSpawn(id)
@@ -1058,7 +1063,7 @@ public CustomPrimaryAttack(iWpnId)
 	if (is_user_alive(id))
 	{
 		new data[BF4_WEAPON_DATA];
-		if (equali(wpnname, "p228"))
+		if (equali(wpnname, "p228") || equali(wpnname, "usp") || equali(wpnname, "glock18") || equali(wpnname, "deagle") || equali(wpnname, "elite") || equali(wpnname, "fiveseven"))
 		{
 			if (gUseWeapons[id][SECONDARY] > -1)
 				ArrayGetArray(gWeaponList, gUseWeapons[id][SECONDARY], data, sizeof(data));
@@ -1081,3 +1086,4 @@ public CustomPrimaryAttack(iWpnId)
 		}
 	}
 }
+

@@ -54,7 +54,7 @@ public plugin_init()
 
 public plugin_precache()
 {
-	Weapon = CreateWeapon("sl8", Rifle, "SL8");
+	Weapon = CreateWeapon("sl8", Sniper, "SL8");
 
 	BuildWeaponModels			(Weapon, gModels[V_MODEL], gModels[P_MODEL], gModels[W_MODEL]);
 	BuildWeaponList				(Weapon, "bf4_ranks/weapons/weapon_sl8");
