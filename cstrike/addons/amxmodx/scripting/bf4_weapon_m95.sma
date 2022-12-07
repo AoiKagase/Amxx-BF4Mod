@@ -6,7 +6,7 @@
 #pragma semicolon 1
 #pragma compress 1
 
-#define PLUGIN			"[BF4 Weapons] M95"
+#define PLUGIN			"[BF4 Weapons] Barrett M95"
 #define VERSION			"0.1"
 #define AUTHOR			"Aoi.Kagase"
 
