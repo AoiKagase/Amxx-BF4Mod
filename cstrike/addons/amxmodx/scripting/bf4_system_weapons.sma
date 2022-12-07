@@ -721,10 +721,14 @@ public BF4WeaponMenuWeaponClass_Handler(id, menu, item)
 
 public PlayerSpawnPre(id)
 {
+	if (is_user_bot(id))
+	{
+		// TODO: BOT CLASSES.
+		return HAM_IGNORED;
+	}
+
 	if (gStackUseWeapons[id][PRIMARY] > -1 && gStackUseWeapons[id][SECONDARY] > -1)
 		gUseWeapons[id] = gStackUseWeapons[id];
-	else
-		return HAM_SUPERCEDE;
 
 	return HAM_IGNORED;
 }
@@ -781,38 +785,50 @@ public PlayerTakeDamagePost(iVictim, inflictor, iAttacker, Float:damage, damage_
 		{
 			case CSW_P228:
 			{
-				ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][SECONDARY], data, sizeof(data));
-				if (data[CSWM_ID])
+				if (gUseWeapons[iAttacker][SECONDARY] > -1)
 				{
-					custom_weapon_dmg(data[CSX_WPNID], iAttacker, iVictim, floatround(damage), 0);
-					rg_set_iteminfo(weapon, ItemInfo_pszName, "p228");
+					ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][SECONDARY], data, sizeof(data));
+					if (data[CSWM_ID])
+					{
+						custom_weapon_dmg(data[CSX_WPNID], iAttacker, iVictim, floatround(damage), 0);
+						rg_set_iteminfo(weapon, ItemInfo_pszName, "p228");
+					}
 				}
 			}
 			case CSW_AK47:
 			{
-				ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][PRIMARY], data, sizeof(data));
-				if (data[CSWM_ID])
+				if (gUseWeapons[iAttacker][PRIMARY] > -1)
 				{
-					custom_weapon_dmg(data[CSX_WPNID], iAttacker, iVictim, floatround(damage), 0);
-					rg_set_iteminfo(weapon, ItemInfo_pszName, "ak47");
+					ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][PRIMARY], data, sizeof(data));
+					if (data[CSWM_ID])
+					{
+						custom_weapon_dmg(data[CSX_WPNID], iAttacker, iVictim, floatround(damage), 0);
+						rg_set_iteminfo(weapon, ItemInfo_pszName, "ak47");
+					}
 				}
 			}
 			case CSW_XM1014:
 			{
-				ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][PRIMARY], data, sizeof(data));
-				if (data[CSWM_ID])
+				if (gUseWeapons[iAttacker][PRIMARY] > -1)
 				{
-					custom_weapon_dmg(data[CSX_WPNID], iAttacker, iVictim, floatround(damage), 0);
-					rg_set_iteminfo(weapon, ItemInfo_pszName, "m3");
+					ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][PRIMARY], data, sizeof(data));
+					if (data[CSWM_ID])
+					{
+						custom_weapon_dmg(data[CSX_WPNID], iAttacker, iVictim, floatround(damage), 0);
+						rg_set_iteminfo(weapon, ItemInfo_pszName, "m3");
+					}
 				}
 			}
 			case CSW_AWP:
 			{
-				ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][PRIMARY], data, sizeof(data));
-				if (data[CSWM_ID])
+				if (gUseWeapons[iAttacker][PRIMARY] > -1)
 				{
-					custom_weapon_dmg(data[CSX_WPNID], iAttacker, iVictim, floatround(damage), 0);
-					rg_set_iteminfo(weapon, ItemInfo_pszName, "awp");
+					ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][PRIMARY], data, sizeof(data));
+					if (data[CSWM_ID])
+					{
+						custom_weapon_dmg(data[CSX_WPNID], iAttacker, iVictim, floatround(damage), 0);
+						rg_set_iteminfo(weapon, ItemInfo_pszName, "awp");
+					}
 				}
 			}
 		}
