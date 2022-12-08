@@ -4,4 +4,5 @@ weapon_s	640	bf4_ranks/weapons/cso_640hud30	0	45	170	45
 ammo		640	bf4_ranks/weapons/cso_640hud7		24	96	24	24
 crosshair	640	crosshairs	24	0	24	24
 autoaim		640	crosshairs	0	72	24	24
-zoom_custom	640	zoom_custom5	0	0	0	0
+zoom	640	bf4_ranks/weapons/cso_sniper_aw50	0	0	512	512
+zoom_autoaim		640 bf4_ranks/weapons/cso_sniper_aw50	0	0	512	512

@@ -885,6 +885,8 @@ public PlayerDeath()
 							set_msg_arg_string(4, "fiveseven");
 						case Ammo_C4:
 							set_msg_arg_string(4, "c4");
+						default:
+							set_msg_arg_string(4, "p228");
 					}
 				}
 			}
