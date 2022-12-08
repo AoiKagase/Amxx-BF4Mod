@@ -54,7 +54,7 @@ public plugin_init()
 
 public plugin_precache()
 {
-	Weapon = CreateWeapon("sl8", Sniper, "SL8");
+	Weapon = CreateWeapon("sl8", Rifle, "SL8");
 
 	BuildWeaponModels			(Weapon, gModels[V_MODEL], gModels[P_MODEL], gModels[W_MODEL]);
 	BuildWeaponList				(Weapon, "bf4_ranks/weapons/weapon_sl8");
@@ -70,7 +70,7 @@ public plugin_precache()
 
 	BF4RegisterWeapon(BF4_TEAM_BOTH, 
 		BF4_CLASS_SELECTABLE | BF4_CLASS_RECON, 
-		BF4_WEAPONCLASS_SNIPERS,
+		BF4_WEAPONCLASS_DMRS,
 		Weapon,
 		"H&K SL8",
 		"sl8",
