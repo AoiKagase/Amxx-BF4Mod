@@ -75,6 +75,7 @@ public plugin_precache()
 		"H&K SL8",
 		"sl8",
 		_:Ammo_556Nato,
-		"556nato"
+		"556nato",
+		20,90
 	);		
 }

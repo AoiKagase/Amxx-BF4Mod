@@ -105,6 +105,7 @@ public plugin_precache()
 		"H&K MP7A1",
 		"mp7a1",
 		CAmmo,
-		"4.6x30mm"
+		"4.6x30mm",
+		20,80
 	);	
 }

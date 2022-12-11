@@ -76,6 +76,7 @@ public plugin_precache()
 		"PSG-1",
 		"psg1",
 		_:Ammo_762Nato,
-		"762Nato"
+		"762Nato",
+		5,90
 	);		
 }

@@ -76,6 +76,7 @@ public plugin_precache()
 		"Snaiperskaya Vintovka Dragunova",
 		"svd",
 		_:Ammo_762Nato,
-		"762Nato"
+		"762Nato",
+		10,90
 	);		
 }

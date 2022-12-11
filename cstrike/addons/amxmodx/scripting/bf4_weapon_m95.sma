@@ -80,6 +80,7 @@ public plugin_precache()
 		"Barrett M95",
 		"m95",
 		CAmmo,
-		"50bgm"
+		"50bgm",
+		5,50
 	);		
 }

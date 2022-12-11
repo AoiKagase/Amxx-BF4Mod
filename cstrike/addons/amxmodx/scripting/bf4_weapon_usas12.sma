@@ -83,6 +83,7 @@ public plugin_precache()
 		"USAS-12",
 		"usas12",
 		_:Ammo_12Gauge,
-		"buckshot"
+		"buckshot",
+		20,32
 	);	
 }

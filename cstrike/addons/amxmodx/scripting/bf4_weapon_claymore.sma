@@ -57,7 +57,7 @@
 // CONST STRINGS.
 // ==============================================================
 // PLUGIN INFO. -------------------------------------------------
-static const PLUGIN_NAME				[] = "BF4 Weapons - Claymore";
+static const PLUGIN_NAME				[] = "[BF4 Weapons] Claymore";
 static const PLUGIN_AUTHOR				[] = "Aoi.Kagase";
 static const PLUGIN_VERSION				[] = "0.1";
 static const CVAR_TAG					[] = "bf4_wpn_cm";
@@ -384,7 +384,9 @@ public plugin_precache()
 		"Claymore",
 		"c4",
 		_:Ammo_C4,
-		"claymore"
+		"claymore",
+		5,
+		5
 	);
 
 	return PLUGIN_CONTINUE;

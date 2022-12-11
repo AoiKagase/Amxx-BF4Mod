@@ -76,6 +76,7 @@ public plugin_precache()
 		"Walther WA2000",
 		"wa2000",
 		_:Ammo_762Nato,
-		"762Nato"
+		"762Nato",
+		10,90
 	);		
 }

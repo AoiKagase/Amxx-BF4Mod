@@ -81,7 +81,8 @@ public plugin_precache()
 		"Colt Python",
 		"python",
 		_:Ammo_357SIG,
-		"357sig"
+		"357sig",
+		6,52
 	);
 }
 

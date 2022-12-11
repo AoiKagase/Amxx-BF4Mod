@@ -80,6 +80,7 @@ public plugin_precache()
 		"BLASER R93",
 		"r93",
 		_:Ammo_338Magnum,
-		"338Magnum"
+		"338Magnum",
+		5,30
 	);		
 }

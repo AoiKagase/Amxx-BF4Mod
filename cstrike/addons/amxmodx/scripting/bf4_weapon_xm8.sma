@@ -83,7 +83,8 @@ public plugin_precache()
 		"H&K XM8",
 		"xm8",
 		_:Ammo_556Nato,
-		"556nato"
+		"556nato",
+		30,90
 	);
 }
 
@@ -102,8 +103,8 @@ public SecondaryAttackPost(Weapon)
 				pev(id, pev_punchangle, push);
 				xs_vec_mul_scalar(push, 0.5, push);
 				set_pev(id, pev_punchangle, push);
+				SetNextAttack(Weapon, FIRE1_RATE * 2.0, true);
 			}
 		}
-		SetNextAttack(Weapon, FIRE1_RATE * 2.0, true);
 	}
 }

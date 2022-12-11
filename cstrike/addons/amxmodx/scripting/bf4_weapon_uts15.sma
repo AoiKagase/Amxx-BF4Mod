@@ -82,6 +82,7 @@ public plugin_precache()
 		"UTS-15",
 		"uts15",
 		_:Ammo_12Gauge,
-		"buckshot"
+		"buckshot",
+		16,32
 	);	
 }

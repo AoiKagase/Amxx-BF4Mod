@@ -82,6 +82,7 @@ public plugin_precache()
 		"Uzi",
 		"uzi",
 		_:Ammo_9MM,
-		"9mm"
+		"9mm",
+		30,120
 	);	
 }

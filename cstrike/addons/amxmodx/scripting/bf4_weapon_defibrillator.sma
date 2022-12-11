@@ -9,6 +9,7 @@
 #include <bf4natives>
 #include <bf4const>
 #include <bf4weapons>
+#include <reapi>
 #include <cswm>
 
 //=====================================
@@ -22,7 +23,7 @@
 #pragma semicolon 						1
 #pragma tabsize 						4
 
-static const PLUGIN_NAME	[] 			= "BF4 Weapons - Defibrillator";
+static const PLUGIN_NAME	[] 			= "[BF4 Weapons] Defibrillator";
 static const PLUGIN_AUTHOR	[] 			= "Aoi.Kagase";
 static const PLUGIN_VERSION	[]			= "0.1";
 
@@ -318,12 +319,24 @@ public OnAddToPlayerKnife(const item, const player)
 
 public SelectDefibrillator(const client) 
 { 
+	if (!BF4HaveThisWeapon(client, gWpnSystemId))
+		return PLUGIN_CONTINUE;
     engclient_cmd(client, "weapon_knife"); 
+	return PLUGIN_CONTINUE;
 } 
 
 public OnItemSlotKnife(const item)
 {
-    SetHamReturnInteger(5);
+	static client;
+	client = get_member(item, m_pPlayer);
+
+	if (is_user_alive(client))
+	{
+		if (!BF4HaveThisWeapon(client, gWpnSystemId))
+			return HAM_IGNORED;
+
+	    SetHamReturnInteger(5);
+	}
     return HAM_SUPERCEDE;
 }
 
@@ -332,7 +345,7 @@ public OnSetModels(const item)
 	if (pev_valid(item) != 2)
 		return PLUGIN_CONTINUE;
 
-	static client; client = get_pdata_cbase(item, 41, 4);
+	static client; client = get_member(item, m_pPlayer);
 	if (!is_user_alive(client))
 		return PLUGIN_CONTINUE;
 	if (!BF4HaveThisWeapon(client, gWpnSystemId))
@@ -366,7 +379,7 @@ public KnifeSound(id, channel, sample[])
 
 public OnPrimaryAttackPre(Weapon)
 {
-	new client = get_pdata_cbase(Weapon, 41, 4);
+	static client; client = get_member(Weapon, m_pPlayer);
 
 	if (!BF4HaveThisWeapon(client, gWpnSystemId))
 		return HAM_IGNORED;
@@ -385,7 +398,7 @@ public OnPrimaryAttackPre(Weapon)
 
 public OnSecondaryAttackPre(Weapon)
 {
-	new client = get_pdata_cbase(Weapon, 41, 4);
+	static client; client = get_member(Weapon, m_pPlayer);
 
 	if (!BF4HaveThisWeapon(client, gWpnSystemId))
 		return HAM_IGNORED;
@@ -401,7 +414,7 @@ public OnSecondaryAttackPre(Weapon)
 
 public OnPrimaryAttackPost(Weapon)
 {
-	new client = get_pdata_cbase(Weapon, 41, 4);
+	static client; client = get_member(Weapon, m_pPlayer);
 
 	if (!BF4HaveThisWeapon(client, gWpnSystemId))
 		return HAM_IGNORED;

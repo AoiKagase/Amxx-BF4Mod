@@ -174,8 +174,14 @@ public PlayerSpawnPre(id)
 public client_putinserver(id)
 {
 	gJoined[id] 		= 0;
-	gSelectClass[id] 	= BF4_CLASS_NONE;
-	gSelectTeam[id] 	= BF4_TEAM_NONE;
+	gReserveClass[id] 	= gSelectClass[id] 	= BF4_CLASS_NONE;
+	gReserveTeam[id] 	= gSelectTeam[id] 	= BF4_TEAM_NONE;
+
+	if (is_user_bot(id))
+	{
+		gReserveTeam[id] = BF4_TEAM:random_num(_:BF4_TEAM_RU, _:BF4_TEAM_US);
+		gReserveClass[id] = BF4_CLASS:random_num(_:BF4_CLASS_ASSAULT, _:BF4_CLASS_ENGINEER);
+	}	
 }
 
 // =====================================================================

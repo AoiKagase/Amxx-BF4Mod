@@ -6,7 +6,7 @@
 #pragma semicolon 1
 #pragma compress 1
 
-#define PLUGIN			"[BF4 Weapons] Walther WA2000"
+#define PLUGIN			"[BF4 Weapons] M60"
 #define VERSION			"0.1"
 #define AUTHOR			"Aoi.Kagase"
 
@@ -79,6 +79,7 @@ public plugin_precache()
 		"M60",
 		"m60",
 		CAmmo,
-		"762Natobox"
+		"762Natobox",
+		100,200
 	);		
 }

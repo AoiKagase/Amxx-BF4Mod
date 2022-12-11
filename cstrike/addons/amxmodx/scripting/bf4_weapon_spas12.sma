@@ -91,7 +91,8 @@ public plugin_precache()
 		"SPAS-12",
 		"spas12",
 		_:Ammo_12Gauge,
-		"buckshot"
+		"buckshot",
+		9,32
 	);	
 }
 

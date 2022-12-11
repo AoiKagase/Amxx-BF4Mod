@@ -80,6 +80,8 @@ public plugin_precache()
 		"Cheytac M200",
 		"m400",
 		_:Ammo_338Magnum,
-		"338Magnum"
+		"338Magnum",
+		10,
+		30
 	);		
 }
