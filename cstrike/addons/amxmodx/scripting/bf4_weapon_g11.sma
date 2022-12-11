@@ -81,7 +81,8 @@ public plugin_precache()
 		"H&K G11",
 		"g11",
 		CAmmo,
-		"4.73x33mm"
+		"4.73x33mm",
+		50,100
 	);
 }
 

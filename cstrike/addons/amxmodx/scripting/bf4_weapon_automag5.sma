@@ -80,7 +80,9 @@ public plugin_precache()
 		"AUTOMAG V",
 		"automag5",
 		_:Ammo_50AE,
-		"50ae"
+		"50ae",
+		7,
+		35
 	);		
 }
 

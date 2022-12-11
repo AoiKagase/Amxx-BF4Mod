@@ -99,6 +99,7 @@ public plugin_precache()
 		"H&K HK416",
 		"hk416",
 		_:Ammo_556Nato,
-		"556nato"
+		"556nato",
+		30,90
 	);		
 }

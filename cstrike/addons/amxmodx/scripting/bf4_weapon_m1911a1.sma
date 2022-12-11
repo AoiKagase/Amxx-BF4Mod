@@ -79,7 +79,8 @@ public plugin_precache()
 		"Colt M1911A1",
 		"coltm1911a1",
 		_:Ammo_45ACP,
-		"45acp"
+		"45acp",
+		8,100
 	);
 }
 

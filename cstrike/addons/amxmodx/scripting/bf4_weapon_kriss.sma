@@ -104,7 +104,8 @@ public plugin_precache()
 		"Kriss Vector/Super V",
 		"kriss",
 		_:Ammo_45ACP,
-		"45acp"
+		"45acp",
+		30,100
 	);	
 }
 

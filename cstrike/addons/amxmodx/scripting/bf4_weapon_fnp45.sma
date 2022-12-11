@@ -80,7 +80,8 @@ public plugin_precache()
 		"FN FNP-45",
 		"fnp45",
 		_:Ammo_45ACP,
-		"45acp"
+		"45acp",
+		15,100
 	);
 }
 

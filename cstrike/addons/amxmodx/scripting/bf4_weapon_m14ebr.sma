@@ -75,6 +75,7 @@ public plugin_precache()
 		"M14 EBR",
 		"m14ebr",
 		_:Ammo_762Nato,
-		"762nato"
+		"762nato",
+		20,90
 	);		
 }

@@ -80,7 +80,8 @@ public plugin_precache()
 		"FN FNC",
 		"fnc",
 		_:Ammo_556Nato,
-		"556nato"
+		"556nato",
+		30,90
 	);
 }
 

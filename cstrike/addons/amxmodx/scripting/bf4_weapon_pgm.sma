@@ -80,6 +80,7 @@ public plugin_precache()
 		"PGM Hecate-II",
 		"pgm",
 		CAmmo,
-		"50bgm"
+		"50bgm",
+		5,50
 	);		
 }

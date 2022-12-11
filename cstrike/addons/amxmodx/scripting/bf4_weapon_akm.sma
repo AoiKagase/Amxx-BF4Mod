@@ -80,7 +80,9 @@ public plugin_precache()
 		"AKM",
 		"akm",
 		_:Ammo_762Nato,
-		"762nato"
+		"762nato",
+		30,
+		90
 	);
 }
 

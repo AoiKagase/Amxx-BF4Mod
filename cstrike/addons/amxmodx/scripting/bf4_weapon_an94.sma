@@ -81,7 +81,9 @@ public plugin_precache()
 		"AN-94",
 		"an94",
 		CAmmo,
-		"5.45x39mm"
+		"5.45x39mm",
+		30,
+		90
 	);
 }
 

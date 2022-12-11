@@ -76,6 +76,7 @@ public plugin_precache()
 		"H&K L85A2",
 		"l85a2",
 		_:Ammo_556Nato,
-		"556nato"
+		"556nato",
+		30,90
 	);		
 }

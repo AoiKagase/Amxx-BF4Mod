@@ -104,7 +104,8 @@ public plugin_precache()
 		"FN SCAR-L/H",
 		"scar",
 		_:Ammo_556Nato,
-		"556nato"
+		"556nato",
+		30,90
 	);
 }
 
