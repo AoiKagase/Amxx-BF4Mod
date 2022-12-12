@@ -160,6 +160,7 @@ public plugin_init()
 
 	// Register Forward.
 	register_forward	(FM_CmdStart,								"PlayerCmdStart");
+	RegisterHamPlayer	(Ham_Spawn, 								"PlayerSpawn", 	.Post = true);
 
 /// =======================================================================================
 /// START Custom Weapon Defibrillator
@@ -172,6 +173,7 @@ public plugin_init()
 	RegisterHam			(Ham_Weapon_PrimaryAttack, 	ENT_CLASS_KNIFE, 	"OnPrimaryAttackPost",	.Post = true);
 	RegisterHam			(Ham_Weapon_SecondaryAttack,ENT_CLASS_KNIFE, 	"OnSecondaryAttackPre");
 	register_forward	(FM_EmitSound, 				"KnifeSound");
+	register_event		("CurWeapon", "weapon_change", "be", "1=1");
 /// =======================================================================================
 /// END Custom Weapon Defibrillator
 /// =======================================================================================
@@ -214,6 +216,37 @@ public OnAddToPlayerKnife(const item, const player)
         message_end();
     }
 	return PLUGIN_CONTINUE;
+}
+
+public weapon_change(id)
+{
+	if (!is_user_alive(id))
+		return;
+	if (is_user_bot(id))
+		return;
+	if (!BF4HaveThisWeapon(id, gWpnSystemId))
+		return;
+	new clip, ammo;
+	if (cs_get_user_weapon(id, clip, ammo) != CSW_KNIFE)
+	{
+		if (task_exists(TASK_DROP + id))
+		{
+			emit_sound(id, CHAN_WEAPON, "bf4_ranks/weapons/briefcase_use.wav", VOL_NORM, ATTN_NORM, SND_STOP, PITCH_NORM);
+			remove_task(TASK_DROP + id);
+		}
+	}
+}
+
+public PlayerSpawn(id)
+{
+	if (pev_valid(gObjectItem[id]))
+	{
+		new flags;
+		pev(gObjectItem[id], pev_flags, flags);
+		set_pev(gObjectItem[id], pev_flags, flags | FL_KILLME);
+		dllfunc(DLLFunc_Think, gObjectItem[id]);
+		gObjectItem[id] = 0;
+	}	
 }
 
 public SelectBriefcase(const client) 

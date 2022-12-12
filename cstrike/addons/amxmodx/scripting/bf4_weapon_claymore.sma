@@ -473,6 +473,7 @@ public plugin_init()
 	// RegisterHam			(Ham_Weapon_SecondaryAttack,ENTITY_CLASS_NAME[WPN_C4], 	"OnSecondaryAttackPre");
 	RegisterHamPlayer	(Ham_TakeDamage,			"OnTakeDamage");
 ///	register_forward	(FM_EmitSound, 				"KnifeSound");
+	register_event		("CurWeapon", "weapon_change", "be", "1=1");
 /// =======================================================================================
 /// END Custom Weapon Defibrillator
 /// =======================================================================================
@@ -555,6 +556,22 @@ public OnSetModels(const item)
 	// emit_sound(client, CHAN_WEAPON, ENT_SOUNDS[SND_CM_DRAW], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 
 	return HAM_HANDLED;
+}
+
+public weapon_change(id)
+{
+	if (!is_user_alive(id))
+		return;
+	if (is_user_bot(id))
+		return;
+	if (!BF4HaveThisWeapon(id, gWpnSystemId))
+		return;
+	new clip, ammo;
+	if (cs_get_user_weapon(id, clip, ammo) != CSW_C4)
+	{
+		mines_progress_stop(id);
+		mines_deploy_status(id);		
+	}
 }
 
 public OnPrimaryAttackPre(Weapon)
@@ -1142,6 +1159,7 @@ public mines_progress_stop(id)
 
 	mines_hide_progress(id);
 	delete_task(id);
+	mines_set_user_deploy_state(id, STATE_IDLE);
 
 	return PLUGIN_HANDLED;
 }
@@ -2519,11 +2537,11 @@ public PlayerCmdStart(id, handle, random_seed)
 
 	} else if (buttonReleased & IN_ATTACK) 
 	{
-		UTIL_PlayWeaponAnimation(id, SEQ_DRAW);
 		// emit_sound(id, CHAN_WEAPON, ENT_SOUNDS[SND_CM_DRAW], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 		mines_progress_stop(id);
 		mines_deploy_status(id);
 
+		UTIL_PlayWeaponAnimation(id, SEQ_DRAW);
 		return FMRES_IGNORED;
 
 	} else if (buttons & IN_ATTACK)
@@ -2551,7 +2569,6 @@ PLAYER_DEPLOY_STATE:mines_deploy_status(id)
 			new bool:now_speed = (speed <= 1.0);
 			if (now_speed)
 				ExecuteHamB(Ham_CS_Player_ResetMaxSpeed, id);
-
 		}
 		case STATE_DEPLOYING:
 		{
@@ -2581,7 +2598,7 @@ PLAYER_DEPLOY_STATE:mines_deploy_status(id)
 		case STATE_RELOAD:
 		{
 			mines_progress_stop(id);
-			mines_set_user_deploy_state(id, STATE_IDLE);
+			stats = mines_set_user_deploy_state(id, STATE_IDLE);
 			UTIL_PlayWeaponAnimation(id, SEQ_DRAW);
 		}
 	}
