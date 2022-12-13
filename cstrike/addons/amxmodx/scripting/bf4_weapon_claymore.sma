@@ -2502,6 +2502,9 @@ public PlayerCmdStart(id, handle, random_seed)
 	if(!is_user_alive(id) || is_user_bot(id))
 		return FMRES_IGNORED;
 
+	if (!BF4HaveThisWeapon(id, gWpnSystemId))
+		return PLUGIN_CONTINUE;
+
 	// Get user old and actual buttons
 	static const m_afButtonLast = 245;
 	static buttons, buttonsChanged, buttonPressed, buttonReleased;
