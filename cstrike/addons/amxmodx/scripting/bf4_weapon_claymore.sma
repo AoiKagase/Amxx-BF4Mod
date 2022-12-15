@@ -593,7 +593,7 @@ public OnPrimaryAttackPost(Weapon)
 
 	if (mines_get_user_deploy_state(client) == PLAYER_DEPLOY_STATE:STATE_DEPLOYING) 
 	{
-		UTIL_PlayWeaponAnimation(client, SEQ_SHOOT);
+//		UTIL_PlayWeaponAnimation(client, SEQ_SHOOT);
 		emit_sound(client, CHAN_WEAPON, ENT_SOUNDS[SND_CM_ATTACK], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 		set_pdata_float(Weapon, m_flNextPrimaryAttack, 999.9);
 	}
@@ -2544,7 +2544,11 @@ public PlayerCmdStart(id, handle, random_seed)
 		mines_progress_stop(id);
 		mines_deploy_status(id);
 
-		UTIL_PlayWeaponAnimation(id, SEQ_DRAW);
+		if (cs_get_user_bpammo(id, CSW_C4) <= 0)
+			ExecuteHam(Ham_Weapon_RetireWeapon, cs_get_user_weapon_entity(id));
+		else
+			UTIL_PlayWeaponAnimation(id, SEQ_DRAW);
+
 		return FMRES_IGNORED;
 
 	} else if (buttons & IN_ATTACK)
