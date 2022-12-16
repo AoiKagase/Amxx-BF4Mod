@@ -111,7 +111,7 @@ new const ENT_SOUNDS[E_SOUNDS][] =
 
 new const ENT_CLASS_C4[]		= "weapon_c4";
 new const ENT_CLASS_BREAKABLE[] = "func_breakable";
-new const ENT_CLASS_AMMOBOX[]	= "bf4_ammobox";
+new const ENT_CLASS_ROCKET[]	= "laws_rocket";
 
 new g_msg_data		[E_MESSAGES];
 
@@ -462,7 +462,7 @@ BF4SpawnEntity(id)
 		// set solid.
 		set_pev(iEnt, pev_solid, 		SOLID_TRIGGER);
 		// set movetype.
-		set_pev(iEnt, pev_movetype, 	MOVETYPE_FLY);
+		set_pev(iEnt, pev_movetype, 	MOVETYPE_FLYMISSILE);
 
 		set_pev(iEnt, pev_renderfx,	 	kRenderFxNone);
 		set_pev(iEnt, pev_body, 		3);
@@ -475,44 +475,38 @@ BF4SpawnEntity(id)
 		set_pev(iEnt, pev_owner,		id);
 		// Entity Setting.
 		// set class name.
-		set_pev(iEnt, pev_classname, 	ENT_CLASS_AMMOBOX);
+		set_pev(iEnt, pev_classname, 	ENT_CLASS_ROCKET);
 		// set take damage.
 		set_pev(iEnt, pev_takedamage, 	DAMAGE_YES);
-		set_pev(iEnt, pev_sequence, 	1); // Opened.
+		set_pev(iEnt, pev_sequence, 	0); // IDLE.
 		set_pev(iEnt, pev_dmg, 			100.0);
 		// set entity health.
 		set_pev(iEnt, pev_health,		50.0);
 		// Vector settings.
-		new Float:vOrigin	[3],
-			Float:vViewOfs	[3],
+		new vOrigin	[3],
 			Float:vVelocity	[3],
 			Float:vAngles	[3];
 
 		// get user position.
-		pev(id, pev_origin, vOrigin);
-		pev(id, pev_view_ofs, vViewOfs);
-		pev(id, pev_angles, vAngles);
-
-		set_pev(iEnt, pev_angles, vAngles);
-		velocity_by_aim(id, 100, vVelocity);
-		xs_vec_add(vOrigin, vViewOfs, vOrigin);  	
-
-		// set size.
-		engfunc(EngFunc_SetSize, iEnt, Float:{ -4.0, -4.0, -4.0 }, Float:{ 4.0, 4.0, 4.0 } );
+		get_user_origin(id, vOrigin, Origin_AimEndEyes);
 		// set entity position.
 		engfunc(EngFunc_SetOrigin, iEnt, vOrigin );
+		pev(id, pev_v_angle, vAngles);
+		set_pev(iEnt, pev_angles, vAngles);
+
+		velocity_by_aim(id, 100, vVelocity);
+
+		// set size.
+		engfunc(EngFunc_SetSize, iEnt, Float:{ -0.1, -0.1, -0.1 }, Float:{ 0.1, 0.1, 0.1 } );
 		set_pev(iEnt, pev_velocity,		vVelocity);
 
 		set_pev(iEnt, pev_rendermode, 	kRenderNormal);
 		// set_pev(iEnt, pev_renderamt, 	5.0);
 
-		// Reset powoer on delay time.
-		new Float:fCurrTime = get_gametime();
-
 		// Save results to be used later.
 		set_pev(iEnt, ITEM_TEAM,	BF4GetUserTeam(id));
 		// think rate. hmmm....
-		set_pev(iEnt, pev_nextthink,fCurrTime + 2.0);
+		set_pev(iEnt, pev_nextthink, get_gametime() + 0.1);
 
 		emit_sound(iEnt, CHAN_ITEM, ENT_SOUNDS[SOUND_TRAVEL], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 	}
