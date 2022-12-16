@@ -119,6 +119,7 @@ new gObjectItem		[MAX_PLAYERS + 1];
 new gWpnSystemId;
 new gWpnThinkStatus	[MAX_PLAYERS + 1];
 
+new SprTrail, SprExplode, SprRing;
 //====================================================
 //  PLUGIN PRECACHE
 //====================================================
@@ -143,9 +144,13 @@ public plugin_precache()
 		"c4",
 		_:Ammo_C4,
 		"laws",
-		0,
-		0
+		5,
+		5
 	);
+
+	SprExplode	= precache_model("sprites/zerogxplode.spr");
+	SprRing 	= precache_model("sprites/shockwave.spr");
+	SprTrail 	= precache_model("sprites/smoke.spr");
 
 	return PLUGIN_CONTINUE;
 }
@@ -160,7 +165,7 @@ public plugin_init()
 
 	// Register Forward.
 	register_forward	(FM_CmdStart,								"PlayerCmdStart");
-//	RegisterHamPlayer	(Ham_Spawn, 								"PlayerSpawn", 	.Post = true);
+	RegisterHamPlayer	(Ham_Spawn, 								"PlayerSpawn", 	.Post = true);
 
 /// =======================================================================================
 /// START Custom Weapon Defibrillator
@@ -190,7 +195,7 @@ public plugin_init()
 	for(new i = 0; i < E_MESSAGES; i++)
 		g_msg_data[i] = get_user_msgid(MESSAGES[i]);
 
-	register_message(get_user_msgid(MESSAGES[MSG_TEXTMSG]), "Message_TextMsg") ;
+	register_message(g_msg_data[MSG_TEXTMSG], "Message_TextMsg") ;
 }
 
 public Message_TextMsg(iMsgId, iMsgDest, id)
@@ -371,7 +376,8 @@ public WeaponThink(client)
 			}
 			if (get_gametime() > Float:pev(client, pev_nextthink))
 			{
-				UTIL_PlayWeaponAnimation(client, SEQ_DRAW);
+				if (pev(client, pev_weaponanim) != SEQ_DRAW)
+					UTIL_PlayWeaponAnimation(client, SEQ_DRAW);
 				gWpnThinkStatus[client] = THINK_IDLE;
 				set_member(Weapon, m_Weapon_flTimeWeaponIdle, 3.1);
 				set_pev(client, pev_nextthink, get_gametime() + 3.1);
@@ -396,7 +402,8 @@ public WeaponThink(client)
 		{
 			if (get_gametime() > Float:pev(client, pev_nextthink))
 			{
-				UTIL_PlayWeaponAnimation(client, SEQ_DISCARD);
+				if (pev(client, pev_weaponanim) != SEQ_DISCARD)
+					UTIL_PlayWeaponAnimation(client, SEQ_DISCARD);
 				gWpnThinkStatus[client] = THINK_DRAW;
 				set_pev(client, pev_nextthink, get_gametime() + 1.7);
 				return HAM_IGNORED;
@@ -405,6 +412,25 @@ public WeaponThink(client)
 	}
 	set_pev(client, pev_nextthink, get_gametime() + 0.1);
 
+	return HAM_IGNORED;
+}
+
+public PlayerSpawn(id)
+{
+	if (!is_user_connected(id))
+		return HAM_IGNORED;
+	
+	if (is_user_bot(id))
+		return HAM_IGNORED;
+
+	if (is_user_alive(id) && pev(id, pev_flags) & (FL_CLIENT))
+	{
+		if (!BF4HaveThisWeapon(id, gWpnSystemId))
+			return HAM_IGNORED;
+
+//		give_item(id, "weapon_c4");
+		cs_set_user_bpammo(id, CSW_C4, 5);
+	}
 	return HAM_IGNORED;
 }
 
@@ -483,19 +509,25 @@ BF4SpawnEntity(id)
 		// set entity health.
 		set_pev(iEnt, pev_health,		50.0);
 		// Vector settings.
-		new vOrigin	[3],
+		new Float:vOrigin	[3],
 			Float:vVelocity	[3],
+			Float:vViewOfs	[3],
 			Float:vAngles	[3];
 
 		// get user position.
-		get_user_origin(id, vOrigin, Origin_AimEndEyes);
+		pev(id, pev_origin, vOrigin);
+		pev(id, pev_view_ofs, vViewOfs);
+		xs_vec_add(vOrigin, vViewOfs, vOrigin);  	
 		// set entity position.
 		engfunc(EngFunc_SetOrigin, iEnt, vOrigin );
+
+		// Set Angles.
 		pev(id, pev_v_angle, vAngles);
+		vAngles[0] = -vAngles[0];
 		set_pev(iEnt, pev_angles, vAngles);
 
-		velocity_by_aim(id, 100, vVelocity);
-
+		velocity_by_aim(id, 1500, vVelocity);
+//		xs_vec_mul_scalar(vVelocity, 5000.0, vVelocity);
 		// set size.
 		engfunc(EngFunc_SetSize, iEnt, Float:{ -0.1, -0.1, -0.1 }, Float:{ 0.1, 0.1, 0.1 } );
 		set_pev(iEnt, pev_velocity,		vVelocity);
@@ -509,6 +541,13 @@ BF4SpawnEntity(id)
 		set_pev(iEnt, pev_nextthink, get_gametime() + 0.1);
 
 		emit_sound(iEnt, CHAN_ITEM, ENT_SOUNDS[SOUND_TRAVEL], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+
+		new iColor[3];
+		iColor[0] = 224;
+		iColor[1] = 224;
+		iColor[2] = 224;
+
+		EffectTrail(iEnt, iColor);
 	}
 }
 
@@ -527,10 +566,39 @@ public BF4ObjectThink(iEnt, iToucher)
 	}
 
 	new Float:vOrigin[3];
+	new Float:radius = 250.0;
+	new Float:damage = 450.0;
+
 	pev(iEnt, pev_origin, vOrigin);
 
-	CreateExplosion(vOrigin, TE_WORLDDECAL | TE_SMOKE);
-	RadiusDamageEx(vOrigin, 10.0, 100.0, iEnt, iOwner, DMG_MORTAR, RDFlag_Knockback);
+	EffectCreateExplostion(vOrigin, SprExplode);
+	EffectSylinder(vOrigin);
+
+	new victim = -1;
+	new Float:fOrigin[3], Float:fDistance, Float:fDamage;
+	new attacker = pev(iEnt, pev_owner);
+	while((victim = engfunc(EngFunc_FindEntityInSphere, victim, vOrigin, radius)) != 0)
+	{
+		if(!is_user_alive(victim)) 
+			continue; //not alive
+		if(BF4GetUserTeam(attacker) == BF4GetUserTeam(victim))
+			continue; //friendly fire
+
+		//damage calculation
+		pev(victim, pev_origin, fOrigin);
+		fDistance = get_distance_f(fOrigin, vOrigin);
+		fDamage = damage - floatmul(damage, floatdiv(fDistance, radius));
+		fDamage *= 1.0;
+
+		EffectScreenShake(victim);
+
+		xs_vec_sub(fOrigin, vOrigin, fOrigin);
+		xs_vec_mul_scalar(fOrigin, fDamage * 0.7, fOrigin);
+		xs_vec_mul_scalar(fOrigin, damage / xs_vec_len(fOrigin), fOrigin);
+		set_pev(victim, pev_velocity, fOrigin);
+
+		ExecuteHamB(Ham_TakeDamage, victim, iEnt, attacker, fDamage, DMG_BULLET);
+	}
 
 	pev(iEnt, pev_flags, flags);
 	set_pev(iEnt, pev_flags, flags | FL_KILLME);
@@ -638,3 +706,66 @@ stock remove_target_entity_by_classname(className[])
 	}
 }
 
+stock EffectCreateExplostion(Float:vOrigin[3], SprExplode)
+{
+	//explosion
+	engfunc(EngFunc_MessageBegin, MSG_PAS, SVC_TEMPENTITY, vOrigin, 0);
+	write_byte(TE_EXPLOSION);
+	engfunc(EngFunc_WriteCoord, vOrigin[0]);
+	engfunc(EngFunc_WriteCoord, vOrigin[1]);
+	engfunc(EngFunc_WriteCoord, vOrigin[2]);
+	write_short(SprExplode);
+	write_byte(30);
+	write_byte(30);
+	write_byte(10);
+	message_end();
+}
+
+stock EffectScreenShake(victim)
+{
+	message_begin(MSG_ONE_UNRELIABLE, g_msg_data[MSG_SCREEN_SHAKE], _, victim);
+	write_short((1<<12)*8);
+	write_short((1<<12)*3);
+	write_short((1<<12)*18);
+	message_end();
+}
+
+stock EffectTrail(iEnt, iColor[3])
+{
+	message_begin(MSG_BROADCAST, SVC_TEMPENTITY);
+	write_byte(TE_BEAMFOLLOW);
+	write_short(iEnt);
+	write_short(SprTrail);
+	write_byte(10);
+	write_byte(5);
+	write_byte(iColor[0]);
+	write_byte(iColor[1]);
+	write_byte(iColor[2]);
+	write_byte(192);
+	message_end();
+}
+
+stock EffectSylinder(Float:vOrigin[3])
+{
+	//ring
+	engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vOrigin, 0);
+	write_byte(TE_BEAMCYLINDER);
+	engfunc(EngFunc_WriteCoord, vOrigin[0]);
+	engfunc(EngFunc_WriteCoord, vOrigin[1]);
+	engfunc(EngFunc_WriteCoord, vOrigin[2]);
+	engfunc(EngFunc_WriteCoord, vOrigin[0]);
+	engfunc(EngFunc_WriteCoord, vOrigin[1]);
+	engfunc(EngFunc_WriteCoord, vOrigin[2]+500.0);
+	write_short(SprRing);
+	write_byte(0);
+	write_byte(0);
+	write_byte(5);
+	write_byte(30);
+	write_byte(0);
+	write_byte(224);
+	write_byte(224);
+	write_byte(224);
+	write_byte(255);
+	write_byte(0);
+	message_end();
+}
