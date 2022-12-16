@@ -11,8 +11,8 @@
 #include <customentdata>
 #include <bf4natives>
 #include <bf4weapons>
+#include <reapi>
 #include <cswm>
-
 //=====================================
 //  VERSION CHECK
 //=====================================
@@ -533,7 +533,17 @@ public SelectClaymore(const client)
 
 public OnItemSlotC4(const item)
 {
-    SetHamReturnInteger(5);
+	static client;
+	client = get_member(item, m_pPlayer);
+
+	if (is_user_alive(client))
+	{
+		if (!BF4HaveThisWeapon(client, gWpnSystemId))
+			return HAM_IGNORED;
+
+	    SetHamReturnInteger(5);
+	}
+
     return HAM_SUPERCEDE;
 }
 
@@ -2506,10 +2516,9 @@ public PlayerCmdStart(id, handle, random_seed)
 		return PLUGIN_CONTINUE;
 
 	// Get user old and actual buttons
-	static const m_afButtonLast = 245;
 	static buttons, buttonsChanged, buttonPressed, buttonReleased;
     buttons 		= get_uc(handle, UC_Buttons);
-    buttonsChanged 	= get_pdata_int(id, m_afButtonLast) ^ buttons;
+    buttonsChanged 	= get_member(id, m_afButtonLast) ^ buttons;
     buttonPressed 	= buttonsChanged & buttons;
     buttonReleased 	= buttonsChanged & ~buttons;
 

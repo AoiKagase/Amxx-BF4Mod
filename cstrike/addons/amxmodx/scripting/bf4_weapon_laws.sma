@@ -230,7 +230,7 @@ public OnAddToPlayerC4(const item, const player)
             write_byte(1);                   		// PrimaryAmmoMaxAmount
             write_byte(-1);                   		// SecondaryAmmoID
             write_byte(-1);                   		// SecondaryAmmoMaxAmount
-            write_byte(4);                    		// SlotID (0...N)
+            write_byte(2);                    		// SlotID (0...N)
             write_byte(3);                    		// NumberInSlot (1...N)
             write_byte(CSW_C4); 	           		// WeaponID
             write_byte(0);                    		// Flags
