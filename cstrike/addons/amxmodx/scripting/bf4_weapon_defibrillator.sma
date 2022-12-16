@@ -319,6 +319,8 @@ public OnAddToPlayerKnife(const item, const player)
 
 public SelectDefibrillator(const client) 
 { 
+	if (!is_user_alive(client))
+		return PLUGIN_CONTINUE;
 	if (!BF4HaveThisWeapon(client, gWpnSystemId))
 		return PLUGIN_CONTINUE;
     engclient_cmd(client, "weapon_knife"); 
@@ -327,6 +329,9 @@ public SelectDefibrillator(const client)
 
 public OnItemSlotKnife(const item)
 {
+	if (pev_valid(item) != 2)
+		return HAM_IGNORED;
+
 	static client;
 	client = get_member(item, m_pPlayer);
 
@@ -343,20 +348,20 @@ public OnItemSlotKnife(const item)
 public OnSetModels(const item)
 {
 	if (pev_valid(item) != 2)
-		return PLUGIN_CONTINUE;
+		return HAM_IGNORED;
 
 	static client; client = get_member(item, m_pPlayer);
 	if (!is_user_alive(client))
-		return PLUGIN_CONTINUE;
+		return HAM_IGNORED;
 	if (!BF4HaveThisWeapon(client, gWpnSystemId))
-		return PLUGIN_CONTINUE;
+		return HAM_IGNORED;
 	if (get_pdata_cbase(client, 373) != item)
-		return PLUGIN_CONTINUE;
+		return HAM_IGNORED;
 
 	set_pev(client, pev_viewmodel2, ENT_MODELS[V_WPN]);
 	UTIL_PlayWeaponAnimation(client, SEQ_DRAW);
 
-	return PLUGIN_HANDLED;
+	return HAM_SUPERCEDE;
 }
 
 public KnifeSound(id, channel, sample[])

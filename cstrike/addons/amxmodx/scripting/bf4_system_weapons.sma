@@ -7,6 +7,7 @@
 #include <cstrike>
 #include <hamsandwich>
 #include <fakemeta>
+#include <engine>
 #include <cswm>
 #include <csx>
 
@@ -374,7 +375,10 @@ public plugin_init()
 	RegisterHam(Ham_Weapon_PrimaryAttack, "weapon_awp", 	"CustomPrimaryAttack");
 	RegisterHam(Ham_Weapon_PrimaryAttack, "weapon_xm1014", 	"CustomPrimaryAttack");
 
-	register_forward(FM_CreateNamedEntity, "forward_create_named_entity");
+	remove_entity_name( "func_bomb_target" );
+	remove_entity_name( "info_bomb_target" );
+
+//	register_forward(FM_CreateNamedEntity, "forward_create_named_entity");
 
 	register_message(get_user_msgid("DeathMsg"), 	"PlayerDeath");
 
@@ -387,7 +391,9 @@ public forward_create_named_entity(int_class)
 	engfunc(EngFunc_SzFromIndex, int_class, class, 15);
 
 	if (equal(class, g_weapon_c4))
+	{
 		return FMRES_SUPERCEDE;
+	}
 
 	return FMRES_IGNORED;
 }
