@@ -11,6 +11,7 @@
 #include <bf4weapons>
 #include <reapi>
 #include <cswm>
+#include <csx>
 
 //=====================================
 //  VERSION CHECK
@@ -27,11 +28,8 @@ static const PLUGIN_NAME	[] 			= "[BF4 Weapons] LAW";
 static const PLUGIN_AUTHOR	[] 			= "Aoi.Kagase";
 static const PLUGIN_VERSION	[]			= "0.1";
 
-#define AMMOBOX_INTERVAL				1.0
-#define TASK_DROP						1250
-
-#define ITEM_OWNER 						pev_iuser1
 #define ITEM_TEAM  						pev_iuser2
+#define LAWS_THINK						pev_fuser1
 
 enum _:E_SOUNDS
 {
@@ -73,6 +71,21 @@ enum _:E_THINK
 	THINK_DISCARD,
 }
 
+enum _:E_SPRITES_GEN
+{
+	SPR_WEAPONLIST,
+	SPR_HUD1,
+	SPR_HUD2,
+	SPR_HUD3,
+}
+
+enum _:E_SPRITES_MDL
+{
+	SPR_EXPLODE,
+	SPR_SHOCKWAVE,
+	SPR_TRAIL,
+}
+
 new const MESSAGES[E_MESSAGES][] = 
 {
 	"WeaponList",
@@ -97,6 +110,21 @@ new const ENT_SOUNDS[E_SOUNDS][] =
 	"bf4_ranks/weapons/law_travel.wav",
 };
 
+new const ENT_SPRITES_GEN[E_SPRITES_GEN][] =
+{
+	"sprites/bf4_ranks/weapons/weapon_laws.txt",
+	"sprites/bf4_ranks/weapons/czr_640hud18.spr",
+	"sprites/bf4_ranks/weapons/czr_640hud19.spr",
+	"sprites/bf4_ranks/weapons/czr_640hud7.spr",
+};
+
+new const ENT_SPRITES_MDL[E_SPRITES_MDL][] =
+{
+	"sprites/zerogxplode.spr",
+	"sprites/shockwave.spr",
+	"sprites/smoke.spr",
+};
+
 new const ENT_CLASS_C4[]		= "weapon_c4";
 new const ENT_CLASS_BREAKABLE[] = "func_breakable";
 new const ENT_CLASS_ROCKET[]	= "laws_rocket";
@@ -104,9 +132,10 @@ new const ENT_CLASS_ROCKET[]	= "laws_rocket";
 new g_msg_data		[E_MESSAGES];
 
 new gWpnSystemId;
+new gCSXID;
 new gWpnThinkStatus	[MAX_PLAYERS + 1];
+new gSprites		[E_SPRITES_MDL];
 
-new SprTrail, SprExplode, SprRing;
 //====================================================
 //  PLUGIN PRECACHE
 //====================================================
@@ -118,10 +147,11 @@ public plugin_precache()
 	for (new i = 0; i < E_MODELS; i++) 
 		precache_model(ENT_MODELS[i]);
 
-	precache_generic("sprites/bf4_ranks/weapons/weapon_laws.txt");
-	precache_generic("sprites/bf4_ranks/weapons/czr_640hud18.spr");
-	precache_generic("sprites/bf4_ranks/weapons/czr_640hud19.spr");
-	precache_generic("sprites/bf4_ranks/weapons/czr_640hud7.spr");
+	for (new i = 0; i < E_SPRITES_GEN; i++) 
+		precache_generic(ENT_SPRITES_GEN[i]);
+
+	for (new i = 0; i < E_SPRITES_MDL; i++) 
+		gSprites[i] = precache_model(ENT_SPRITES_MDL[i]);
 
 	gWpnSystemId = BF4RegisterWeapon(BF4_TEAM_BOTH, 
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ENGINEER, 
@@ -135,10 +165,6 @@ public plugin_precache()
 		5
 	);
 
-	SprExplode	= precache_model("sprites/zerogxplode.spr");
-	SprRing 	= precache_model("sprites/shockwave.spr");
-	SprTrail 	= precache_model("sprites/smoke.spr");
-
 	return PLUGIN_CONTINUE;
 }
 
@@ -150,270 +176,271 @@ public plugin_init()
 	register_plugin		(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR);
 	register_cvar		(PLUGIN_NAME, PLUGIN_VERSION, FCVAR_SPONLY|FCVAR_SERVER);
 
-	// Register Forward.
-	register_forward	(FM_CmdStart,								"PlayerCmdStart");
-	RegisterHamPlayer	(Ham_Spawn, 								"PlayerSpawn", 	.Post = true);
 
 /// =======================================================================================
-/// START Custom Weapon Defibrillator
+/// START Custom Weapon LAWS
 /// =======================================================================================
-    register_clcmd		("bf4_ranks/weapons/weapon_laws", 	"SelectLaws");
+    register_clcmd		("bf4_ranks/weapons/weapon_laws", 			"SelectLaws");
     RegisterHam			(Ham_Item_AddToPlayer, 		ENT_CLASS_C4, 	"OnAddToPlayerC4", 	.Post = true);
 	RegisterHam			(Ham_Item_ItemSlot, 		ENT_CLASS_C4, 	"OnItemSlotC4");
 	RegisterHam			(Ham_Item_Deploy, 			ENT_CLASS_C4, 	"OnSetModels",			.Post = true);
+	RegisterHam			(Ham_Item_PostFrame,		ENT_CLASS_C4,	"WeaponThink",	.Post = true);
 	RegisterHam			(Ham_Weapon_PrimaryAttack, 	ENT_CLASS_C4, 	"OnPrimaryAttackPre");
 	RegisterHam			(Ham_Weapon_PrimaryAttack, 	ENT_CLASS_C4, 	"OnPrimaryAttackPost",	.Post = true);
-	RegisterHamPlayer	(Ham_Think,					"WeaponThink",	.Post = true);
-//	RegisterHam			(Ham_Weapon_SecondaryAttack,ENT_CLASS_C4, 	"OnSecondaryAttackPre");
-//	register_forward	(FM_EmitSound, 				"KnifeSound");
-//	register_event		("CurWeapon", "weapon_change", "be", "1=1");
 /// =======================================================================================
-/// END Custom Weapon Defibrillator
+/// END Custom Weapon LAWS
 /// =======================================================================================
 
+	// Register Forward.
+	RegisterHamPlayer	(Ham_Spawn, 			"PlayerSpawn", 	.Post = true);
+	register_forward	(FM_CmdStart,			"PlayerCmdStart");
+	register_forward	(FM_UpdateClientData, 	"OnUpdateClientDataPost", ._post = true);
 /// =======================================================================================
-/// START HealthKit
+/// START ROCKET
 /// =======================================================================================
 	RegisterHam			(Ham_Touch, 				ENT_CLASS_BREAKABLE, 			"BF4ObjectThink");
 /// =======================================================================================
-/// END HealthKit
+/// END ROCKET
 /// =======================================================================================
 
 	for(new i = 0; i < E_MESSAGES; i++)
 		g_msg_data[i] = get_user_msgid(MESSAGES[i]);
+
+	gCSXID = custom_weapon_add("weapon_laws", 0, "LAWS");		
 }
 
+stock bool:SafetyCheck(const client, const weapon, const noweaponcheck = 0)
+{
+	if (!noweaponcheck && !pev_valid(weapon))
+		return false;
+
+	if (is_user_bot(client))
+		return false;
+
+	if (!is_user_alive(client))
+		return false;
+
+	if (!noweaponcheck && (cs_get_user_weapon(client) != CSW_C4))
+		return false;
+
+	if (!BF4HaveThisWeapon(client, gWpnSystemId))
+		return false;
+
+	if (!noweaponcheck && (get_pdata_cbase(client, 373) != weapon))
+		return false;
+
+	return true;
+}
 /// =======================================================================================
-/// START Custom Weapon Defibrillator
+/// START Custom Weapon LAWS
 /// =======================================================================================
 public OnAddToPlayerC4(const item, const player)
 {
-    if(pev_valid(item) && is_user_alive(player)) 	// just for safety.
-    {
-		if (!BF4HaveThisWeapon(player, gWpnSystemId))
-			return PLUGIN_CONTINUE;
+	if (!SafetyCheck(player, item, 1))
+		return PLUGIN_CONTINUE;
 
-        message_begin( MSG_ONE, g_msg_data[MSG_WEAPONLIST], .player = player );
-        {
-            write_string("bf4_ranks/weapons/weapon_laws");   // WeaponName
-            write_byte(14);                   		// PrimaryAmmoID
-            write_byte(1);                   		// PrimaryAmmoMaxAmount
-            write_byte(-1);                   		// SecondaryAmmoID
-            write_byte(-1);                   		// SecondaryAmmoMaxAmount
-            write_byte(2);                    		// SlotID (0...N)
-            write_byte(3);                    		// NumberInSlot (1...N)
-            write_byte(CSW_C4); 	           		// WeaponID
-            write_byte(0);                    		// Flags
-        }
-        message_end();
-    }
+	message_begin( MSG_ONE, g_msg_data[MSG_WEAPONLIST], .player = player );
+	{
+		write_string("bf4_ranks/weapons/weapon_laws");   // WeaponName
+		write_byte(14);                   		// PrimaryAmmoID
+		write_byte(1);                   		// PrimaryAmmoMaxAmount
+		write_byte(-1);                   		// SecondaryAmmoID
+		write_byte(-1);                   		// SecondaryAmmoMaxAmount
+		write_byte(2);                    		// SlotID (0...N)
+		write_byte(1);                    		// NumberInSlot (1...N)
+		write_byte(CSW_C4); 	           		// WeaponID
+		write_byte(0);                    		// Flags
+	}
+	message_end();
+
 	return PLUGIN_CONTINUE;
 }
 
+///
+/// Select Weapon.
+///
 public SelectLaws(const client) 
 { 
-	if (!BF4HaveThisWeapon(client, gWpnSystemId))
+	if (!SafetyCheck(client, 0, 1))
 		return PLUGIN_CONTINUE;
 
     engclient_cmd(client, "weapon_c4"); 
 	return PLUGIN_CONTINUE;
 } 
 
+///
+/// Slot Change.
+///
 public OnItemSlotC4(const item)
 {
 	static client;
 	client = get_member(item, m_pPlayer);
 
-	if (is_user_alive(client))
-	{
-		if (!BF4HaveThisWeapon(client, gWpnSystemId))
-			return HAM_IGNORED;
+	if (!SafetyCheck(client, 0, 1))
+		return HAM_IGNORED;
 
-	    SetHamReturnInteger(3);
-	}
-
+    SetHamReturnInteger(3);
     return HAM_SUPERCEDE;
 }
 
+///
+/// Change Models.
+///
 public OnSetModels(const Weapon)
 {
-	if (pev_valid(Weapon) != 2)
-		return PLUGIN_CONTINUE;
+	static client; client = get_member(Weapon, m_pPlayer);
+	if (!SafetyCheck(client, Weapon))
+		return HAM_IGNORED;
 
-	static client; 	client = get_member(Weapon, m_pPlayer);
-
-	if (!is_user_alive(client))
-		return PLUGIN_CONTINUE;
-	if (!BF4HaveThisWeapon(client, gWpnSystemId))
-		return PLUGIN_CONTINUE;
-	if (get_pdata_cbase(client, 373) != Weapon)
-		return PLUGIN_CONTINUE;
-
+	// Change Models.
 	set_pev(client, pev_viewmodel2, 	ENT_MODELS[V_WPN]);
 	set_pev(client, pev_weaponmodel2, 	ENT_MODELS[P_WPN]);	
 
+	// Draw.
 	gWpnThinkStatus[client] = THINK_DRAW;
 	UTIL_PlayWeaponAnimation(client, SEQ_DRAW);
 
-	set_pev(client, pev_nextthink, get_gametime());
-	// UTIL_PlayWeaponAnimation(client, SEQ_DRAW);
-	// set_member(Weapon, m_Weapon_flTimeWeaponIdle, 3.1);
-	// set_pev(Weapon, pev_nextthink, get_gametime() + 3.1);
-
-	return HAM_SUPERCEDE;
+	set_pev(Weapon, LAWS_THINK, get_gametime());
+	return HAM_IGNORED;
 }
 
+public OnUpdateClientDataPost(Player, SendWeapons, CD_Handle)
+{
+	if (!SafetyCheck(Player, cs_get_user_weapon_entity(Player)))
+		return FMRES_IGNORED;
+
+	set_cd(CD_Handle, CD_flNextAttack, halflife_time () + 0.001);
+	return FMRES_HANDLED;
+}
+
+///
+/// Blocking Attack logic.
+///
 public OnPrimaryAttackPre(Weapon)
 {
 	static client; client = get_member(Weapon, m_pPlayer);
-
-	if (!BF4HaveThisWeapon(client, gWpnSystemId))
-		return HAM_IGNORED;
-	
-	if(get_pdata_cbase(client, 373) != Weapon)
+	if (!SafetyCheck(client, Weapon))
 		return HAM_IGNORED;
 
-	// UTIL_PlayWeaponAnimation(client, SEQ_SHOOT);
-	// gWpnThinkStatus[client] = THINK_SHOOT;
 	return HAM_SUPERCEDE;
 }
-#define m_flNextPrimaryAttack			46
-#define m_flNextSecondaryAttack			47
+
 public OnPrimaryAttackPost(Weapon)
 {
 	static client; client = get_member(Weapon, m_pPlayer);
-
-	if (!BF4HaveThisWeapon(client, gWpnSystemId))
-		return HAM_IGNORED;
-
-	if(get_pdata_cbase(client, 373) != Weapon)
+	if (!SafetyCheck(client, Weapon))
 		return HAM_IGNORED;
 
 	return HAM_SUPERCEDE;
 }
 
-public WeaponThink(client)
+/// ===================================
+/// WEAPON THINK.
+/// ===================================
+public WeaponThink(Weapon)
 {
-	// Not alive
-	if(!is_user_alive(client) || is_user_bot(client))
+	/// SAFETY LOGIC.
+	/// ===================================
+	new client = get_member(Weapon, m_pPlayer);
+	if (!SafetyCheck(client, Weapon))
 		return HAM_IGNORED;
 
-	if (get_user_weapon(client) != CSW_C4) 
-		return HAM_IGNORED;
-
-	if (!BF4HaveThisWeapon(client, gWpnSystemId))
-		return HAM_IGNORED;
-
-	new Weapon = cs_get_user_weapon_entity(client);
-
-	if(get_pdata_cbase(client, 373) != Weapon)
-		return HAM_IGNORED;
-//	new client = get_member(Weapon, m_pPlayer);
-	// client_print(client, print_chat, "[LAWS] STATUS=%d", gWpnThinkStatus[client]);
+	/// LAWS STATUS LOGIC.
+	/// ===================================
+	static Float:fThink; pev(Weapon, LAWS_THINK, fThink); 
+	static Float:fNow; fNow = get_gametime();
 
 	switch(gWpnThinkStatus[client])
 	{
 		case THINK_DRAW:
 		{
-			if (cs_get_user_bpammo(client, CSW_C4) <= 0)
+			if (fNow > fThink)
 			{
-				ExecuteHam(Ham_Weapon_RetireWeapon, cs_get_user_weapon_entity(client));			
-				set_pev(client, pev_nextthink, get_gametime() + 0.1);
-				return HAM_IGNORED;
-			}
-			if (get_gametime() > Float:pev(client, pev_nextthink))
-			{
+				// RETIRED.
+				if (cs_get_user_bpammo(client, CSW_C4) <= 0)
+				{
+					ExecuteHam(Ham_Weapon_RetireWeapon, cs_get_user_weapon_entity(client));			
+					set_pev(Weapon, LAWS_THINK, fNow + 0.1);
+					return HAM_IGNORED;
+				}
+				// PLAY DRAW ANIMATION.
 				if (pev(client, pev_weaponanim) != SEQ_DRAW)
 					UTIL_PlayWeaponAnimation(client, SEQ_DRAW);
+
+				// NEXT THINK.
 				gWpnThinkStatus[client] = THINK_IDLE;
+
+				// DRAW ANIMATION IS 3.1 sec.
 				set_member(Weapon, m_Weapon_flTimeWeaponIdle, 3.1);
-				set_pev(client, pev_nextthink, get_gametime() + 3.1);
-				return HAM_IGNORED;
+				set_pev(Weapon, LAWS_THINK, fNow + 3.1);
 			}
 		}
 		case THINK_IDLE:
 		{
-			if (get_gametime() > Float:pev(client, pev_nextthink))
+			// CHECK PREVIOUS STATUS.
+			if (fNow > fThink)
+			{
+				// PLAY IDLE ANIMATION.
 				UTIL_PlayWeaponAnimation(client, SEQ_IDLE);
-			set_pev(client, pev_nextthink, get_gametime() + 0.1);
+				set_pev(Weapon, LAWS_THINK, fNow + 1.0);
+			}
 		}
 		case THINK_SHOOT:
 		{
-			set_pev(client, pev_nextthink, get_gametime() + 1.1);
+			// SHOOT.
+			custom_weapon_shot(gCSXID, client);
+
+			// NEXT THINK.
 			gWpnThinkStatus[client] = THINK_DISCARD;
+
+			// USE AMMO.
 			cs_set_user_bpammo(client, CSW_C4, max(cs_get_user_bpammo(client, CSW_C4) - 1, 0));
+
+			// CREATE ROCKET.
 			BF4SpawnEntity(client);
-			return HAM_IGNORED;
+
+			// SHOOT ANIMATION IS 1.1 sec.
+			set_pev(Weapon, LAWS_THINK, fNow + 1.1);
 		}
 		case THINK_DISCARD:
 		{
-			if (get_gametime() > Float:pev(client, pev_nextthink))
+			// CHECK PREVIOUS STATUS.
+			if (fNow > fThink)
 			{
+				// PLAY DISCARD ANIMATION.
 				if (pev(client, pev_weaponanim) != SEQ_DISCARD)
 					UTIL_PlayWeaponAnimation(client, SEQ_DISCARD);
+				
+				// NEXT THINK.
 				gWpnThinkStatus[client] = THINK_DRAW;
-				set_pev(client, pev_nextthink, get_gametime() + 1.7);
-				return HAM_IGNORED;
+
+				// DISCARD ANIMATION IS 1.7 sec.
+				set_pev(Weapon, LAWS_THINK, fNow + 1.7);
 			}
 		}
 	}
-	set_pev(client, pev_nextthink, get_gametime() + 0.1);
-
 	return HAM_IGNORED;
 }
 
 public PlayerSpawn(id)
 {
-	if (!is_user_connected(id))
-		return HAM_IGNORED;
-	
-	if (is_user_bot(id))
+	/// SAFETY LOGIC.
+	if (!SafetyCheck(id, 0, 1))
 		return HAM_IGNORED;
 
-	if (is_user_alive(id) && pev(id, pev_flags) & (FL_CLIENT))
-	{
-		if (!BF4HaveThisWeapon(id, gWpnSystemId))
-			return HAM_IGNORED;
+	// GIVE WEAPON. (The first one is given in BF4WeaponSystem.)
+	// TODO:Set 5 Ammo.
+//	give_item(id, "weapon_c4");
+	cs_set_user_bpammo(id, CSW_C4, 5);
 
-//		give_item(id, "weapon_c4");
-		cs_set_user_bpammo(id, CSW_C4, 5);
-	}
 	return HAM_IGNORED;
 }
-
-public OnSecondaryAttackPre(Weapon)
-{
-	return HAM_SUPERCEDE;
-}
-
-stock UTIL_PlayWeaponAnimation(const Player, const Sequence)
-{
-	set_pev(Player, pev_weaponanim, Sequence);
-	
-	message_begin(MSG_ONE_UNRELIABLE, SVC_WEAPONANIM, .player = Player);
-	write_byte(Sequence);
-	write_byte(pev(Player, pev_body));
-	message_end();
-}
-
-stock FixedUnsigned16(Float:value, scale)
-{
-    new output;
-
-    output = floatround(value * scale);
-    if (output < 0)
-        output = 0;
-    if (output > 0xFFFF)
-        output = 0xFFFF;
-
-    return output;
-} 
 /// =======================================================================================
-/// END Custom Weapon Defibrillator
+/// END Custom Weapon LAWS
 /// =======================================================================================
 
 /// =======================================================================================
-/// START Medikit for Ground
+/// START Rocket
 /// =======================================================================================
 BF4SpawnEntity(id)
 {
@@ -514,7 +541,7 @@ public BF4ObjectThink(iEnt, iToucher)
 
 	pev(iEnt, pev_origin, vOrigin);
 
-	EffectCreateExplostion(vOrigin, SprExplode);
+	EffectCreateExplostion(vOrigin, gSprites[SPR_EXPLODE]);
 	EffectSylinder(vOrigin);
 
 	new victim = -1;
@@ -540,6 +567,7 @@ public BF4ObjectThink(iEnt, iToucher)
 		xs_vec_mul_scalar(fOrigin, damage / xs_vec_len(fOrigin), fOrigin);
 		set_pev(victim, pev_velocity, fOrigin);
 
+		custom_weapon_dmg(gCSXID, attacker, victim, floatround(fDamage), 0);
 		ExecuteHamB(Ham_TakeDamage, victim, iEnt, attacker, fDamage, DMG_BULLET);
 	}
 
@@ -552,16 +580,11 @@ public BF4ObjectThink(iEnt, iToucher)
 
 //====================================================
 // Player Cmd Start event.
-// Stop movement for mine deploying.
 //====================================================
 public PlayerCmdStart(id, handle, random_seed)
 {
-	// Not alive
-	if(!is_user_alive(id) || is_user_bot(id))
+	if (!SafetyCheck(id, cs_get_user_weapon_entity(id)))
 		return FMRES_IGNORED;
-
-	if (!BF4HaveThisWeapon(id, gWpnSystemId))
-		return HAM_IGNORED;
 
 	// Get user old and actual buttons
 	static buttons, buttonsChanged, buttonPressed, buttonReleased;
@@ -570,24 +593,18 @@ public PlayerCmdStart(id, handle, random_seed)
     buttonPressed 	= buttonsChanged & buttons;
     buttonReleased 	= buttonsChanged & ~buttons;
 
-
-	if (get_user_weapon(id) != CSW_C4) 
-		return FMRES_IGNORED;
-
 	if (buttonPressed & IN_ATTACK)
 	{
 		if (gWpnThinkStatus[id] == THINK_IDLE)
 		{
 			if (pev(id, pev_weaponanim) == SEQ_IDLE)
 			{
+				new Weapon = cs_get_user_weapon_entity(id);
 				gWpnThinkStatus[id] = THINK_SHOOT;
 				UTIL_PlayWeaponAnimation(id, SEQ_SHOOT);			
-				set_pev(id, pev_nextthink, get_gametime());
+				set_pev(Weapon, LAWS_THINK, get_gametime());
 			}
 		}
-//		set_member(id, m_Weapon_flTimeWeaponIdle, 1.1);
-//		set_member(id, m_flNextAttack, 10.0);
-
 		return FMRES_IGNORED;
 
 	} else if (buttonReleased & IN_ATTACK) 
@@ -602,8 +619,18 @@ public PlayerCmdStart(id, handle, random_seed)
 }
 
 /// =======================================================================================
-/// END Medikit for Ground
+/// END CmdStart.
 /// =======================================================================================
+stock UTIL_PlayWeaponAnimation(const Player, const Sequence)
+{
+	set_pev(Player, pev_weaponanim, Sequence);
+	
+	message_begin(MSG_ONE_UNRELIABLE, SVC_WEAPONANIM, .player = Player);
+	write_byte(Sequence);
+	write_byte(pev(Player, pev_body));
+	message_end();
+}
+
 stock EffectCreateExplostion(Float:vOrigin[3], SprExplode)
 {
 	//explosion
@@ -633,7 +660,7 @@ stock EffectTrail(iEnt, iColor[3])
 	message_begin(MSG_BROADCAST, SVC_TEMPENTITY);
 	write_byte(TE_BEAMFOLLOW);
 	write_short(iEnt);
-	write_short(SprTrail);
+	write_short(gSprites[SPR_TRAIL]);
 	write_byte(10);
 	write_byte(5);
 	write_byte(iColor[0]);
@@ -654,7 +681,7 @@ stock EffectSylinder(Float:vOrigin[3])
 	engfunc(EngFunc_WriteCoord, vOrigin[0]);
 	engfunc(EngFunc_WriteCoord, vOrigin[1]);
 	engfunc(EngFunc_WriteCoord, vOrigin[2]+500.0);
-	write_short(SprRing);
+	write_short(gSprites[SPR_SHOCKWAVE]);
 	write_byte(0);
 	write_byte(0);
 	write_byte(5);
