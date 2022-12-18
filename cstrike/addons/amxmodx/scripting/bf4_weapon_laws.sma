@@ -642,7 +642,7 @@ stock EffectCreateExplostion(iEnt, Float:vOrigin[3], SprExplode)
 	write_short(SprExplode);
 	write_byte(30);
 	write_byte(30);
-	write_byte(10);
+	write_byte(TE_EXPLFLAG_NOSOUND);
 	message_end();
 	emit_sound(iEnt, CHAN_STATIC, ENT_SOUNDS[SOUND_EXPLODE], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 }
