@@ -541,7 +541,7 @@ public BF4ObjectThink(iEnt, iToucher)
 
 	pev(iEnt, pev_origin, vOrigin);
 
-	EffectCreateExplostion(vOrigin, gSprites[SPR_EXPLODE]);
+	EffectCreateExplostion(iEnt, vOrigin, gSprites[SPR_EXPLODE]);
 	EffectSylinder(vOrigin);
 
 	new victim = -1;
@@ -631,7 +631,7 @@ stock UTIL_PlayWeaponAnimation(const Player, const Sequence)
 	message_end();
 }
 
-stock EffectCreateExplostion(Float:vOrigin[3], SprExplode)
+stock EffectCreateExplostion(iEnt, Float:vOrigin[3], SprExplode)
 {
 	//explosion
 	engfunc(EngFunc_MessageBegin, MSG_PAS, SVC_TEMPENTITY, vOrigin, 0);
@@ -644,6 +644,7 @@ stock EffectCreateExplostion(Float:vOrigin[3], SprExplode)
 	write_byte(30);
 	write_byte(10);
 	message_end();
+	emit_sound(iEnt, CHAN_STATIC, ENT_SOUNDS[SOUND_EXPLODE], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 }
 
 stock EffectScreenShake(victim)
