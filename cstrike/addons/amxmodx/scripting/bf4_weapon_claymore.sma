@@ -528,7 +528,11 @@ public OnAddToPlayerC4(const item, const player)
 
 public SelectClaymore(const client) 
 { 
+	if (!BF4HaveThisWeapon(client, gWpnSystemId))
+		return PLUGIN_CONTINUE;	
+
     engclient_cmd(client, "weapon_c4"); 
+	return PLUGIN_CONTINUE;	
 } 
 
 public OnItemSlotC4(const item)
@@ -555,7 +559,8 @@ public OnSetModels(const item)
 	static client; client = get_pdata_cbase(item, 41, 4);
 	if(!is_user_alive(client))
 		return HAM_IGNORED;
-
+	if (!BF4HaveThisWeapon(client, gWpnSystemId))
+		return PLUGIN_CONTINUE;
 	if(get_pdata_cbase(client, 373) != item)
 		return HAM_IGNORED;
 
@@ -693,7 +698,7 @@ public PlayerSpawn(id)
 		if (!BF4HaveThisWeapon(id, gWpnSystemId))
 			return HAM_IGNORED;
 
-		give_item(id, "weapon_c4");
+		// give_item(id, "weapon_c4");
 		cs_set_user_bpammo(id, CSW_C4, 5);
 
 		// Task Delete.
@@ -708,21 +713,6 @@ public PlayerSpawn(id)
 	return HAM_IGNORED;
 }
 
-public Message_TextMsg(iMsgId, iMsgDest, id)
-{
-	if (!is_user_alive(id))
-		return PLUGIN_CONTINUE;
-	
-	if (!BF4HaveThisWeapon(id, gWpnSystemId))
-		return PLUGIN_CONTINUE;
-
-	new szMessage[64];
-	get_msg_arg_string(2, szMessage, charsmax(szMessage));
-	if (equali(szMessage, "#C4_Plant_At_Bomb_Spot"))
-		return PLUGIN_HANDLED;
-
-	return PLUGIN_CONTINUE;
-}
 /// =======================================================================================
 /// END Custom Weapon Claymore
 /// =======================================================================================

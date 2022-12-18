@@ -381,7 +381,7 @@ public plugin_init()
 //	register_forward(FM_CreateNamedEntity, "forward_create_named_entity");
 
 	register_message(get_user_msgid("DeathMsg"), 	"PlayerDeath");
-
+	register_message(get_user_msgid("TextMsg"), 	"Message_TextMsg") ;
 	register_message(get_user_msgid("StatusIcon"), 	"message_status_icon");
 }
 
@@ -410,6 +410,19 @@ RemoveFromBuyzone(id)
     
     // Remove player's buyzone bit for the map zones
     set_pdata_int(id, m_fClientMapZone, get_pdata_int(id, m_fClientMapZone, XO_PLAYERS) & ~MAPZONE_BUYZONE, XO_PLAYERS);
+}
+
+public Message_TextMsg(iMsgId, iMsgDest, id)
+{
+	if (!is_user_alive(id))
+		return PLUGIN_CONTINUE;
+	
+	new szMessage[64];
+	get_msg_arg_string(2, szMessage, charsmax(szMessage));
+	if (equali(szMessage, "#C4_Plant_At_Bomb_Spot"))
+		return PLUGIN_HANDLED;
+
+	return PLUGIN_CONTINUE;
 }
 
 public message_status_icon(MsgId, dest, receiver) 
