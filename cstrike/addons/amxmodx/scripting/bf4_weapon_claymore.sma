@@ -492,7 +492,6 @@ public plugin_init()
 	for(new i = 0; i < E_MESSAGES; i++)
 		gMsgData[i] = get_user_msgid(MESSAGES[i]);
 
-	register_message(get_user_msgid(MESSAGES[MSG_TEXTMSG]), "Message_TextMsg") ;
 	gMinesCSXID = custom_weapon_add(ENTITY_CLASS_NAME[WPN_CLAYMORE], 0, "Claymore");
 
 	// registered func_breakable
@@ -546,9 +545,9 @@ public OnItemSlotC4(const item)
 			return HAM_IGNORED;
 
 	    SetHamReturnInteger(5);
+	    return HAM_SUPERCEDE;
 	}
-
-    return HAM_SUPERCEDE;
+	return HAM_IGNORED;
 }
 
 public OnSetModels(const item)
@@ -570,7 +569,7 @@ public OnSetModels(const item)
 	UTIL_PlayWeaponAnimation(client, SEQ_DRAW);
 	// emit_sound(client, CHAN_WEAPON, ENT_SOUNDS[SND_CM_DRAW], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 
-	return HAM_HANDLED;
+	return HAM_IGNORED;
 }
 
 public weapon_change(id)
