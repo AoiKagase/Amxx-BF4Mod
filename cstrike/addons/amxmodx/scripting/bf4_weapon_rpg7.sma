@@ -29,14 +29,12 @@ static const PLUGIN_AUTHOR	[] 			= "Aoi.Kagase";
 static const PLUGIN_VERSION	[]			= "0.1";
 
 #define ITEM_TEAM  						pev_iuser2
-#define LAWS_THINK						pev_fuser1
+#define RPG7_THINK						pev_fuser1
 
 enum _:E_SOUNDS
 {
-	SOUND_BOUNCE,
-	SOUND_DISCARD,
 	SOUND_DRAW,
-	SOUND_EXPLODE,
+	SOUND_RELOAD,
 	SOUND_FIRE,
 	SOUND_TRAVEL,
 };
@@ -76,8 +74,10 @@ enum _:E_THINK
 {
 	THINK_IDLE,
 	THINK_DRAW,
+	THINK_RELOAD,
 	THINK_SHOOT,
-	THINK_DISCARD,
+	THINK_CHARGE_ACTIVE,
+	THINK_CHARGE_DEACTIVE,
 }
 
 enum _:E_SPRITES_GEN
@@ -85,7 +85,6 @@ enum _:E_SPRITES_GEN
 	SPR_WEAPONLIST,
 	SPR_HUD1,
 	SPR_HUD2,
-	SPR_HUD3,
 }
 
 enum _:E_SPRITES_MDL
@@ -111,20 +110,17 @@ new const ENT_MODELS[E_MODELS][] =
 
 new const ENT_SOUNDS[E_SOUNDS][] = 
 {
-	"bf4_ranks/weapons/law_bounce.wav",
-	"bf4_ranks/weapons/law_discard.wav",
-	"bf4_ranks/weapons/law_draw.wav",
-	"bf4_ranks/weapons/law_explode.wav",
-	"bf4_ranks/weapons/law_fire.wav",
+	"bf4_ranks/weapons/rpg7_draw.wav",
+	"bf4_ranks/weapons/rpg7_reload.wav",
+	"bf4_ranks/weapons/rpg7-1.wav",
 	"bf4_ranks/weapons/law_travel.wav",
 };
 
 new const ENT_SPRITES_GEN[E_SPRITES_GEN][] =
 {
-	"sprites/bf4_ranks/weapons/weapon_laws.txt",
-	"sprites/bf4_ranks/weapons/czr_640hud18.spr",
-	"sprites/bf4_ranks/weapons/czr_640hud19.spr",
-	"sprites/bf4_ranks/weapons/czr_640hud7.spr",
+	"sprites/bf4_ranks/weapons/weapon_rpg7.txt",
+	"sprites/bf4_ranks/weapons/cso_640hud118.spr",
+	"sprites/bf4_ranks/weapons/cso_640hud7.spr",
 };
 
 new const ENT_SPRITES_MDL[E_SPRITES_MDL][] =
@@ -144,7 +140,8 @@ new gWpnSystemId;
 new gCSXID;
 new gWpnThinkStatus	[MAX_PLAYERS + 1];
 new gSprites		[E_SPRITES_MDL];
-
+new gReloaded		[MAX_PLAYERS + 1];
+new gSecondary		[MAX_PLAYERS + 1];
 //====================================================
 //  PLUGIN PRECACHE
 //====================================================
@@ -166,10 +163,10 @@ public plugin_precache()
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ENGINEER, 
 		BF4_WEAPONCLASS_EQUIP, 
 		-1,
-		"LAWS",
+		"RPG-7",
 		"c4",
 		_:Ammo_C4,
-		"laws",
+		"rpg7",
 		5,
 		5
 	);
@@ -309,7 +306,7 @@ public OnSetModels(const Weapon)
 	gWpnThinkStatus[client] = THINK_DRAW;
 	UTIL_PlayWeaponAnimation(client, SEQ_DRAW);
 
-	set_pev(Weapon, LAWS_THINK, get_gametime());
+	set_pev(Weapon, RPG7_THINK, get_gametime());
 	return HAM_IGNORED;
 }
 
@@ -356,7 +353,7 @@ public WeaponThink(Weapon)
 
 	/// LAWS STATUS LOGIC.
 	/// ===================================
-	static Float:fThink; pev(Weapon, LAWS_THINK, fThink); 
+	static Float:fThink; pev(Weapon, RPG7_THINK, fThink); 
 	static Float:fNow; fNow = get_gametime();
 
 	switch(gWpnThinkStatus[client])
@@ -369,19 +366,28 @@ public WeaponThink(Weapon)
 				if (cs_get_user_bpammo(client, CSW_C4) <= 0)
 				{
 					ExecuteHam(Ham_Weapon_RetireWeapon, cs_get_user_weapon_entity(client));			
-					set_pev(Weapon, LAWS_THINK, fNow + 0.1);
+					set_pev(Weapon, RPG7_THINK, fNow + 0.1);
 					return HAM_IGNORED;
 				}
-				// PLAY DRAW ANIMATION.
-				if (pev(client, pev_weaponanim) != SEQ_DRAW)
-					UTIL_PlayWeaponAnimation(client, SEQ_DRAW);
+				// CLIP IN
+				if (gReloaded[client])
+				{
+					// PLAY DRAW ANIMATION.
+					if (pev(client, pev_weaponanim) != SEQ_DRAW)
+						UTIL_PlayWeaponAnimation(client, SEQ_DRAW);
+				} 
+				else 
+				{
+					if (pev(client, pev_weaponanim) != SEQ_DRAW_EMPTY)
+						UTIL_PlayWeaponAnimation(client, SEQ_DRAW_EMPTY);
+				}
 
 				// NEXT THINK.
 				gWpnThinkStatus[client] = THINK_IDLE;
 
 				// DRAW ANIMATION IS 3.1 sec.
-				set_member(Weapon, m_Weapon_flTimeWeaponIdle, 3.1);
-				set_pev(Weapon, LAWS_THINK, fNow + 3.1);
+				set_member(Weapon, m_Weapon_flTimeWeaponIdle, 1.0);
+				set_pev(Weapon, RPG7_THINK, fNow + 1.0);
 			}
 		}
 		case THINK_IDLE:
@@ -389,18 +395,47 @@ public WeaponThink(Weapon)
 			// CHECK PREVIOUS STATUS.
 			if (fNow > fThink)
 			{
-				// PLAY IDLE ANIMATION.
-				UTIL_PlayWeaponAnimation(client, SEQ_IDLE);
-				set_pev(Weapon, LAWS_THINK, fNow + 1.0);
+				// Secondary Mode.
+				if (gSecondary[client])
+				{
+					if (gReloaded[client])
+					{
+						// PLAY IDLE ANIMATION.
+						UTIL_PlayWeaponAnimation(client, SEQ_IDLE_2);
+						set_pev(Weapon, RPG7_THINK, fNow + 0.067);
+					}
+					else
+					{
+						// PLAY IDLE ANIMATION.
+						UTIL_PlayWeaponAnimation(client, SEQ_IDLE_2_EMPTY);
+						set_pev(Weapon, RPG7_THINK, fNow + 0.067);
+					}
+				}
+				else
+				{
+					if (gReloaded[client])
+					{
+						// PLAY IDLE ANIMATION.
+						UTIL_PlayWeaponAnimation(client, SEQ_IDLE_1);
+						set_pev(Weapon, RPG7_THINK, fNow + 1.7);
+					}
+					else
+					{
+						// PLAY IDLE ANIMATION.
+						UTIL_PlayWeaponAnimation(client, SEQ_IDLE_1_EMPTY);
+						set_pev(Weapon, RPG7_THINK, fNow + 1.7);
+					}
+				}
 			}
 		}
 		case THINK_SHOOT:
 		{
+	
 			// SHOOT.
 			custom_weapon_shot(gCSXID, client);
 
 			// NEXT THINK.
-			gWpnThinkStatus[client] = THINK_DISCARD;
+			gWpnThinkStatus[client] = THINK_RELOAD;
 
 			// USE AMMO.
 			cs_set_user_bpammo(client, CSW_C4, max(cs_get_user_bpammo(client, CSW_C4) - 1, 0));
@@ -408,23 +443,83 @@ public WeaponThink(Weapon)
 			// CREATE ROCKET.
 			BF4SpawnEntity(client);
 
-			// SHOOT ANIMATION IS 1.1 sec.
-			set_pev(Weapon, LAWS_THINK, fNow + 1.1);
+			gSecondary[client] = false;
+
+			// SHOOT ANIMATION IS 0.69 sec.
+			set_pev(Weapon, RPG7_THINK, fNow + 0.69);
 		}
-		case THINK_DISCARD:
+		case THINK_RELOAD:
 		{
 			// CHECK PREVIOUS STATUS.
 			if (fNow > fThink)
 			{
-				// PLAY DISCARD ANIMATION.
-				if (pev(client, pev_weaponanim) != SEQ_DISCARD)
-					UTIL_PlayWeaponAnimation(client, SEQ_DISCARD);
-				
-				// NEXT THINK.
-				gWpnThinkStatus[client] = THINK_DRAW;
+				// RETIRED.
+				if (cs_get_user_bpammo(client, CSW_C4) <= 0)
+				{
+					ExecuteHam(Ham_Weapon_RetireWeapon, cs_get_user_weapon_entity(client));			
+					set_pev(Weapon, RPG7_THINK, fNow + 0.1);
+					return HAM_IGNORED;
+				}
+				if (!gReloaded[client])
+				{
+					// PLAY DISCARD ANIMATION.
+					if (pev(client, pev_weaponanim) != SEQ_RELOAD)
+					{
+						UTIL_PlayWeaponAnimation(client, SEQ_RELOAD);
+					}
+					// Clip In
+					gReloaded[client] = true;				
+					// NEXT THINK.
+					gWpnThinkStatus[client] = THINK_IDLE;
 
-				// DISCARD ANIMATION IS 1.7 sec.
-				set_pev(Weapon, LAWS_THINK, fNow + 1.7);
+					// DISCARD ANIMATION IS 2 sec.
+					set_pev(Weapon, RPG7_THINK, fNow + 2.0);
+				}
+				else
+				{
+					gWpnThinkStatus[client] = THINK_IDLE;
+					set_pev(Weapon, RPG7_THINK, fNow);
+				}
+			}
+		}
+		case THINK_CHARGE_ACTIVE:
+		{
+			if (fNow > fThink)
+			{
+				if (gReloaded[client])
+				{
+					if (pev(client, pev_weaponanim) != SEQ_CHARGE_1)
+						UTIL_PlayWeaponAnimation(client, SEQ_CHARGE_1);
+				}
+				else
+				{
+					if (pev(client, pev_weaponanim) != SEQ_CHARGE_1_EMPTY)
+						UTIL_PlayWeaponAnimation(client, SEQ_CHARGE_1_EMPTY);
+				}
+				gSecondary[client] = true;
+				gWpnThinkStatus[client] = THINK_IDLE;
+				// CHARGE ANIMATION IS 3.7 sec.
+				set_pev(Weapon, RPG7_THINK, fNow + 0.37);
+			}
+		}
+		case THINK_CHARGE_DEACTIVE:
+		{
+			if (fNow > fThink)
+			{
+				if (gReloaded[client])
+				{
+					if (pev(client, pev_weaponanim) != SEQ_CHARGE_2)
+						UTIL_PlayWeaponAnimation(client, SEQ_CHARGE_2);
+				}
+				else
+				{
+					if (pev(client, pev_weaponanim) != SEQ_CHARGE_2_EMPTY)
+						UTIL_PlayWeaponAnimation(client, SEQ_CHARGE_2_EMPTY);
+				}
+				gSecondary[client]      = false;
+				gWpnThinkStatus[client] = THINK_IDLE;
+				// CHARGE ANIMATION IS 3.7 sec.
+				set_pev(Weapon, RPG7_THINK, fNow + 0.37);
 			}
 		}
 	}
@@ -441,7 +536,7 @@ public PlayerSpawn(id)
 	// TODO:Set 5 Ammo.
 //	give_item(id, "weapon_c4");
 	cs_set_user_bpammo(id, CSW_C4, 5);
-
+	gReloaded[id] = true;
 	return HAM_IGNORED;
 }
 /// =======================================================================================
@@ -606,12 +701,22 @@ public PlayerCmdStart(id, handle, random_seed)
 	{
 		if (gWpnThinkStatus[id] == THINK_IDLE)
 		{
-			if (pev(id, pev_weaponanim) == SEQ_IDLE)
+			if (gReloaded[id])
 			{
-				new Weapon = cs_get_user_weapon_entity(id);
+				if (gSecondary[id])
+				{
+					if (pev(id, pev_weaponanim) == SEQ_IDLE_2)
+						UTIL_PlayWeaponAnimation(id, SEQ_SHOOT_2);			
+				}
+				else
+				{
+					if (pev(id, pev_weaponanim) == SEQ_IDLE_1)
+						UTIL_PlayWeaponAnimation(id, SEQ_SHOOT_1);
+				}
+				gReloaded[id] = false;
 				gWpnThinkStatus[id] = THINK_SHOOT;
-				UTIL_PlayWeaponAnimation(id, SEQ_SHOOT);			
-				set_pev(Weapon, LAWS_THINK, get_gametime());
+				new Weapon = cs_get_user_weapon_entity(id);
+				set_pev(Weapon, RPG7_THINK, get_gametime());
 			}
 		}
 		return FMRES_IGNORED;
@@ -624,6 +729,53 @@ public PlayerCmdStart(id, handle, random_seed)
 	{
 		return FMRES_IGNORED;
 	}
+
+	if (buttonPressed & IN_ATTACK2)
+	{
+		if (gWpnThinkStatus[id] == THINK_IDLE)
+		{
+			if (!gSecondary[id])
+			{
+				gSecondary[id] = true;
+				gWpnThinkStatus[id] = THINK_CHARGE_ACTIVE;
+				new Weapon = cs_get_user_weapon_entity(id);
+				set_pev(Weapon, RPG7_THINK, get_gametime());
+			}
+		}
+		return FMRES_IGNORED;
+
+	} else if (buttonReleased & IN_ATTACK2) 
+	{
+		if (gWpnThinkStatus[id] == THINK_IDLE)
+		{
+			if (gSecondary[id])
+			{
+				gSecondary[id]      = false;
+				gWpnThinkStatus[id] = THINK_CHARGE_DEACTIVE;
+				new Weapon          = cs_get_user_weapon_entity(id);
+				set_pev(Weapon, RPG7_THINK, get_gametime());
+			}
+		}
+		return FMRES_IGNORED;
+
+	} else if (buttons & IN_ATTACK2)
+	{
+		return FMRES_IGNORED;
+	}
+
+	if (buttonPressed & IN_RELOAD)
+	{
+		if (gWpnThinkStatus[id] == THINK_IDLE)
+		{
+			if (!gReloaded[id])
+			{
+				gWpnThinkStatus[id] = THINK_RELOAD;
+				new Weapon = cs_get_user_weapon_entity(id);
+				set_pev(Weapon, RPG7_THINK, get_gametime());
+			}
+		}
+	}
+
 	return FMRES_IGNORED;
 }
 
@@ -651,7 +803,7 @@ stock EffectCreateExplostion(Float:vOrigin[3], SprExplode)
 	write_short(SprExplode);
 	write_byte(30);
 	write_byte(30);
-	write_byte(TE_EXPLFLAG_NOSOUND);
+	write_byte(10);
 	message_end();
 }
 
