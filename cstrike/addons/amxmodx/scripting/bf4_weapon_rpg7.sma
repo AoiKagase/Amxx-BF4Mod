@@ -140,8 +140,19 @@ new gWpnSystemId;
 new gCSXID;
 new gWpnThinkStatus	[MAX_PLAYERS + 1];
 new gSprites		[E_SPRITES_MDL];
-new gReloaded		[MAX_PLAYERS + 1];
 new gSecondary		[MAX_PLAYERS + 1];
+new gCAmmo;
+
+stock set_ammo_type(item, type)	
+	set_ent_data(item, "CBasePlayerWeapon", "m_iPrimaryAmmoType", type);
+stock set_ammo_clip(item, clip)
+	set_ent_data(item, "CBasePlayerWeapon", "m_iClip", clip);
+stock get_ammo_clip(item)
+	return get_ent_data(item, "CBasePlayerWeapon", "m_iClip");
+stock set_bpammo(client, ammoType, ammo)
+	set_ent_data(client, "CBasePlayer", "m_rgAmmo", ammo, ammoType);
+stock get_bpammo(client, ammoType)
+	return get_ent_data(client, "CBasePlayer", "m_rgAmmo", ammoType);
 //====================================================
 //  PLUGIN PRECACHE
 //====================================================
@@ -159,13 +170,15 @@ public plugin_precache()
 	for (new i = 0; i < E_SPRITES_MDL; i++) 
 		gSprites[i] = precache_model(ENT_SPRITES_MDL[i]);
 
+	gCAmmo = CreateAmmo(1000, 1, 5);
+	SetAmmoName(gCAmmo, "Anti-Tank Rocket");
 	gWpnSystemId = BF4RegisterWeapon(BF4_TEAM_BOTH, 
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ENGINEER, 
 		BF4_WEAPONCLASS_EQUIP, 
 		-1,
 		"RPG-7",
 		"c4",
-		_:Ammo_C4,
+		gCAmmo,
 		"rpg7",
 		5,
 		5
@@ -248,8 +261,8 @@ public OnAddToPlayerC4(const item, const player)
 	message_begin( MSG_ONE, g_msg_data[MSG_WEAPONLIST], .player = player );
 	{
 		write_string("bf4_ranks/weapons/weapon_rpg7");   // WeaponName
-		write_byte(14);                   		// PrimaryAmmoID
-		write_byte(1);                   		// PrimaryAmmoMaxAmount
+		write_byte(gCAmmo);                   		// PrimaryAmmoID
+		write_byte(5);                   		// PrimaryAmmoMaxAmount
 		write_byte(-1);                   		// SecondaryAmmoID
 		write_byte(-1);                   		// SecondaryAmmoMaxAmount
 		write_byte(2);                    		// SlotID (0...N)
@@ -258,6 +271,10 @@ public OnAddToPlayerC4(const item, const player)
 		write_byte(0);                    		// Flags
 	}
 	message_end();
+
+	set_ammo_type	(item, gCAmmo);
+	set_bpammo		(item, gCAmmo, 5);
+	set_ammo_clip	(item, 1);
 
 	return PLUGIN_CONTINUE;
 }
@@ -363,14 +380,14 @@ public WeaponThink(Weapon)
 			if (fNow > fThink)
 			{
 				// RETIRED.
-				if (cs_get_user_bpammo(client, CSW_C4) <= 0)
+				if (get_bpammo(client, gCAmmo) <= 0)
 				{
 					ExecuteHam(Ham_Weapon_RetireWeapon, cs_get_user_weapon_entity(client));			
 					set_pev(Weapon, RPG7_THINK, fNow + 0.1);
 					return HAM_IGNORED;
 				}
 				// CLIP IN
-				if (gReloaded[client])
+				if (get_ammo_clip(Weapon))
 				{
 					// PLAY DRAW ANIMATION.
 					if (pev(client, pev_weaponanim) != SEQ_DRAW)
@@ -398,7 +415,7 @@ public WeaponThink(Weapon)
 				// Secondary Mode.
 				if (gSecondary[client])
 				{
-					if (gReloaded[client])
+					if (get_ammo_clip(Weapon) > 0)
 					{
 						// PLAY IDLE ANIMATION.
 						UTIL_PlayWeaponAnimation(client, SEQ_IDLE_2);
@@ -413,7 +430,7 @@ public WeaponThink(Weapon)
 				}
 				else
 				{
-					if (gReloaded[client])
+					if (get_ammo_clip(Weapon) > 0)
 					{
 						// PLAY IDLE ANIMATION.
 						UTIL_PlayWeaponAnimation(client, SEQ_IDLE_1);
@@ -430,23 +447,23 @@ public WeaponThink(Weapon)
 		}
 		case THINK_SHOOT:
 		{
+			if (get_ammo_clip(Weapon) > 0)
+			{
+				// SHOOT.
+				custom_weapon_shot(gCSXID, client);
+				// NEXT THINK.
+				gWpnThinkStatus[client] = THINK_RELOAD;
+				// USE AMMO.
+				set_ammo_clip(Weapon, 0);
+				// CREATE ROCKET.
+				BF4SpawnEntity(client);
+
+				gSecondary[client] = false;
+
+				// SHOOT ANIMATION IS 0.69 sec.
+				set_pev(Weapon, RPG7_THINK, fNow + 0.69);
+			}
 	
-			// SHOOT.
-			custom_weapon_shot(gCSXID, client);
-
-			// NEXT THINK.
-			gWpnThinkStatus[client] = THINK_RELOAD;
-
-			// USE AMMO.
-			cs_set_user_bpammo(client, CSW_C4, max(cs_get_user_bpammo(client, CSW_C4) - 1, 0));
-
-			// CREATE ROCKET.
-			BF4SpawnEntity(client);
-
-			gSecondary[client] = false;
-
-			// SHOOT ANIMATION IS 0.69 sec.
-			set_pev(Weapon, RPG7_THINK, fNow + 0.69);
 		}
 		case THINK_RELOAD:
 		{
@@ -454,23 +471,23 @@ public WeaponThink(Weapon)
 			if (fNow > fThink)
 			{
 				// RETIRED.
-				if (cs_get_user_bpammo(client, CSW_C4) <= 0)
+				if (get_bpammo(client, gCAmmo) <= 0)
 				{
 					ExecuteHam(Ham_Weapon_RetireWeapon, cs_get_user_weapon_entity(client));			
 					set_pev(Weapon, RPG7_THINK, fNow + 0.1);
 					return HAM_IGNORED;
 				}
-				if (!gReloaded[client])
+				if (get_ammo_clip(Weapon) <= 0)
 				{
 					// PLAY DISCARD ANIMATION.
 					if (pev(client, pev_weaponanim) != SEQ_RELOAD)
 					{
 						UTIL_PlayWeaponAnimation(client, SEQ_RELOAD);
 					}
-					// Clip In
-					gReloaded[client] = true;				
 					// NEXT THINK.
 					gWpnThinkStatus[client] = THINK_IDLE;
+					set_ammo_clip(Weapon, 1);
+					set_bpammo(client, gCAmmo, get_bpammo(client, gCAmmo) - 1);
 
 					// DISCARD ANIMATION IS 2 sec.
 					set_pev(Weapon, RPG7_THINK, fNow + 2.0);
@@ -486,7 +503,7 @@ public WeaponThink(Weapon)
 		{
 			if (fNow > fThink)
 			{
-				if (gReloaded[client])
+				if (get_ammo_clip(Weapon) > 0)
 				{
 					if (pev(client, pev_weaponanim) != SEQ_CHARGE_1)
 						UTIL_PlayWeaponAnimation(client, SEQ_CHARGE_1);
@@ -506,7 +523,7 @@ public WeaponThink(Weapon)
 		{
 			if (fNow > fThink)
 			{
-				if (gReloaded[client])
+				if (get_ammo_clip(Weapon) > 0)
 				{
 					if (pev(client, pev_weaponanim) != SEQ_CHARGE_2)
 						UTIL_PlayWeaponAnimation(client, SEQ_CHARGE_2);
@@ -534,9 +551,6 @@ public PlayerSpawn(id)
 
 	// GIVE WEAPON. (The first one is given in BF4WeaponSystem.)
 	// TODO:Set 5 Ammo.
-//	give_item(id, "weapon_c4");
-	cs_set_user_bpammo(id, CSW_C4, 5);
-	gReloaded[id] = true;
 	return HAM_IGNORED;
 }
 /// =======================================================================================
@@ -608,7 +622,7 @@ BF4SpawnEntity(id)
 		// think rate. hmmm....
 		set_pev(iEnt, pev_nextthink, get_gametime() + 0.1);
 
-		emit_sound(iEnt, CHAN_ITEM, ENT_SOUNDS[SOUND_TRAVEL], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		emit_sound(iEnt, CHAN_ITEM, ENT_SOUNDS[SOUND_FIRE], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 
 		new iColor[3];
 		iColor[0] = 224;
@@ -701,7 +715,8 @@ public PlayerCmdStart(id, handle, random_seed)
 	{
 		if (gWpnThinkStatus[id] == THINK_IDLE)
 		{
-			if (gReloaded[id])
+			new Weapon = cs_get_user_weapon_entity(id);
+			if (get_ammo_clip(Weapon))
 			{
 				if (gSecondary[id])
 				{
@@ -713,9 +728,8 @@ public PlayerCmdStart(id, handle, random_seed)
 					if (pev(id, pev_weaponanim) == SEQ_IDLE_1)
 						UTIL_PlayWeaponAnimation(id, SEQ_SHOOT_1);
 				}
-				gReloaded[id] = false;
+
 				gWpnThinkStatus[id] = THINK_SHOOT;
-				new Weapon = cs_get_user_weapon_entity(id);
 				set_pev(Weapon, RPG7_THINK, get_gametime());
 			}
 		}
@@ -767,10 +781,10 @@ public PlayerCmdStart(id, handle, random_seed)
 	{
 		if (gWpnThinkStatus[id] == THINK_IDLE)
 		{
-			if (!gReloaded[id])
+			new Weapon = cs_get_user_weapon_entity(id);
+			if (!get_ammo_clip(Weapon))
 			{
 				gWpnThinkStatus[id] = THINK_RELOAD;
-				new Weapon = cs_get_user_weapon_entity(id);
 				set_pev(Weapon, RPG7_THINK, get_gametime());
 			}
 		}
