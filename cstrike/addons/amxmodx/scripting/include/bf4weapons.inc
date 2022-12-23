@@ -168,3 +168,4 @@ native BF4HaveThisWeapon	(const id, const wpnindex);
 native BF4SelectWeaponMenu	(const id);
 native BF4_WEAPONCLASS:BF4WeaponNameToClass(const id, const weaponname[]);
 native BF4GiveWeaponClip	(const id);
+
