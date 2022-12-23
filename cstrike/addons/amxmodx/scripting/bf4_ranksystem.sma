@@ -1072,7 +1072,28 @@ public Clear_Rank_Event(TaskId)
 public Event_CurWeapon(const id) 
 {
 	if(!g_get_ribbon[id] || get_ent_data(id, "CBasePlayer", "m_iFOV") != 90)
+	{
+		new clip, ammo;
+		new weapon = cs_get_user_weapon(id, clip, ammo);
+		if (weapon == CSW_TMP)
+		{
+			message_begin(MSG_ONE, g_MsgIds[MSGID_WEAPON_LIST], .player = id);
+			{
+				write_string("weapon_tmp");
+				write_byte(_:Ammo_9MM);
+				write_byte(120);
+				write_byte(-1);
+				write_byte(-1);
+				write_byte(0);
+				write_byte(0);
+				write_byte(CSW_TMP);
+				write_byte(0);			
+			}
+			message_end();
+			SetMessage_CurWeapon(id, clip);
+		}
 		return;
+	}
 
 	Show_Rank_Event(id, g_get_ribbon_id[id]);
 }
