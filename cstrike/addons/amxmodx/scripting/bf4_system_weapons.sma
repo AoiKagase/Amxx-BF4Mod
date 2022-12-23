@@ -924,6 +924,11 @@ public PlayerDeath()
 			continue;
 
 		ArrayGetArray(gWeaponList, gUseWeapons[iAttacker][i], data, charsmax(data));
+
+		// Classic Weapon.
+		if (data[CSX_WPNID] == -1)
+			continue;
+
 		if (equali(data[ITEM], killweapon))
 		{
 			switch(data[WPNCLASS])
