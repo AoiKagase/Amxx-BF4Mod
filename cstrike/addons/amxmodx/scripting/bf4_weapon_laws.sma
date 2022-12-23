@@ -8,6 +8,7 @@
 #include <xs>
 #include <bf4natives>
 #include <bf4classes>
+#include <bf4effects>
 #include <bf4weapons>
 #include <reapi>
 #include <cswm>
@@ -30,6 +31,9 @@ static const PLUGIN_VERSION	[]			= "0.1";
 
 #define ITEM_TEAM  						pev_iuser2
 #define LAWS_THINK						pev_fuser1
+
+static const Float:LAWS_DAMAGE = 450.0;
+static const Float:LAWS_RADIUS = 250.0;
 
 enum _:E_SOUNDS
 {
@@ -81,9 +85,7 @@ enum _:E_SPRITES_GEN
 
 enum _:E_SPRITES_MDL
 {
-	SPR_EXPLODE,
-	SPR_SHOCKWAVE,
-	SPR_TRAIL,
+	SPR_TRAIL				,
 }
 
 new const MESSAGES[E_MESSAGES][] = 
@@ -120,8 +122,6 @@ new const ENT_SPRITES_GEN[E_SPRITES_GEN][] =
 
 new const ENT_SPRITES_MDL[E_SPRITES_MDL][] =
 {
-	"sprites/zerogxplode.spr",
-	"sprites/shockwave.spr",
 	"sprites/smoke.spr",
 };
 
@@ -535,42 +535,14 @@ public BF4ObjectThink(iEnt, iToucher)
 			return HAM_IGNORED;
 	}
 
-	new Float:vOrigin[3];
-	new Float:radius = 250.0;
-	new Float:damage = 450.0;
+	new const iColor[4] = {224,224,224,255};
+	BF4EffectExplosion(iEnt, LAWS_DAMAGE, LAWS_RADIUS, iColor, 0);
+	// damage.
+	BF4EffectExplosionDamage(gCSXID, iEnt, iOwner, LAWS_DAMAGE, LAWS_RADIUS);
+	BF4EffectScreenShake(iEnt, 2.0, 2.0, 2.0, LAWS_RADIUS);
 
-	pev(iEnt, pev_origin, vOrigin);
-
-	EffectCreateExplostion(iEnt, vOrigin, gSprites[SPR_EXPLODE]);
-	EffectSylinder(vOrigin);
-
-	new victim = -1;
-	new Float:fOrigin[3], Float:fDistance, Float:fDamage;
-	new attacker = pev(iEnt, pev_owner);
-	while((victim = engfunc(EngFunc_FindEntityInSphere, victim, vOrigin, radius)) != 0)
-	{
-		if(!is_user_alive(victim)) 
-			continue; //not alive
-		if(BF4GetUserTeam(attacker) == BF4GetUserTeam(victim))
-			continue; //friendly fire
-
-		//damage calculation
-		pev(victim, pev_origin, fOrigin);
-		fDistance = get_distance_f(fOrigin, vOrigin);
-		fDamage = damage - floatmul(damage, floatdiv(fDistance, radius));
-		fDamage *= 1.0;
-
-		EffectScreenShake(victim);
-
-		xs_vec_sub(fOrigin, vOrigin, fOrigin);
-		xs_vec_mul_scalar(fOrigin, fDamage * 0.7, fOrigin);
-		xs_vec_mul_scalar(fOrigin, damage / xs_vec_len(fOrigin), fOrigin);
-		set_pev(victim, pev_velocity, fOrigin);
-
-		custom_weapon_dmg(gCSXID, attacker, victim, floatround(fDamage), 0);
-		ExecuteHamB(Ham_TakeDamage, victim, iEnt, attacker, fDamage, DMG_BULLET);
-	}
-
+	emit_sound(iEnt, CHAN_STATIC, ENT_SOUNDS[SOUND_EXPLODE], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+	// remove this.
 	pev(iEnt, pev_flags, flags);
 	set_pev(iEnt, pev_flags, flags | FL_KILLME);
 	dllfunc(DLLFunc_Think, iEnt);
@@ -631,31 +603,6 @@ stock UTIL_PlayWeaponAnimation(const Player, const Sequence)
 	message_end();
 }
 
-stock EffectCreateExplostion(iEnt, Float:vOrigin[3], SprExplode)
-{
-	//explosion
-	engfunc(EngFunc_MessageBegin, MSG_PAS, SVC_TEMPENTITY, vOrigin, 0);
-	write_byte(TE_EXPLOSION);
-	engfunc(EngFunc_WriteCoord, vOrigin[0]);
-	engfunc(EngFunc_WriteCoord, vOrigin[1]);
-	engfunc(EngFunc_WriteCoord, vOrigin[2]);
-	write_short(SprExplode);
-	write_byte(30);
-	write_byte(30);
-	write_byte(TE_EXPLFLAG_NOSOUND);
-	message_end();
-	emit_sound(iEnt, CHAN_STATIC, ENT_SOUNDS[SOUND_EXPLODE], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-}
-
-stock EffectScreenShake(victim)
-{
-	message_begin(MSG_ONE_UNRELIABLE, g_msg_data[MSG_SCREEN_SHAKE], _, victim);
-	write_short((1<<12)*8);
-	write_short((1<<12)*3);
-	write_short((1<<12)*18);
-	message_end();
-}
-
 stock EffectTrail(iEnt, iColor[3])
 {
 	message_begin(MSG_BROADCAST, SVC_TEMPENTITY);
@@ -668,30 +615,5 @@ stock EffectTrail(iEnt, iColor[3])
 	write_byte(iColor[1]);
 	write_byte(iColor[2]);
 	write_byte(192);
-	message_end();
-}
-
-stock EffectSylinder(Float:vOrigin[3])
-{
-	//ring
-	engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vOrigin, 0);
-	write_byte(TE_BEAMCYLINDER);
-	engfunc(EngFunc_WriteCoord, vOrigin[0]);
-	engfunc(EngFunc_WriteCoord, vOrigin[1]);
-	engfunc(EngFunc_WriteCoord, vOrigin[2]);
-	engfunc(EngFunc_WriteCoord, vOrigin[0]);
-	engfunc(EngFunc_WriteCoord, vOrigin[1]);
-	engfunc(EngFunc_WriteCoord, vOrigin[2]+500.0);
-	write_short(gSprites[SPR_SHOCKWAVE]);
-	write_byte(0);
-	write_byte(0);
-	write_byte(5);
-	write_byte(30);
-	write_byte(0);
-	write_byte(224);
-	write_byte(224);
-	write_byte(224);
-	write_byte(255);
-	write_byte(0);
 	message_end();
 }
