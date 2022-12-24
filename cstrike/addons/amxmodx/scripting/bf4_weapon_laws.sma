@@ -6,7 +6,6 @@
 #include <fakemeta>
 #include <hamsandwich>
 #include <xs>
-#include <bf4natives>
 #include <bf4classes>
 #include <bf4effects>
 #include <bf4weapons>
@@ -25,7 +24,7 @@
 #pragma semicolon 						1
 #pragma tabsize 						4
 
-static const PLUGIN_NAME	[] 			= "[BF4 Weapons] LAW";
+static const PLUGIN_NAME	[] 			= "[BF4 Weapons] LAWS";
 static const PLUGIN_AUTHOR	[] 			= "Aoi.Kagase";
 static const PLUGIN_VERSION	[]			= "0.1";
 
@@ -536,7 +535,7 @@ public BF4ObjectThink(iEnt, iToucher)
 	}
 
 	new const iColor[4] = {224,224,224,255};
-	BF4EffectExplosion(iEnt, LAWS_DAMAGE, LAWS_RADIUS, iColor, 0);
+	BF4EffectExplosion(iEnt, LAWS_DAMAGE, LAWS_RADIUS, iColor, 0, TE_EXPLFLAG_NOSOUND);
 	// damage.
 	BF4EffectExplosionDamage(gCSXID, iEnt, iOwner, LAWS_DAMAGE, LAWS_RADIUS);
 	BF4EffectScreenShake(iEnt, 2.0, 2.0, 2.0, LAWS_RADIUS);

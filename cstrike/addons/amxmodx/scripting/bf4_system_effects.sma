@@ -140,19 +140,19 @@ public _bf4_screen_shake(iPlugins, iParams)
 }
 
 // mines_mines_explosion(id, iMinesId, iEnt);
-stock explosion(const iEnt, const Float:damage, const Float:radius, const iBlastColor[4], const iBlastWidth)
+stock explosion(const iEnt, const Float:damage, const Float:radius, const iBlastColor[4], const iBlastWidth, const iFlags = TE_EXPLFLAG_NONE)
 {
 	static Float:vOrigin[3];
 
 	pev(iEnt, pev_origin, 	vOrigin);
 	if(engfunc(EngFunc_PointContents, vOrigin) != CONTENTS_WATER) 
 	{
-		create_explosion		(vOrigin, damage, radius, iBlastColor, iBlastWidth);
+		create_explosion		(vOrigin, damage, radius, iBlastColor, iBlastWidth, iFlags);
 		create_smoke			(vOrigin, damage, radius);
 	}
 	else 
 	{
-		create_water_explosion	(vOrigin, damage, radius);
+		create_water_explosion	(vOrigin, damage, radius, iFlags);
 		create_bubbles			(vOrigin, damage, radius);
 	}
 	// decals
@@ -164,11 +164,11 @@ stock create_explosion(
 	const Float:fDamage, 
 	const Float:fRadius, 
 	const iBlastColor[4],
-	const iBlastWidth
+	const iBlastWidth,
+	const iFlags = TE_EXPLFLAG_NONE
 )
 {
 	new Float:fZPos = (fDamage + ((fRadius * 3.0) / 2.0)) / 8.0;
-	new TE_FLAG;
 
 	if(fZPos < 25.0)
 		fZPos = 25.0;
@@ -184,8 +184,6 @@ stock create_explosion(
 	if(iIntensity > 128)
 		iIntensity = 128;
 
-	TE_FLAG |= TE_EXPLFLAG_NOSOUND;
-
 	engfunc		(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vOrigin, 0);
 	write_byte	(TE_EXPLOSION);
 	engfunc		(EngFunc_WriteCoord, vOrigin[0]);
@@ -194,7 +192,7 @@ stock create_explosion(
 	write_short	(gSpriteIndex[SPR_EXPLOSION_1]);
 	write_byte	(iIntensity);
 	write_byte	(24);
-	write_byte	(TE_FLAG);
+	write_byte	(iFlags);
 	message_end	();
 
 	fZPos /= 6.0;
@@ -220,7 +218,7 @@ stock create_explosion(
 	write_short	(gSpriteIndex[SPR_EXPLOSION_2]);
 	write_byte	(iIntensity);
 	write_byte	(20);
-	write_byte	(TE_FLAG);
+	write_byte	(iFlags);
 	message_end	();
 
 	fZPos = ((((fDamage * 3.0) / 2.0) + fRadius) * 4.0) / 6.0;
@@ -261,7 +259,7 @@ stock create_explosion(
 	message_end	();
 }
 
-stock create_water_explosion(const Float:vOrigin[3], const Float:fDamage, const Float:fRadius) 
+stock create_water_explosion(const Float:vOrigin[3], const Float:fDamage, const Float:fRadius, const iFlags) 
 {
 	new Float:fZPos = (fDamage + ((fRadius * 3.0) / 2.0)) / 34.0;
 
@@ -287,7 +285,7 @@ stock create_water_explosion(const Float:vOrigin[3], const Float:fDamage, const 
 	write_short		(gSpriteIndex[SPR_EXPLOSION_WATER]);
 	write_byte		(iIntensity);
 	write_byte		(16);
-	write_byte		(0);
+	write_byte		(iFlags);
 	message_end		();
 }
 

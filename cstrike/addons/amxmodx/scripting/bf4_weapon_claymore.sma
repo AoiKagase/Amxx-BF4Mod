@@ -9,7 +9,6 @@
 #include <xs>
 #include <beams>
 #include <customentdata>
-#include <bf4natives>
 #include <bf4weapons>
 #include <reapi>
 #include <cswm>
