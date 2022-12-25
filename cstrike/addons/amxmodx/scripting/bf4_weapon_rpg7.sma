@@ -220,7 +220,7 @@ public plugin_init()
 /// =======================================================================================
 /// END ROCKET
 /// =======================================================================================
-
+	register_event		("CurWeapon", "Event_CurWeapon", "be", "1=1");
 	for(new i = 0; i < E_MESSAGES; i++)
 		g_msg_data[i] = get_user_msgid(MESSAGES[i]);
 
@@ -354,6 +354,24 @@ public OnPrimaryAttackPost(Weapon)
 		return HAM_IGNORED;
 
 	return HAM_SUPERCEDE;
+}
+
+#define m_iHideHUD				361
+public Event_CurWeapon(id)
+{
+	static iMsgHide;
+	if (!iMsgHide)
+		iMsgHide = get_user_msgid("HideWeapon");
+
+	if (SafetyCheck(id, cs_get_user_weapon_entity(id)))
+	{
+		set_pdata_int(id, m_iHideHUD, get_pdata_int(id, m_iHideHUD) | (1<<6));
+	} 
+	else 
+	{
+		set_pdata_int(id, m_iHideHUD, get_pdata_int(id, m_iHideHUD) & ~(1<<6));
+	}
+	return PLUGIN_CONTINUE;
 }
 
 /// ===================================
@@ -653,7 +671,7 @@ public BF4ObjectThink(iEnt, iToucher)
 	}
 
 	new const iColor[4] = {224,224,224,255};
-	BF4EffectExplosion(iEnt, RPG7_DAMAGE, RPG7_RADIUS, iColor, 0);
+	BF4EffectExplosion(iEnt, RPG7_DAMAGE, RPG7_RADIUS, iColor, 30);
 	// damage.
 	BF4EffectExplosionDamage(gCSXID, iEnt, iOwner, RPG7_DAMAGE, RPG7_RADIUS);
 	BF4EffectScreenShake(iEnt, 2.0, 2.0, 2.0, RPG7_RADIUS);

@@ -535,7 +535,7 @@ public BF4ObjectThink(iEnt, iToucher)
 	}
 
 	new const iColor[4] = {224,224,224,255};
-	BF4EffectExplosion(iEnt, LAWS_DAMAGE, LAWS_RADIUS, iColor, 0, TE_EXPLFLAG_NOSOUND);
+	BF4EffectExplosion(iEnt, LAWS_DAMAGE, LAWS_RADIUS, iColor, 30, TE_EXPLFLAG_NOSOUND);
 	// damage.
 	BF4EffectExplosionDamage(gCSXID, iEnt, iOwner, LAWS_DAMAGE, LAWS_RADIUS);
 	BF4EffectScreenShake(iEnt, 2.0, 2.0, 2.0, LAWS_RADIUS);

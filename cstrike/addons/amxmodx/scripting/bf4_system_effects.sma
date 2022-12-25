@@ -43,7 +43,7 @@ new const ENT_SPRITES[E_SPRITES][] =
 	"sprites/fexplo.spr"		,		// 0: EXPLOSION
 	"sprites/eexplo.spr"		,		// 1: EXPLOSION
 	"sprites/WXplo1.spr"		,		// 2: WATER EXPLOSION
-	"sprites/blast.spr"			,		// 3: BLAST
+	"sprites/shockwave.spr"		,		// 3: BLAST
 	"sprites/steam1.spr"		,		// 4: SMOKE
 	"sprites/bubble.spr"		,		// 5: BUBBLE
 	"sprites/blood.spr"			,		// 6: BLOOD SPLASH
