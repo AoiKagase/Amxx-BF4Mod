@@ -399,7 +399,7 @@ public WeaponThink(Weapon)
 			if (fNow > fThink)
 			{
 				// RETIRED.
-				if (get_bpammo(client, gCAmmo) <= 0)
+				if (get_ammo_clip(Weapon) <= 0 && get_bpammo(client, gCAmmo) <= 0)
 				{
 					ExecuteHam(Ham_Weapon_RetireWeapon, cs_get_user_weapon_entity(client));			
 					set_pev(Weapon, M32_THINK, fNow + 0.1);
@@ -441,19 +441,30 @@ public WeaponThink(Weapon)
 					set_ammo_clip(Weapon, get_ammo_clip(Weapon) - 1);
 				}
 
-				if (get_ammo_clip(Weapon) <= 0 && get_bpammo(client, gCAmmo))
+				if (get_bpammo(client, gCAmmo))
 				{
-					// NEXT THINK.
-					gWpnThinkStatus[client] = THINK_RELOAD_START;
-					// SHOOT ANIMATION IS 1.00 sec.
-					set_pev(Weapon, M32_THINK, fNow);
+					if (!get_ammo_clip(Weapon))					
+					{
+						// NEXT THINK.
+						gWpnThinkStatus[client] = THINK_RELOAD_START;
+						// SHOOT ANIMATION IS 1.00 sec.
+						set_pev(Weapon, M32_THINK, fNow);
+					}
+					else
+					{
+						// NEXT THINK.
+						gWpnThinkStatus[client] = THINK_IDLE;
+						// SHOOT ANIMATION IS 1.00 sec.
+						set_pev(Weapon, M32_THINK, fNow + 1.0);
+					}
 				}
-				else 
+				else
 				{
-					// NEXT THINK.
-					gWpnThinkStatus[client] = THINK_IDLE;
-					// SHOOT ANIMATION IS 1.00 sec.
-					set_pev(Weapon, M32_THINK, fNow + 1.0);
+					if (!get_ammo_clip(Weapon))					
+					{
+						ExecuteHam(Ham_Weapon_RetireWeapon, cs_get_user_weapon_entity(client));			
+						set_pev(Weapon, M32_THINK, fNow + 0.1);
+					}
 				}
 			}
 		}
@@ -462,14 +473,29 @@ public WeaponThink(Weapon)
 			// CHECK PREVIOUS STATUS.
 			if (fNow > fThink)
 			{
-				// PLAY RELOAD ANIMATION.
-				if (pev(client, pev_weaponanim) != SEQ_RELOAD_START)
-					UTIL_PlayWeaponAnimation(client, SEQ_RELOAD_START);
-
-				// NEXT THINK.
-				gWpnThinkStatus[client] = THINK_RELOAD_INSERT;
-				// RELOAD ANIMATION IS 0.73 sec.
-				set_pev(Weapon, M32_THINK, fNow + 0.73);
+				if (!get_bpammo(client, gCAmmo))
+				{
+					if (!get_ammo_clip(Weapon))
+					{
+						ExecuteHam(Ham_Weapon_RetireWeapon, cs_get_user_weapon_entity(client));			
+						set_pev(Weapon, M32_THINK, fNow + 0.1);
+						return HAM_IGNORED;
+					}
+					// NEXT THINK.
+					gWpnThinkStatus[client] = THINK_IDLE;
+					// SHOOT ANIMATION IS 1.00 sec.
+					set_pev(Weapon, M32_THINK, fNow);
+				}
+				else
+				{
+					// PLAY RELOAD ANIMATION.
+					if (pev(client, pev_weaponanim) != SEQ_RELOAD_START)
+						UTIL_PlayWeaponAnimation(client, SEQ_RELOAD_START);
+					// NEXT THINK.
+					gWpnThinkStatus[client] = THINK_RELOAD_INSERT;
+					// RELOAD ANIMATION IS 0.73 sec.
+					set_pev(Weapon, M32_THINK, fNow + 0.73);
+				}
 			}
 		}
 		case THINK_RELOAD_INSERT:
