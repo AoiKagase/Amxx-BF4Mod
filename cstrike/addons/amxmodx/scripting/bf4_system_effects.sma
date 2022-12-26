@@ -566,9 +566,13 @@ stock create_explosion_damage(const csx_wpnid, const iEnt, const iAttacker, cons
 					}
 				}
 			}
-			custom_weapon_dmg(csx_wpnid, iAttacker, rEnt, floatround(tmpDmg), 0);
-			// Damage Effect, Damage, Killing Logic.
-			ExecuteHamB(Ham_TakeDamage, rEnt, iEnt, iAttacker, tmpDmg, DMG_MORTAR);
+
+			if (floatround(tmpDmg) > 0)
+			{
+				custom_weapon_dmg(csx_wpnid, iAttacker, rEnt, floatround(tmpDmg), 0);
+				// Damage Effect, Damage, Killing Logic.
+				ExecuteHamB(Ham_TakeDamage, rEnt, iEnt, iAttacker, tmpDmg, DMG_MORTAR);
+			}
 		}
 	}
 	return;

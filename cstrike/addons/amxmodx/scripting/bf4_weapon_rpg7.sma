@@ -367,10 +367,6 @@ public Event_CurWeapon(id)
 	{
 		set_pdata_int(id, m_iHideHUD, get_pdata_int(id, m_iHideHUD) | (1<<6));
 	} 
-	else 
-	{
-		set_pdata_int(id, m_iHideHUD, get_pdata_int(id, m_iHideHUD) & ~(1<<6));
-	}
 	return PLUGIN_CONTINUE;
 }
 
