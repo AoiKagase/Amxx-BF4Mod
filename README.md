@@ -49,3 +49,18 @@ This is an attempt to recreate the BF4 game system in CS1.6.
 (For now. It will be independent later.)<br>
 https://forums.alliedmods.net/showthread.php?t=308540 <br>
 ※Please prepare the necessary sprite files on your own.
+
+# Credits
+AlliedModder Discord Members.
+* DarkDeviL
+* DarthMan
+* gabuch2
+* Goodbay
+* LeviN
+* LKING1543
+* N.O.V.A
+* Th3-822
+* thEsp
+* Windows user
+* wOOw
+* Zeky
