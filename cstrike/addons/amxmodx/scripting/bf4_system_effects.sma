@@ -490,16 +490,21 @@ stock create_explosion_damage(const csx_wpnid, const iEnt, const iAttacker, cons
 		{
 			// Entity is not a player or monster, ignore it
 			if (!(pev(rEnt, pev_flags) & (FL_CLIENT | FL_FAKECLIENT | FL_MONSTER)))
-				continue;
+			{
+				if (!equali(tClassName, "func_breakable"))
+					continue;
+			} else
+			{
+				// is alive?
+				if (!is_user_alive(rEnt))
+					continue;
+				
+				// friendly fire
+				if (!is_valid_takedamage(iAttacker, rEnt))
+					continue;
+			}
 		}
 
-		// is alive?
-		if (!is_user_alive(rEnt))
-			continue;
-		
-		// friendly fire
-		if (!is_valid_takedamage(iAttacker, rEnt))
-			continue;
 
 		// Reset data
 		kickBack = 1.0;
@@ -569,7 +574,8 @@ stock create_explosion_damage(const csx_wpnid, const iEnt, const iAttacker, cons
 
 			if (floatround(tmpDmg) > 0)
 			{
-				custom_weapon_dmg(csx_wpnid, iAttacker, rEnt, floatround(tmpDmg), 0);
+				if (is_user_alive(rEnt))
+					custom_weapon_dmg(csx_wpnid, iAttacker, rEnt, floatround(tmpDmg), 0);
 				// Damage Effect, Damage, Killing Logic.
 				ExecuteHamB(Ham_TakeDamage, rEnt, iEnt, iAttacker, tmpDmg, DMG_MORTAR);
 			}
