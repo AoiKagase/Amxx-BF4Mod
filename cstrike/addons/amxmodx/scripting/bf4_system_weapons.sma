@@ -350,9 +350,6 @@ new gStackUseWeapons[MAX_PLAYERS + 1][WPN_SLOT];
 new g_icon_c4[] = "c4";
 new g_icon_buyzone[] = "buyzone";
 
-// bomb should't be given so creation of the given classname will be superceded
-new g_weapon_c4[] = "weapon_c4"
-
 // icon modes
 #define ICON_NONE 		0
 #define ICON_NORMAL 	(1<<0)
@@ -374,33 +371,22 @@ public plugin_init()
 	RegisterHam(Ham_Weapon_PrimaryAttack, "weapon_ak47", 	"CustomPrimaryAttack");
 	RegisterHam(Ham_Weapon_PrimaryAttack, "weapon_awp", 	"CustomPrimaryAttack");
 	RegisterHam(Ham_Weapon_PrimaryAttack, "weapon_xm1014", 	"CustomPrimaryAttack");
-
+	
 	remove_entity_name( "func_bomb_target" );
 	remove_entity_name( "info_bomb_target" );
-
-//	register_forward(FM_CreateNamedEntity, "forward_create_named_entity");
 
 	register_message(get_user_msgid("DeathMsg"), 	"PlayerDeath");
 	register_message(get_user_msgid("TextMsg"), 	"Message_TextMsg") ;
 	register_message(get_user_msgid("StatusIcon"), 	"message_status_icon");
 }
 
-public forward_create_named_entity(int_class) 
-{
-	static class[16];
-	engfunc(EngFunc_SzFromIndex, int_class, class, 15);
-
-	if (equal(class, g_weapon_c4))
-	{
-		return FMRES_SUPERCEDE;
-	}
-
-	return FMRES_IGNORED;
-}
 public InvalidDrop(id)
 {
-	return PLUGIN_HANDLED;
+	if (!is_user_bot(id))
+		return PLUGIN_HANDLED;
+	return PLUGIN_CONTINUE;
 }
+
 RemoveFromBuyzone(id) 
 {
     // Define offsets to be used
