@@ -293,7 +293,7 @@ public OnWeaponIdle(const item)
 	static client;
 	client = get_member(item, m_pPlayer);
 
-	if (!SafetyCheck(client, 0, 1))
+	if (!SafetyCheck(client, item))
 		return HAM_IGNORED;
 
 	return HAM_SUPERCEDE;
@@ -623,7 +623,7 @@ BF4SpawnEntity(id)
 		// set class name.
 		set_pev(iEnt, pev_classname, 	ENT_CLASS_ROCKET);
 		// set take damage.
-		set_pev(iEnt, pev_takedamage, 	DAMAGE_YES);
+		set_pev(iEnt, pev_takedamage, 	DAMAGE_NO);
 		set_pev(iEnt, pev_sequence, 	0); // IDLE.
 		set_pev(iEnt, pev_dmg, 			30.0);
 		// set entity health.
@@ -664,7 +664,7 @@ BF4SpawnEntity(id)
 		set_pev(iEnt, M32_BOUNCED, 		0);
 		set_pev(iEnt, pev_friction, 	0.4);
 		set_pev(iEnt, pev_gravity, 		0.55);
-
+		// set_ent_data(iEnt, "CBreakable", "m_Material", 2);
 		emit_sound(iEnt, CHAN_ITEM, ENT_SOUNDS[SOUND_FIRE], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 
 		new iColor[3];
@@ -703,6 +703,7 @@ public BF4ObjectTouch(iEnt, iToucher)
 		if (iToucher == iOwner)
 			return HAM_IGNORED;
 	}
+
 
 	new const iColor[4] = {224,224,224,255};
 	BF4EffectExplosion(iEnt, M32_DAMAGE, M32_RADIUS, iColor, 30);

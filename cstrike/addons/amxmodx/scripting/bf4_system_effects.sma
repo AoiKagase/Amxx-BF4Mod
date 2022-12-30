@@ -576,8 +576,9 @@ stock create_explosion_damage(const csx_wpnid, const iEnt, const iAttacker, cons
 			{
 				if (is_user_alive(rEnt))
 					custom_weapon_dmg(csx_wpnid, iAttacker, rEnt, floatround(tmpDmg), 0);
-				// Damage Effect, Damage, Killing Logic.
-				ExecuteHamB(Ham_TakeDamage, rEnt, iEnt, iAttacker, tmpDmg, DMG_MORTAR);
+				if (iEnt != rEnt)
+					// Damage Effect, Damage, Killing Logic.
+					ExecuteHamB(Ham_TakeDamage, rEnt, iEnt, iAttacker, tmpDmg, DMG_MORTAR);
 			}
 		}
 	}
