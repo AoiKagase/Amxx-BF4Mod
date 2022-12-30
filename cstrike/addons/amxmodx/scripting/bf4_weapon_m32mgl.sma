@@ -737,7 +737,7 @@ public BF4ObjectThink(iEnt)
 	gametime = get_gametime();
 	pev(iEnt, M32_TIME, explode_time);
 
-	if (pev(iEnt, pev_flags) | FL_ONGROUND)
+	if (pev(iEnt, pev_flags) & FL_ONGROUND)
 	{
 		if (floatcmp(gametime, explode_time) < 0)
 		{
