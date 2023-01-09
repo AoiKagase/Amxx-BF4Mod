@@ -240,6 +240,7 @@ public message_VGUIMenu(iMsgid, iDest, id)
 	if(get_msg_arg_int(1) != VGUI_JOIN_TEAM_NUM)
 		return PLUGIN_CONTINUE;
 
+	client_print(id, print_chat, "[BF4 DEBUG] VGUIMENU=%d", get_msg_arg_int(1));
 	// set_task(0.1, "TaskJoin", id + 8731);
 	bf4_menu_select_team(id);
 	return PLUGIN_HANDLED;

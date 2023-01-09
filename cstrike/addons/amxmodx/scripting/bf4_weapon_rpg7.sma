@@ -31,7 +31,7 @@ static const PLUGIN_VERSION	[]			= "0.1";
 #define ITEM_TEAM  						pev_iuser2
 #define RPG7_THINK						pev_fuser1
 
-static const Float:RPG7_DAMAGE = 250.0;
+static const Float:RPG7_DAMAGE = 400.0;
 static const Float:RPG7_RADIUS = 250.0;
 
 enum _:E_SOUNDS
@@ -205,6 +205,7 @@ public plugin_init()
 	RegisterHam			(Ham_Item_PostFrame,		ENT_CLASS_C4,	"WeaponThink",	.Post = true);
 	RegisterHam			(Ham_Weapon_PrimaryAttack, 	ENT_CLASS_C4, 	"OnPrimaryAttackPre");
 	RegisterHam			(Ham_Weapon_PrimaryAttack, 	ENT_CLASS_C4, 	"OnPrimaryAttackPost",	.Post = true);
+	RegisterHam			(Ham_Weapon_WeaponIdle,		ENT_CLASS_C4,	"OnWeaponIdle",			.Post = true);
 /// =======================================================================================
 /// END Custom Weapon LAWS
 /// =======================================================================================
@@ -276,6 +277,20 @@ public OnAddToPlayerC4(const item, const player)
 	set_ammo_clip	(item, 1);
 
 	return PLUGIN_CONTINUE;
+}
+
+///
+/// C4 Logic Blocked.
+///
+public OnWeaponIdle(const item)
+{
+	static client;
+	client = get_member(item, m_pPlayer);
+
+	if (!SafetyCheck(client, item))
+		return HAM_IGNORED;
+
+	return HAM_SUPERCEDE;
 }
 
 ///

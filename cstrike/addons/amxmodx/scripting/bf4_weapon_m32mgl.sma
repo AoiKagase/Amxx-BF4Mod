@@ -32,7 +32,7 @@ static const PLUGIN_VERSION	[]			= "0.1";
 #define M32_ITEM_TEAM  					pev_iuser2
 #define M32_THINK						pev_fuser1
 #define M32_TIME						pev_fuser2
-static const Float:M32_DAMAGE = 100.0;
+static const Float:M32_DAMAGE = 300.0;
 static const Float:M32_RADIUS = 250.0;
 static const Float:M32_EXPTIME= 2.0;
 
