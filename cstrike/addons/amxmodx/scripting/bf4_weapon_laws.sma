@@ -186,6 +186,7 @@ public plugin_init()
 	RegisterHam			(Ham_Item_PostFrame,		ENT_CLASS_C4,	"WeaponThink",	.Post = true);
 	RegisterHam			(Ham_Weapon_PrimaryAttack, 	ENT_CLASS_C4, 	"OnPrimaryAttackPre");
 	RegisterHam			(Ham_Weapon_PrimaryAttack, 	ENT_CLASS_C4, 	"OnPrimaryAttackPost",	.Post = true);
+	RegisterHam			(Ham_Weapon_WeaponIdle,		ENT_CLASS_C4,	"OnWeaponIdle",			.Post = true);
 /// =======================================================================================
 /// END Custom Weapon LAWS
 /// =======================================================================================
@@ -254,7 +255,19 @@ public OnAddToPlayerC4(const item, const player)
 
 	return PLUGIN_CONTINUE;
 }
+///
+/// C4 Logic Blocked.
+///
+public OnWeaponIdle(const item)
+{
+	static client;
+	client = get_member(item, m_pPlayer);
 
+	if (!SafetyCheck(client, item))
+		return HAM_IGNORED;
+
+	return HAM_SUPERCEDE;
+}
 ///
 /// Select Weapon.
 ///
