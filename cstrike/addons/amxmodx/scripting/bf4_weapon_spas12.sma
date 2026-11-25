@@ -84,7 +84,7 @@ public plugin_precache()
 	PrecacheWeaponModelSounds	(Weapon);
 	PrecacheWeaponListSprites	(Weapon);
 
-	gWpnIdx = BF4RegisterWeapon(BF4_TEAM_BOTH,
+	gWpnIdx = BF4RegisterWeaponV2("weapon:spas12", BF4_TEAM_BOTH,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_ENGINEER, 
 		BF4_WEAPONCLASS_SHOTGUNS,
 		Weapon,

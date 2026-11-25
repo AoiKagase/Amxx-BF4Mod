@@ -1,0 +1,29 @@
+{
+  "amxx": {
+    "version": "1.10.3-A.K",
+    "source_commit": "de6811e4e9c6c8ba86f765dae8ab0c31b90b874a",
+    "compiler_sha256": "2159ecfb29171f95fccb3cdd70d4dc8033c58aabba940809020c3637f1223506",
+    "note": "Local custom AMX Mod X build; upstream stock APIs are not an interchangeable baseline."
+  },
+  "cswm": {
+    "local_source_commit": "98cb86106cfc7b540f30a84cb7e3c0b2ffa414a2",
+    "shipped_include_sha256": "8ac5ff7f64a830c4f254674a27b6ca1c5a347ca58fcef32fa0bc9d32e073d6f8"
+  },
+  "archives": [
+    {
+      "name": "reapi",
+      "repository": "rehlds/ReAPI",
+      "commit": "4516d1efdfd8a686a66c191c441981b720b0a7c5",
+      "sha256": "0d26dc8c476e2935b3bce77879aef394fe7f8d8efe3114ef627840f66efc0933",
+      "folder": "ReAPI-4516d1efdfd8a686a66c191c441981b720b0a7c5"
+    },
+    {
+      "name": "crxranks",
+      "repository": "OciXCrom/RankSystem",
+      "commit": "70f9f37c1073d8b367cc014c65483b83baebec50",
+      "sha256": "66a7c6920302081d13a812d46c0c7c9fcc40ba972b337ecf7b8ba3be88441c44",
+      "folder": "RankSystem-70f9f37c1073d8b367cc014c65483b83baebec50",
+      "note": "Migration reference only; no runtime dependency."
+    }
+  ]
+}

@@ -43,12 +43,30 @@ This is an attempt to recreate the BF4 game system in CS1.6.
     - (CT)LAWS / (T) RPG-7
     - Claymore
 
-## [W.I.P] Capture the Area System
+## Capture Area System
+
+* Independent Domination and Conquest rules: capture/neutralize points, ticket bleed, safe redeployment and rank events.
+* Configure the mode and real per-map layouts before enabling. CS Flags and the old Conquest prototype must remain disabled.
+* Offline verification does not establish live-server gameplay. See [モード設定・導入・受入](docs/OBJECTIVE_MODES.md).
 ## Rank System
-* This is an add-on to "OciXCrom's Rank System". <br>
-(For now. It will be independent later.)<br>
-https://forums.alliedmods.net/showthread.php?t=308540 <br>
-※Please prepare the necessary sprite files on your own.
+* XP, ranks, ribbons and medals are managed by the standalone BF4 progression plugin.
+* ReAPI and CSWM remain required; OciXCrom's Rank System is a legacy migration source, not a runtime dependency.
+* Preserve `RankSystem.ini` rank thresholds and reward values when migrating. Disable the old XP plugin before enabling the new writer.
+* Missing award sprites fall back to text/audio. Weapon and map assets must still be installed on the server.
+
+## 開発・移行
+
+* [固定環境でのビルド・テスト](docs/BUILD.md)
+* [旧XP・実績データの移行](docs/MIGRATION.md)
+* [再設計と検証記録](docs/REDESIGN.md)
+* [検証結果と未実施の受入](docs/VERIFICATION.md)
+
+```powershell
+rtk proxy python tools/prepare_dependencies.py
+rtk proxy python tools/build_plugins.py
+```
+
+本番サーバーへの配置・停止・データ切替は自動実行しません。まず検証環境で移行前後の値とゲーム内動作を確認してください。
 
 # Credits
 AlliedModder Discord Members.

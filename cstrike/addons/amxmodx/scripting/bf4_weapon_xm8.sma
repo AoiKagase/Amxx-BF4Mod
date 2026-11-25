@@ -76,7 +76,7 @@ public plugin_precache()
 	PrecacheWeaponListSprites	(Weapon);
 	RegisterWeaponForward		(Weapon, WForward_PrimaryAttackPost, "SecondaryAttackPost");
 
-	BF4RegisterWeapon(BF4_TEAM_RU, 
+	BF4RegisterWeaponV2("weapon:xm8", BF4_TEAM_RU,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT, 
 		BF4_WEAPONCLASS_ASSAULTS, 
 		Weapon,

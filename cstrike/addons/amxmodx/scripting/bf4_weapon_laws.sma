@@ -152,7 +152,7 @@ public plugin_precache()
 	for (new i = 0; i < E_SPRITES_MDL; i++) 
 		gSprites[i] = precache_model(ENT_SPRITES_MDL[i]);
 
-	gWpnSystemId = BF4RegisterWeapon(BF4_TEAM_BOTH, 
+	gWpnSystemId = BF4RegisterWeaponV2("weapon:laws", BF4_TEAM_BOTH,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ENGINEER, 
 		BF4_WEAPONCLASS_EQUIP, 
 		-1,

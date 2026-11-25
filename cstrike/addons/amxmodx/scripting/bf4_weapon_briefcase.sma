@@ -11,6 +11,7 @@
 #include <bf4weapons>
 #include <reapi>
 #include <cswm>
+#include <bf4/session_tasks>
 
 //=====================================
 //  VERSION CHECK
@@ -135,7 +136,7 @@ public plugin_precache()
 	precache_generic("sprites/bf4_ranks/weapons/czr_640hud21.spr");
 	precache_generic("sprites/bf4_ranks/weapons/czr_640hud7.spr");
 
-	gWpnSystemId = BF4RegisterWeapon(BF4_TEAM_BOTH, 
+	gWpnSystemId = BF4RegisterWeaponV2("weapon:briefcase", BF4_TEAM_BOTH,
 		BF4_CLASS_REQUIRE | BF4_CLASS_SUPPORT, 
 		BF4_WEAPONCLASS_MELEE, 
 		-1,
@@ -239,6 +240,7 @@ public weapon_change(id)
 
 public PlayerSpawn(id)
 {
+	remove_task(TASK_DROP + id);
 	if (pev_valid(gObjectItem[id]))
 	{
 		new flags;
@@ -324,9 +326,10 @@ public OnPrimaryAttackPost(Weapon)
 	return HAM_IGNORED;
 }
 
-public DropBox(taskid)
+public DropBox(const session[], taskid)
 {
 	new client = taskid - TASK_DROP;
+	if (!BF4TaskAccept(client, session, taskid) || !is_user_alive(client)) return;
 	BF4SpawnEntity(client);
 	UTIL_PlayWeaponAnimation(client, SEQ_HOLSTER);
 }
@@ -532,7 +535,7 @@ public PlayerCmdStart(id, handle, random_seed)
 			remove_task(TASK_DROP + id);
 
 		UTIL_PlayWeaponAnimation(id, SEQ_USE);
-		set_task(5.8, "DropBox", id + TASK_DROP);
+		BF4ScheduleTask(5.8, "DropBox", id, id + TASK_DROP);
 		set_member(id, m_flNextAttack, 10.0);
 		return FMRES_IGNORED;
 
@@ -553,11 +556,26 @@ public PlayerCmdStart(id, handle, random_seed)
 
 public client_putinserver(id)
 {
+	BF4TaskReset(id);
+	remove_task(TASK_DROP + id);
+	gObjectItem[id] = 0;
 }
 
 public client_disconnected(id)
 {
+	BF4TaskReset(id);
+	remove_task(TASK_DROP + id);
 	remove_target_entity_by_owner(id, ENT_CLASS_AMMOBOX);
+	gObjectItem[id] = 0;
+}
+
+public plugin_end()
+{
+	for (new id = 1; id <= MAX_PLAYERS; id++)
+	{
+		remove_task(TASK_DROP + id);
+		remove_target_entity_by_owner(id, ENT_CLASS_AMMOBOX);
+	}
 }
 
 stock remove_target_entity_by_owner(id, const className[])

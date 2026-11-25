@@ -169,3 +169,17 @@ native BF4SelectWeaponMenu	(const id);
 native BF4_WEAPONCLASS:BF4WeaponNameToClass(const id, const weaponname[]);
 native BF4GiveWeaponClip	(const id);
 
+// V2 uses a persistent, explicit key (e.g. weapon:claymore), independent of
+// dynamic handles and engine ITEM names. Multiple weapons may share knife/c4.
+// Registration returns an ephemeral handle, or -1 for invalid/duplicate keys.
+// Legacy BF4RegisterWeapon remains compatible; its derived key is
+// custom:<engine-item>:<display-name>. Classic keys use classic:<engine-item>.
+native BF4WeaponsAPIVersion();
+native BF4RegisterWeaponV2(const key[], const BF4_TEAM:team, const BF4_CLASS:has_class,
+	const BF4_WEAPONCLASS:wpn_class, const CSWM_id, const name[], const item[],
+	const AMMO_id, const ammoname[], const clipammo = 0, const maxammo = 0);
+native BF4WeaponKeyToHandleV2(const key[]);
+// Direct bullet death attribution captured before damage; independent of
+// DeathMsg icon aliases. NONE for stale, projectile, or untracked damage.
+native BF4_WEAPONCLASS:BF4WeaponDeathClassV2(attacker, victim);
+

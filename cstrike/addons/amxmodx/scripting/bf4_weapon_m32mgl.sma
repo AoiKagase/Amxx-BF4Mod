@@ -176,7 +176,7 @@ public plugin_precache()
 
 	gCAmmo = CreateAmmo(1000, 1, 18);
 	SetAmmoName(gCAmmo, "40x46mm Grenade");
-	gWpnSystemId = BF4RegisterWeapon(BF4_TEAM_BOTH, 
+	gWpnSystemId = BF4RegisterWeaponV2("weapon:m32mgl", BF4_TEAM_BOTH,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_RECON, 
 		BF4_WEAPONCLASS_EQUIP, 
 		-1,

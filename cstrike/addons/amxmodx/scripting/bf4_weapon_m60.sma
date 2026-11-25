@@ -72,7 +72,7 @@ public plugin_precache()
 	PrecacheWeaponModelSounds	(Weapon);
 	PrecacheWeaponListSprites	(Weapon);
 
-	BF4RegisterWeapon(BF4_TEAM_BOTH, 
+	BF4RegisterWeaponV2("weapon:m60", BF4_TEAM_BOTH,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_SUPPORT, 
 		BF4_WEAPONCLASS_LMGS,
 		Weapon,

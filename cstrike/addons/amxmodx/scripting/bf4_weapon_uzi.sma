@@ -75,7 +75,7 @@ public plugin_precache()
 	PrecacheWeaponModelSounds	(Weapon);
 	PrecacheWeaponListSprites	(Weapon);
 
-	BF4RegisterWeapon(BF4_TEAM_RU, 
+	BF4RegisterWeaponV2("weapon:uzi", BF4_TEAM_RU,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_ENGINEER, 
 		BF4_WEAPONCLASS_SMGS, 
 		Weapon,

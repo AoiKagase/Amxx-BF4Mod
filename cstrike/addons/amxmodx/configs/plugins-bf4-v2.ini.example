@@ -1,0 +1,52 @@
+; Example only: review dependencies and disable the old XP plugin before deployment.
+; Registry must precache before weapon registration.
+; Required modules: ReAPI 5.29+, CSWM, customentdata, SQLX/nVault.
+bf4_system_precache.amxx
+bf4_system_class.amxx
+bf4_system_effects.amxx
+bf4_system_weapons.amxx
+bf4_ranksystem.amxx
+; Independent domination/conquest. Configure mode and per-map layout before enabling.
+; Keep csflags.amxx and bf4_game_conquest.amxx disabled.
+bf4_game_objectives.amxx
+bf4_weapon_akm.amxx
+bf4_weapon_an94.amxx
+bf4_weapon_automag5.amxx
+bf4_weapon_briefcase.amxx
+bf4_weapon_cheytac_m200.amxx
+bf4_weapon_claymore.amxx
+bf4_weapon_defibrillator.amxx
+bf4_weapon_fnc.amxx
+bf4_weapon_fnp45.amxx
+bf4_weapon_g11.amxx
+bf4_weapon_hk121.amxx
+bf4_weapon_hk23.amxx
+bf4_weapon_hk416.amxx
+bf4_weapon_kriss.amxx
+bf4_weapon_l85a2.amxx
+bf4_weapon_laws.amxx
+bf4_weapon_m14ebr.amxx
+bf4_weapon_m16a1.amxx
+bf4_weapon_m1911a1.amxx
+bf4_weapon_m32mgl.amxx
+bf4_weapon_m60.amxx
+bf4_weapon_m95.amxx
+bf4_weapon_mg3.amxx
+bf4_weapon_mk48.amxx
+bf4_weapon_mp7a1.amxx
+bf4_weapon_pgm.amxx
+bf4_weapon_pkm.amxx
+bf4_weapon_psg1.amxx
+bf4_weapon_python.amxx
+bf4_weapon_qbz95b.amxx
+bf4_weapon_r93.amxx
+bf4_weapon_rpg7.amxx
+bf4_weapon_scar.amxx
+bf4_weapon_sl8.amxx
+bf4_weapon_spas12.amxx
+bf4_weapon_svd.amxx
+bf4_weapon_usas12.amxx
+bf4_weapon_uts15.amxx
+bf4_weapon_uzi.amxx
+bf4_weapon_wa2000.amxx
+bf4_weapon_xm8.amxx

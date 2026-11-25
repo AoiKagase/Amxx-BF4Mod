@@ -1,0 +1,18 @@
+; Copy to <map>.ini and replace coordinates using bf4_objective_origin in-game.
+; No fabricated coordinates are supplied. All numbers must be integers.
+;
+; point <A..G> <x> <y> <z> <radius 1..1024>
+; spawn <T|CT|BOTH> <base|A..G> <x> <y> <z> <yaw -360..360>
+;
+; Domination requires exactly 3 points. Conquest supports 1..7 points.
+; Existing map player starts are added automatically as base spawns.
+; Domination uses both teams' map starts; Conquest keeps their team assignment.
+; Conquest point spawn origins must be within the corresponding point radius.
+; Measure a standing player's center, NOT floor height. Use safe, level surfaces.
+; Duplicate point IDs, missing references and malformed rows reject the entire layout.
+;
+; Example grammar only (replace every placeholder; do not uncomment as-is):
+; point A <x> <y> <z> 160
+; point B <x> <y> <z> 160
+; point C <x> <y> <z> 160
+; spawn BOTH A <x> <y> <z> 90

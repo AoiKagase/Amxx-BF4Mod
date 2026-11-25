@@ -171,7 +171,7 @@ public plugin_precache()
 
 	gCAmmo = CreateAmmo(1000, 1, 5);
 	SetAmmoName(gCAmmo, "Anti-Tank Rocket");
-	gWpnSystemId = BF4RegisterWeapon(BF4_TEAM_BOTH, 
+	gWpnSystemId = BF4RegisterWeaponV2("weapon:rpg7", BF4_TEAM_BOTH,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ENGINEER, 
 		BF4_WEAPONCLASS_EQUIP, 
 		-1,

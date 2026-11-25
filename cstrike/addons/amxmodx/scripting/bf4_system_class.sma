@@ -8,6 +8,7 @@
 #include <bf4weapons>
 #include <hamsandwich>
 #include <reapi>
+#include <bf4/core_rules>
 
 #define XO_PLAYER           		5
 //#define m_iPlayerTeam          	114
@@ -16,43 +17,105 @@
 //#define m_iMenu             		205
 
 // Old Style Menus
-new const FIRST_JOIN_MSG  		[] = "#Team_Select";
-new const FIRST_JOIN_MSG_SPEC	[] = "#Team_Select_Spect";
-new const INGAME_JOIN_MSG 		[] = "#IG_Team_Select";
-new const INGAME_JOIN_MSG_SPEC	[] = "#IG_Team_Select_Spect";
+new const FIRST_JOIN_MSG[] = "#Team_Select";
+new const FIRST_JOIN_MSG_SPEC[] = "#Team_Select_Spect";
+new const INGAME_JOIN_MSG[] = "#IG_Team_Select";
+new const INGAME_JOIN_MSG_SPEC[] = "#IG_Team_Select_Spect";
 
 // New VGUI Menus
 new const VGUI_JOIN_TEAM_NUM = 2;
 
 // Plugin Info.
-new const PLUGIN_NAME			[]	= "[BF4] Class System";
-new const PLUGIN_VERSION		[]	= "0.01";
-new const PLUGIN_AUTHOR			[]	= "Aoi.Kagase";
-new const PLUGIN_URL			[]	= "github.com/AoiKagase";
-new const PLUGIN_DESC			[]	= "BattleField 4 Mod: Class System.";
+new const PLUGIN_NAME[] = "[BF4] Class System";
+new const PLUGIN_VERSION[] = "0.01";
+new const PLUGIN_AUTHOR[] = "Aoi.Kagase";
+new const PLUGIN_URL[] = "github.com/AoiKagase";
+new const PLUGIN_DESC[] = "BattleField 4 Mod: Class System.";
 
-new BF4_CLASS:gSelectClass		[MAX_PLAYERS + 1];
-new BF4_CLASS:gReserveClass	[MAX_PLAYERS + 1];
-new BF4_TEAM:gSelectTeam		[MAX_PLAYERS + 1];
-new BF4_TEAM:gReserveTeam	[MAX_PLAYERS + 1];
-new gJoined						[MAX_PLAYERS + 1];
+new BF4_CLASS:gSelectClass[MAX_PLAYERS + 1];
+new BF4_CLASS:gReserveClass[MAX_PLAYERS + 1];
+new BF4_TEAM:gSelectTeam[MAX_PLAYERS + 1];
+new BF4_TEAM:gReserveTeam[MAX_PLAYERS + 1];
+new gJoined[MAX_PLAYERS + 1];
 new fwdTeamChange;
 new fwdClassChange;
+new gSession[MAX_PLAYERS + 1];
+new gTeamMenu[MAX_PLAYERS + 1];
+new bool:gTeamMenuOwned[MAX_PLAYERS + 1];
+new gClassMenu[MAX_PLAYERS + 1];
+new bool:gClassMenuOwned[MAX_PLAYERS + 1];
+new gMenuSession[MAX_PLAYERS + 1];
+
+bool:ValidClient(id)
+{
+	return CoreClientSlot(id) && is_user_connected(id);
+}
+
+ResetClient(id)
+{
+	CloseClassMenus(id);
+	gSession[id] = CoreNextSession(gSession[id]);
+	gJoined[id] = 0;
+	gReserveClass[id] = gSelectClass[id] = BF4_CLASS_NONE;
+	gReserveTeam[id] = gSelectTeam[id] = BF4_TEAM_NONE;
+	gTeamMenu[id] = gClassMenu[id] = 0;
+	gMenuSession[id] = 0;
+}
+
+CloseClassMenus(id)
+{
+	if (!CoreClientSlot(id))
+		return;
+	if (gTeamMenuOwned[id])
+	{
+		new menu = gTeamMenu[id];
+		gTeamMenuOwned[id] = false;
+		gTeamMenu[id] = 0;
+		menu_destroy(menu);
+	}
+	if (gClassMenuOwned[id])
+	{
+		new menu = gClassMenu[id];
+		gClassMenuOwned[id] = false;
+		gClassMenu[id] = 0;
+		menu_destroy(menu);
+	}
+}
+
+public plugin_end()
+{
+	for (new id = 1; id <= MAX_PLAYERS; id++)
+		CloseClassMenus(id);
+	DestroyForward(fwdTeamChange);
+	DestroyForward(fwdClassChange);
+}
+
+public _bf4_api_version(iPlugin, iParams)
+{
+	return 2;
+}
+public _bf4_get_session(iPlugin, iParams)
+{
+	if (iParams < 1)
+		return 0;
+	new id = get_param(1);
+	return ValidClient(id) ? gSession[id] : 0;
+}
 
 // =====================================================================
 // Plugin Initialize.
 // =====================================================================
 public plugin_init()
 {
-	register_plugin	(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR, PLUGIN_URL, PLUGIN_DESC);
+	register_plugin(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR, PLUGIN_URL, PLUGIN_DESC);
 
 	RegisterHamPlayer(Ham_Spawn, "PlayerSpawnPre", false);
 
 	register_message(get_user_msgid("ShowMenu"), "message_ShowMenu");
 	register_message(get_user_msgid("VGUIMenu"), "message_VGUIMenu");
 
-    register_clcmd( "chooseteam","bf4_menu_select_team" );
-	register_clcmd( "/bf4class", "bf4_menu_select_class");
+	register_clcmd("chooseteam", "bf4_menu_select_team");
+	register_clcmd("/bf4class", "bf4_menu_select_class");
 
 	plugin_forward();
 }
@@ -63,9 +126,11 @@ public plugin_init()
 public plugin_natives()
 {
 	register_library("bf4_classes_natives");
-	register_native("BF4GetUserClass", 	"_bf4_get_user_class");
-	register_native("BF4GetUserTeam", 	"_bf4_get_user_team");
+	register_native("BF4GetUserClass", "_bf4_get_user_class");
+	register_native("BF4GetUserTeam", "_bf4_get_user_team");
 	register_native("BF4FirstJoinTeam", "_bf4_first_jointeam");
+	register_native("BF4ClassesAPIVersion", "_bf4_api_version");
+	register_native("BF4GetSessionV2", "_bf4_get_session");
 }
 
 // =====================================================================
@@ -73,29 +138,33 @@ public plugin_natives()
 // =====================================================================
 public plugin_forward()
 {
-	fwdTeamChange  = CreateMultiForward("BF4ForwardTeamChanged", 	ET_IGNORE, FP_CELL);
-	fwdClassChange = CreateMultiForward("BF4ForwardClassChanged", 	ET_IGNORE, FP_CELL);
+	fwdTeamChange = CreateMultiForward("BF4ForwardTeamChanged", ET_IGNORE, FP_CELL);
+	fwdClassChange = CreateMultiForward("BF4ForwardClassChanged", ET_IGNORE, FP_CELL);
 }
 
 // =====================================================================
 // Native Functions.
-// 
-// The game initialization process is required when first joining, 
+//
+// The game initialization process is required when first joining,
 // but is not executed because the team selection screen is blocked.
 // Initialization is forced by rg_join_team.
 //
-// Note that this will be made available to the outside world, 
-// not only by class decisions, but also by other menus, 
+// Note that this will be made available to the outside world,
+// not only by class decisions, but also by other menus,
 // as the timing will change depending on other menus.
 // In this case, it is executed by the decision of the weapon menu.
 // =====================================================================
 public bool:_bf4_first_jointeam(iPlugins, iParams)
 {
+	if (iParams < 1)
+		return false;
 	new id = get_param(1);
+	if (!ValidClient(id) || !CoreTeamValid(gReserveTeam[id]) || !CoreClassValid(gReserveClass[id]))
+		return false;
 	// First Join?
 	if (!gJoined[id])
 	{
-		// When m_iJoiningState becomes GETINTOGAME, 
+		// When m_iJoiningState becomes GETINTOGAME,
 		// it is changed to JOINED by the game system and spawns automatically.
 		// set_member(id, m_iJoiningState, GETINTOGAME);
 		// The `rg_join_team` does it.
@@ -116,8 +185,12 @@ public bool:_bf4_first_jointeam(iPlugins, iParams)
 // =====================================================================
 public BF4_CLASS:_bf4_get_user_class(iPlugin, iParams)
 {
+	if (iParams < 1)
+		return BF4_CLASS_NONE;
 	new id = get_param(1);
-	new reserve = get_param(2);
+	if (!ValidClient(id))
+		return BF4_CLASS_NONE;
+	new reserve = iParams >= 2 ? get_param(2) : 0;
 	if (reserve)
 		return gReserveClass[id];
 	else
@@ -130,10 +203,14 @@ public BF4_CLASS:_bf4_get_user_class(iPlugin, iParams)
 // Gets the current team.
 // The second argument is used to obtain the team being reserved.
 // =====================================================================
-public BF4_TEAM:_bf4_get_user_team(id)
+public BF4_TEAM:_bf4_get_user_team(iPlugin, iParams)
 {
+	if (iParams < 1)
+		return BF4_TEAM_NONE;
 	new id = get_param(1);
-	new reserve = get_param(2);
+	if (!ValidClient(id))
+		return BF4_TEAM_NONE;
+	new reserve = iParams >= 2 ? get_param(2) : 0;
 	if (reserve)
 		return gReserveTeam[id];
 	else
@@ -145,26 +222,32 @@ public BF4_TEAM:_bf4_get_user_team(id)
 // =====================================================================
 public PlayerSpawnPre(id)
 {
-	// If there is a change of team or class during the course of the battle, 
+	if (!ValidClient(id) || !CoreTeamValid(gReserveTeam[id]) || !CoreClassValid(gReserveClass[id]))
+		return;
+	// If there is a change of team or class during the course of the battle,
 	// the team shall be changed before respawning.
 	if ((gSelectTeam[id] != gReserveTeam[id]) || (gSelectClass[id] != gReserveClass[id]))
 	{
 		// Apply reserved team information.
-		gSelectTeam[id]		= gReserveTeam[id];
-		gSelectClass[id]	= gReserveClass[id];
+		gSelectTeam[id] = gReserveTeam[id];
+		gSelectClass[id] = gReserveClass[id];
 
 		// Team and Class Change.
-		switch(gSelectClass[id])
+		switch (gSelectClass[id])
 		{
 			case BF4_CLASS_ASSAULT:
-				(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_TERROR) 	: cs_set_user_team(id, CS_TEAM_CT, CS_CT_URBAN);
+				(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_TERROR)
+												 : cs_set_user_team(id, CS_TEAM_CT, CS_CT_URBAN);
 			case BF4_CLASS_RECON:
-				(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_LEET) 		: cs_set_user_team(id, CS_TEAM_CT, CS_CT_GSG9);
+				(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_LEET)
+												 : cs_set_user_team(id, CS_TEAM_CT, CS_CT_GSG9);
 			case BF4_CLASS_SUPPORT:
-				(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_ARCTIC) 	: cs_set_user_team(id, CS_TEAM_CT, CS_CT_GIGN);
+				(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_ARCTIC)
+												 : cs_set_user_team(id, CS_TEAM_CT, CS_CT_GIGN);
 			case BF4_CLASS_ENGINEER:
-				(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_GUERILLA) 	: cs_set_user_team(id, CS_TEAM_CT, CS_CT_SAS);
-		}	
+				(gSelectTeam[id] == BF4_TEAM_RU) ? cs_set_user_team(id, CS_TEAM_T, CS_T_GUERILLA)
+												 : cs_set_user_team(id, CS_TEAM_CT, CS_CT_SAS);
+		}
 	}
 }
 
@@ -173,15 +256,18 @@ public PlayerSpawnPre(id)
 // =====================================================================
 public client_putinserver(id)
 {
-	gJoined[id] 		= 0;
-	gReserveClass[id] 	= gSelectClass[id] 	= BF4_CLASS_NONE;
-	gReserveTeam[id] 	= gSelectTeam[id] 	= BF4_TEAM_NONE;
+	ResetClient(id);
 
 	if (is_user_bot(id))
 	{
 		gReserveTeam[id] = BF4_TEAM:random_num(_:BF4_TEAM_RU, _:BF4_TEAM_US);
-		gReserveClass[id] = BF4_CLASS:random_num(_:BF4_CLASS_ASSAULT, _:BF4_CLASS_ENGINEER);
-	}	
+		gReserveClass[id] = BF4_CLASS:(1 << random_num(0, 3));
+	}
+}
+
+public client_disconnected(id)
+{
+	ResetClient(id);
 }
 
 // =====================================================================
@@ -193,16 +279,13 @@ public message_ShowMenu(iMsgid, iDest, id)
 	static sMenuCode[sizeof(INGAME_JOIN_MSG_SPEC)];
 	get_msg_arg_string(4, sMenuCode, charsmax(sMenuCode));
 
-	if(equal(sMenuCode, FIRST_JOIN_MSG) 
-	|| equal(sMenuCode, FIRST_JOIN_MSG_SPEC))
+	if (equal(sMenuCode, FIRST_JOIN_MSG) || equal(sMenuCode, FIRST_JOIN_MSG_SPEC))
 	{
 		// Open Menu: team select.
 		bf4_menu_select_team(id);
 		return PLUGIN_HANDLED;
 	}
-	else
-	if(equal(sMenuCode, INGAME_JOIN_MSG) 
-	|| equal(sMenuCode, INGAME_JOIN_MSG_SPEC))
+	else if (equal(sMenuCode, INGAME_JOIN_MSG) || equal(sMenuCode, INGAME_JOIN_MSG_SPEC))
 	{
 		// Open Menu: team select.
 		bf4_menu_select_team(id);
@@ -237,7 +320,7 @@ public message_ShowMenu(iMsgid, iDest, id)
 // =====================================================================
 public message_VGUIMenu(iMsgid, iDest, id)
 {
-	if(get_msg_arg_int(1) != VGUI_JOIN_TEAM_NUM)
+	if (get_msg_arg_int(1) != VGUI_JOIN_TEAM_NUM)
 		return PLUGIN_CONTINUE;
 
 	client_print(id, print_chat, "[BF4 DEBUG] VGUIMENU=%d", get_msg_arg_int(1));
@@ -252,7 +335,7 @@ public message_VGUIMenu(iMsgid, iDest, id)
 public bf4_menu_select_team(id)
 {
 	// Invalid Not connected.
-	if (!is_user_connected(id))
+	if (!ValidClient(id))
 		return PLUGIN_HANDLED;
 
 	// Invalid bots.
@@ -260,10 +343,14 @@ public bf4_menu_select_team(id)
 		return PLUGIN_HANDLED;
 
 	// Menu create.
+	CloseClassMenus(id);
 	new menu = menu_create("\r[BF4] \ySelect team:", "bf4_menu_select_team_handler");
+	gTeamMenu[id] = menu;
+	gTeamMenuOwned[id] = true;
+	gMenuSession[id] = gSession[id];
 
-	menu_additem(menu,  "(TR) RU / CH");
-	menu_additem(menu,  "(CT) US");
+	menu_additem(menu, "(TR) RU / CH");
+	menu_additem(menu, "(CT) US");
 
 	// Not on a team (first time joining) cannot be cancelled.
 	if (!gSelectTeam[id])
@@ -279,8 +366,17 @@ public bf4_menu_select_team(id)
 // =====================================================================
 public bf4_menu_select_team_handler(id, menu, item)
 {
-	new BF4_TEAM:team = gSelectTeam[id];
-	switch(item)
+	if (!CoreClientSlot(id) || !gTeamMenuOwned[id] || gTeamMenu[id] != menu)
+		return PLUGIN_HANDLED;
+	if (!ValidClient(id) || !CoreOwnedMenu(gTeamMenuOwned[id], gTeamMenu[id], menu, gMenuSession[id], gSession[id]) ||
+		!CoreMenuItem(item, 2))
+	{
+		CloseClassMenus(id);
+		return PLUGIN_HANDLED;
+	}
+	CloseClassMenus(id);
+	new BF4_TEAM:team = gReserveTeam[id];
+	switch (item)
 	{
 		case 0:
 			gReserveTeam[id] = BF4_TEAM_RU;
@@ -296,7 +392,8 @@ public bf4_menu_select_team_handler(id, menu, item)
 
 	// Open class menu.
 	bf4_menu_select_class(id);
-    menu_destroy(menu);
+
+	return PLUGIN_HANDLED;
 }
 
 // ====================================================================
@@ -304,18 +401,22 @@ public bf4_menu_select_team_handler(id, menu, item)
 // =====================================================================
 public bf4_menu_select_class(id)
 {
-	if (!is_user_connected(id))
+	if (!ValidClient(id))
 		return PLUGIN_HANDLED;
 
 	if (is_user_bot(id))
 		return PLUGIN_HANDLED;
 
+	CloseClassMenus(id);
 	new menu = menu_create("\r[BF4] \ySelect class:", "bf4_menu_select_class_handler");
+	gClassMenu[id] = menu;
+	gClassMenuOwned[id] = true;
+	gMenuSession[id] = gSession[id];
 
-	menu_additem(menu,  "Assault");
-	menu_additem(menu,  "Recon");
-	menu_additem(menu,  "Support");
-	menu_additem(menu,  "Engineer");
+	menu_additem(menu, "Assault");
+	menu_additem(menu, "Recon");
+	menu_additem(menu, "Support");
+	menu_additem(menu, "Engineer");
 
 	// NOT EXIT.
 	// Not on a class (first time joining) cannot be cancelled.
@@ -332,7 +433,16 @@ public bf4_menu_select_class(id)
 // =====================================================================
 public bf4_menu_select_class_handler(id, menu, item)
 {
-	new BF4_CLASS:team = gSelectClass[id];
+	if (!CoreClientSlot(id) || !gClassMenuOwned[id] || gClassMenu[id] != menu)
+		return PLUGIN_HANDLED;
+	if (!ValidClient(id) || !CoreOwnedMenu(gClassMenuOwned[id], gClassMenu[id], menu, gMenuSession[id], gSession[id]) ||
+		!CoreMenuItem(item, 4))
+	{
+		CloseClassMenus(id);
+		return PLUGIN_HANDLED;
+	}
+	CloseClassMenus(id);
+	new BF4_CLASS:team = gReserveClass[id];
 
 	// Bit calculation.
 	gReserveClass[id] = BF4_CLASS:(1 << item);
@@ -343,9 +453,8 @@ public bf4_menu_select_class_handler(id, menu, item)
 
 		// Open weapon menu.
 		BF4SelectWeaponMenu(id);
-		menu_destroy(menu);
 
-		return;
+		return PLUGIN_HANDLED;
 	}
 
 	if (team != gReserveClass[id])
@@ -357,5 +466,6 @@ public bf4_menu_select_class_handler(id, menu, item)
 
 	// Open weapon menu.
 	BF4SelectWeaponMenu(id);
-    menu_destroy(menu);
+
+	return PLUGIN_HANDLED;
 }

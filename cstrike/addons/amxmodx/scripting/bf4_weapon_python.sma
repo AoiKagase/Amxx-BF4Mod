@@ -74,7 +74,7 @@ public plugin_precache()
 
 	RegisterWeaponForward		(Weapon, WForward_PrimaryAttackPost, 	"PYTHON_PrimaryPost");
 
-	BF4RegisterWeapon(BF4_TEAM_BOTH, 
+	BF4RegisterWeaponV2("weapon:python", BF4_TEAM_BOTH,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_ASSAULT | BF4_CLASS_SUPPORT | BF4_CLASS_RECON | BF4_CLASS_ENGINEER, 
 		BF4_WEAPONCLASS_PISTOLS, 
 		Weapon,

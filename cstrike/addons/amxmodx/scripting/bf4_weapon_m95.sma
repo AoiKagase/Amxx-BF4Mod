@@ -73,7 +73,7 @@ public plugin_precache()
 	PrecacheWeaponModelSounds	(Weapon);
 	PrecacheWeaponListSprites	(Weapon);
 
-	BF4RegisterWeapon(BF4_TEAM_US, 
+	BF4RegisterWeaponV2("weapon:m95", BF4_TEAM_US,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_RECON, 
 		BF4_WEAPONCLASS_SNIPERS,
 		Weapon,

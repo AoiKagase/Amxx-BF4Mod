@@ -1,2 +1,7 @@
 
 *.amxx
+/build/
+__pycache__/
+*.pyc
+/.focalspan/
+/.serena/

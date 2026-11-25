@@ -342,11 +342,13 @@ enum _:TRIPMINE_SOUND
 //====================================================
 //  Enum Area.
 //====================================================
-new gPlayerData				[MAX_PLAYERS][PLAYER_DATA];
+new gPlayerData				[MAX_PLAYERS + 1][PLAYER_DATA];
 new gEntMine;
 new gMsgData				[E_MESSAGES];
 
-new gCPlayerData			[MAX_PLAYERS][COMMON_PLAYER_DATA];
+new gCPlayerData			[MAX_PLAYERS + 1][COMMON_PLAYER_DATA];
+new gMineSession[MAX_PLAYERS + 1];
+new gBeamTrace;
 // new const Float:gModelMargin[] = {0.0, 0.0, -2.0};
 new gDecalIndexExplosion	[MAX_EXPLOSION_DECALS];
 new gDecalIndexBlood		[MAX_BLOOD_DECALS];
@@ -376,7 +378,7 @@ public plugin_precache()
 	precache_generic("sprites/bf4_ranks/weapons/weapon_claymore.txt");
 	LoadDecals();
 
-	gWpnSystemId = BF4RegisterWeapon(BF4_TEAM_BOTH, 
+	gWpnSystemId = BF4RegisterWeaponV2("weapon:claymore", BF4_TEAM_BOTH,
 		BF4_CLASS_SELECTABLE | BF4_CLASS_SUPPORT | BF4_CLASS_ENGINEER, 
 		BF4_WEAPONCLASS_EQUIP, 
 		-1,
@@ -396,6 +398,7 @@ public plugin_precache()
 //====================================================
 public plugin_init()
 {
+	gBeamTrace = create_tr2();
 	register_plugin		(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_AUTHOR);
 	register_cvar		(PLUGIN_NAME, PLUGIN_VERSION, FCVAR_SPONLY|FCVAR_SERVER);
 
@@ -716,18 +719,51 @@ public PlayerSpawn(id)
 /// =======================================================================================
 public client_putinserver(id)
 {
+	gMineSession[id]++;
+	delete_task(id);
+	arrayset(gPlayerData[id], 0, sizeof gPlayerData[]);
+	arrayset(gCPlayerData[id], 0, sizeof gCPlayerData[]);
 	// Check plugin enabled.
 	if (!gCvar[CVAR_ENABLE])
 		return PLUGIN_CONTINUE;
 
-	mines_reset_have_mines(id);
+	if (!is_user_bot(id))
+		mines_reset_have_mines(id);
 
 	return PLUGIN_CONTINUE;
 }
 
 public client_disconnected(id)
 {
+	gMineSession[id]++;
+	delete_task(id);
 	remove_target_entity(id, ENTITY_CLASS_NAME[WPN_CLAYMORE]);
+	if (pev_valid(gPlayerData[id][PL_DEPLOY_MINE_ID]))
+		mines_remove_entity(gPlayerData[id][PL_DEPLOY_MINE_ID]);
+	arrayset(gPlayerData[id], 0, sizeof gPlayerData[]);
+	arrayset(gCPlayerData[id], 0, sizeof gCPlayerData[]);
+}
+
+public plugin_end()
+{
+	for (new id = 1; id <= MAX_PLAYERS; id++)
+	{
+		delete_task(id);
+		remove_target_entity(id, ENTITY_CLASS_NAME[WPN_CLAYMORE]);
+	}
+	if (gBeamTrace) free_tr2(gBeamTrace);
+	gBeamTrace = 0;
+}
+
+stock mines_schedule_task(id, Float:delay, const callback[], taskBase)
+{
+	new session[1]; session[0] = gMineSession[id];
+	set_task_ex(delay, callback, taskBase + id, session, sizeof session);
+}
+
+stock bool:mines_valid_task(id, const session[])
+{
+	return id >= 1 && id <= MAX_PLAYERS && is_user_connected(id) && session[0] == gMineSession[id];
 }
 
 public PlayerKilled(iVictim, iAttacker)
@@ -1029,7 +1065,7 @@ public mines_progress_deploy(id)
 		}
 		mines_show_progress(id, int:floatround(ACTIVATE_TIME));
 		// Start Task. Put mines.
-		set_task_ex(ACTIVATE_TIME, "SpawnMine", (TASK_PLANT + id));
+		mines_schedule_task(id, ACTIVATE_TIME, "SpawnMine", TASK_PLANT);
 	}
 	else
 		mines_progress_stop(id);
@@ -1051,7 +1087,7 @@ public mines_progress_pickup(id)
 	mines_set_user_deploy_state(id, int:STATE_PICKING);
 
 	// Start Task. Remove mines.
-	set_task(ACTIVATE_TIME, "RemoveMine", (TASK_RELEASE + id));
+	mines_schedule_task(id, ACTIVATE_TIME, "RemoveMine", TASK_RELEASE);
 
 	return PLUGIN_HANDLED;
 }
@@ -1222,10 +1258,12 @@ stock mines_hide_progress(id)
 //====================================================
 // Task: Spawn mines.
 //====================================================
-public SpawnMine(taskid)
+public SpawnMine(const session[], taskid)
 {
 	// Task Number to uID.
 	new uID = taskid - TASK_PLANT;
+	if (!mines_valid_task(uID, session) || !is_user_alive(uID))
+		return PLUGIN_HANDLED_MAIN;
 
 	// is Valid?
 	new iEnt	 = gPlayerData[uID][PL_DEPLOY_MINE_ID];
@@ -2107,10 +2145,10 @@ mines_step_beamup(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 {
 	static iTarget;
-	static trace;
+	new trace = gBeamTrace;
+	if (!trace) return false;
 	static Float:fFraction;
 	static Float:vOrigin[3];
-	static Float:hitPoint[3];
 
 	// Get owner id.
 	new iOwner;
@@ -2119,17 +2157,12 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 
 	for(new i = 0; i < WIRE_COUNT; i++)
 	{
-		// create the trace handle.
-		trace = create_tr2();
 		// Trace line
 		engfunc(EngFunc_TraceLine, vOrigin, vEnd[i], DONT_IGNORE_MONSTERS, iEnt, trace);
 		{
 			get_tr2(trace, TR_flFraction, fFraction);
 			iTarget		= get_tr2(trace, TR_pHit);
-			get_tr2(trace, TR_vecEndPos, hitPoint);				
 		}
-		// free the trace handle.
-		free_tr2(trace);
 
 		// Something has passed the laser.
 		if (fFraction >= 1.0)
@@ -2162,18 +2195,6 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 		CED_SetCell(iEnt, CM_STEP, EXPLOSE_THINK);
 	}
 
-	// Get mine health.
-	static Float:fHealth;
-	mines_get_health(iEnt, fHealth);
-
-	// break?
-	// if (fHealth <= 0.0)
-	// {
-	// 	// next step explosion.
-	// 	set_pev(iEnt, pev_nextthink, fCurrTime + random_float( 0.1, 0.3 ));
-	// 	CED_SetCell(iEnt, CM_STEP, EXPLOSE_THINK);
-	// }
-				
 	// Think time. random_float = laser line blinking.
 	set_pev(iEnt, pev_nextthink, fCurrTime + random_float(0.01, 0.02));
 
@@ -2410,7 +2431,7 @@ stock mines_glow(iEnt)
 //====================================================
 // Task: Remove Lasermine.
 //====================================================
-public RemoveMine(id)
+public RemoveMine(const session[], id)
 {
 	new target, body;
 	new Float:vOrigin[3];
@@ -2418,6 +2439,7 @@ public RemoveMine(id)
 
 	// Task Number to uID.
 	new uID = id - TASK_RELEASE;
+	if (!mines_valid_task(uID, session) || !is_user_alive(uID)) return;
 
 	// Get target entity.
 	get_user_aiming(uID, target, body);
@@ -2597,7 +2619,7 @@ PLAYER_DEPLOY_STATE:mines_deploy_status(id)
 		case STATE_DEPLOYED:
 		{
 			ExecuteHamB(Ham_CS_Player_ResetMaxSpeed, id);
-			set_task_ex(RELOAD_TIME, "Reload", TASK_PLANT + id);
+			mines_schedule_task(id, RELOAD_TIME, "Reload", TASK_PLANT);
 		}
 		case STATE_RELOAD:
 		{
@@ -2609,9 +2631,10 @@ PLAYER_DEPLOY_STATE:mines_deploy_status(id)
 	return stats;
 }
 
-public Reload(taskid)
+public Reload(const session[], taskid)
 {
 	new id = taskid - TASK_PLANT;
+	if (!mines_valid_task(id, session) || !is_user_alive(id)) return;
 	mines_set_user_deploy_state(id, STATE_RELOAD);
 }
 

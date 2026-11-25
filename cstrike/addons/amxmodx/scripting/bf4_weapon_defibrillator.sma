@@ -11,6 +11,7 @@
 #include <bf4weapons>
 #include <reapi>
 #include <cswm>
+#include <bf4/session_tasks>
 
 //=====================================
 //  VERSION CHECK
@@ -217,7 +218,7 @@ public plugin_precache()
 	precache_generic("sprites/bf4_ranks/weapons/weapon_defibrillator.txt");
 	precache_generic("sprites/bf4_ranks/weapons/weapon_defibrillator.spr");
 
-	gWpnSystemId = BF4RegisterWeapon(BF4_TEAM_BOTH, 
+	gWpnSystemId = BF4RegisterWeaponV2("weapon:defibrillator", BF4_TEAM_BOTH,
 		BF4_CLASS_REQUIRE | BF4_CLASS_ASSAULT, 
 		BF4_WEAPONCLASS_MELEE, 
 		-1,
@@ -619,13 +620,20 @@ public BF4ObjectThink(iEnt)
 
 public client_putinserver(id)
 {
+	BF4TaskReset(id);
 	player_reset(id);
+	arrayset(g_player_data[id], 0, sizeof g_player_data[]);
+	gObjectItem[id] = 0;
 }
 
 public client_disconnected(id)
 {
+	BF4TaskReset(id);
 	player_reset(id);
 	remove_target_entity_by_owner(id, ENTITY_CLASS_NAME[CORPSE]);
+	remove_target_entity_by_owner(id, ENTITY_CLASS_NAME[R_KIT]);
+	gObjectItem[id] = 0;
+	arrayset(g_player_data[id], 0, sizeof g_player_data[]);
 }
 
 public PlayerKilled(iVictim, iAttacker)
@@ -643,16 +651,17 @@ public PlayerKilled(iVictim, iAttacker)
 	g_player_data[iVictim][DEAD_LINE] = get_gametime();
 
 	if (g_cvars[RKIT_DEATH_TIME] > 0)
-		set_task_ex(1.0, "PlayerDie", 	  TASKID_DIE_COUNT 		 + iVictim, _, _, SetTaskFlags:SetTask_Repeat);
-	set_task_ex(0.5, "TaskCheckDeadFlag", TASKID_CHECK_DEAD_FLAG + iVictim, _, _, SetTaskFlags:SetTask_Repeat);
+		BF4ScheduleTask(1.0, "PlayerDie", iVictim, TASKID_DIE_COUNT + iVictim, true);
+	BF4ScheduleTask(0.5, "TaskCheckDeadFlag", iVictim, TASKID_CHECK_DEAD_FLAG + iVictim, true);
 
 	return HAM_IGNORED;
 }
 
 #define GUAGE_MAX 30
-public PlayerDie(taskid)
+public PlayerDie(const session[], taskid)
 {
 	new id = taskid - TASKID_DIE_COUNT;
+	if (!BF4TaskAccept(id, session, taskid)) return PLUGIN_CONTINUE;
 	new Float:time = (get_gametime() - g_player_data[id][DEAD_LINE]);
 	new Float:remaining = 0.0;
 	new bar[31] = "";
@@ -695,18 +704,19 @@ public PlayerDie(taskid)
 public PlayerSpawn(id)
 {
 	if (g_player_data[id][IS_RESPAWNING])
-		set_task(0.1, "TaskOrigin",  TASKID_ORIGIN + id);
+		BF4ScheduleTask(0.1, "TaskOrigin", id, TASKID_ORIGIN + id);
 	else 
 		player_respawn_reset(id);		
 
 	g_player_data[id][IS_RESPAWNING] = false;
 
-	set_task_ex(0.1, "TaskSpawn", TASKID_SPAWN + id);
+	BF4ScheduleTask(0.1, "TaskSpawn", id, TASKID_SPAWN + id);
 }
 
-public TaskSpawn(taskid)
+public TaskSpawn(const session[], taskid)
 {
 	new id = taskid - TASKID_SPAWN;
+	if (!BF4TaskAccept(id, session, taskid)) return;
 	remove_target_entity_by_owner(id, ENTITY_CLASS_NAME[CORPSE]);
 	remove_target_entity_by_owner(id, ENTITY_CLASS_NAME[R_KIT]);
 
@@ -764,7 +774,7 @@ public wait_revive(id)
 	g_player_data[id][REVIVE_DELAY] = (gametime + g_cvars[RKIT_TIME] - 0.01);
 
 //	emit_sound(id, CHAN_AUTO, ENT_SOUNDS[SOUND_START], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-	set_task_ex(0.1, "TaskRevive", TASKID_REVIVING + id, _,_, SetTaskFlags:SetTask_Repeat);
+	BF4ScheduleTask(0.1, "TaskRevive", id, TASKID_REVIVING + id, true);
 
 	return FMRES_HANDLED;
 }
@@ -786,9 +796,10 @@ stock CheckDeadBody(id)
 	return true;
 }
 
-public TaskCheckDeadFlag(taskid)
+public TaskCheckDeadFlag(const session[], taskid)
 {
 	new id = taskid - TASKID_CHECK_DEAD_FLAG;
+	if (!BF4TaskAccept(id, session, taskid)) return;
 	if(!is_user_connected(id))
 		return;
 	
@@ -799,9 +810,10 @@ public TaskCheckDeadFlag(taskid)
 	}
 }	
 
-public TaskRevive(taskid)
+public TaskRevive(const session[], taskid)
 {
 	new id = taskid - TASKID_REVIVING;
+	if (!BF4TaskAccept(id, session, taskid)) return PLUGIN_CONTINUE;
 	new target, body;
 
 	if (!can_target_revive(id, target, body))
@@ -823,16 +835,19 @@ public TaskRevive(taskid)
 			BF4TriggerGetRibbon(id, BF4_RNK_REVIVE, "Defibrillator Point.");
 			set_pev(body, pev_flags, pev(body, pev_flags) | FL_KILLME);			
 //			emit_sound(id, CHAN_AUTO, ENT_SOUNDS[SOUND_FINISHED], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-			set_task(0.1, "TaskReSpawn", TASKID_RESPAWN + target);
+			BF4ScheduleTask(0.1, "TaskReSpawn", target, TASKID_RESPAWN + target);
 			remove_task(taskid);
 		}
 	}
 	return PLUGIN_CONTINUE;
 }
 
- public TaskReSpawn(taskid) 
+ public TaskReSpawn(const session[], taskid)
  {
 	new id = taskid - TASKID_RESPAWN;
+	// Objective redeployment may finish before this delayed revival callback.
+	if (!BF4TaskAccept(id, session, taskid) || is_user_alive(id))
+		return;
 	
 	// set_pev(id, pev_deadflag, DEAD_RESPAWNABLE);
 	// dllfunc(DLLFunc_Spawn, id);
@@ -842,44 +857,48 @@ public TaskRevive(taskid)
 	// set_task(0.1, "TaskCheckReSpawn", TASKID_CHECKRE + id);
 }
 
-public TaskCheckReSpawn(taskid)
+public TaskCheckReSpawn(const session[], taskid)
 {
 	new id = taskid - TASKID_CHECKRE;
+	if (!BF4TaskAccept(id, session, taskid)) return;
 	
 	if(pev(id, pev_iuser1))
-		set_task(0.1, "TaskReSpawn", TASKID_RESPAWN + id);
+		BF4ScheduleTask(0.1, "TaskReSpawn", id, TASKID_RESPAWN + id);
 	else
-		set_task(0.1, "TaskOrigin",  TASKID_ORIGIN + id);
+		BF4ScheduleTask(0.1, "TaskOrigin", id, TASKID_ORIGIN + id);
 }
 
-public TaskOrigin(taskid)
+public TaskOrigin(const session[], taskid)
 {
 	new id = taskid - TASKID_ORIGIN;
+	if (!BF4TaskAccept(id, session, taskid)) return;
 	engfunc(EngFunc_SetOrigin, id, g_player_data[id][BODY_ORIGIN]);
 	
 	static  Float:origin[3];
 	pev(id, pev_origin, origin);
 	set_pev(id, pev_zorigin, origin[2]);
 		
-	set_task(0.1, "TaskStuckCheck", TASKID_CHECKST + id);
+	BF4ScheduleTask(0.1, "TaskStuckCheck", id, TASKID_CHECKST + id);
 }
 
-public TaskStuckCheck(taskid)
+public TaskStuckCheck(const session[], taskid)
 {
 	new id = taskid - TASKID_CHECKST;
+	if (!BF4TaskAccept(id, session, taskid)) return;
 
 	static Float:origin[3];
 	pev(id, pev_origin, origin);
 	
 	if(origin[2] == pev(id, pev_zorigin))
-		set_task(0.1, "TaskCheckReSpawn",   TASKID_RESPAWN + id);
+		BF4ScheduleTask(0.1, "TaskCheckReSpawn", id, TASKID_CHECKRE + id);
 	else
-		set_task(0.1, "TaskSetplayer", 		TASKID_SETUSER + id);
+		BF4ScheduleTask(0.1, "TaskSetplayer", id, TASKID_SETUSER + id);
 }
 
-public TaskSetplayer(taskid)
+public TaskSetplayer(const session[], taskid)
 {
 	new id = taskid - TASKID_SETUSER;
+	if (!BF4TaskAccept(id, session, taskid)) return;
 	
 	new entity = -1;
 	new Float:vOrigin[3];
@@ -1078,6 +1097,8 @@ stock bool:is_hull_vacant(const Float:origin[3])
 
 stock player_reset(id)
 {
+	remove_task(TASKID_SPAWN + id);
+	remove_task(TASKID_CHECK_DEAD_FLAG + id);
 	remove_task(TASKID_DIE_COUNT + id);
 	remove_task(TASKID_REVIVING  + id);
 	remove_task(TASKID_RESPAWN   + id);
@@ -1098,6 +1119,8 @@ stock player_reset(id)
 
 stock player_respawn_reset(id)
 {
+	remove_task(TASKID_SPAWN + id);
+	remove_task(TASKID_CHECK_DEAD_FLAG + id);
 	remove_task(TASKID_DIE_COUNT + id);
 	remove_task(TASKID_REVIVING  + id);
 	remove_task(TASKID_RESPAWN   + id);
